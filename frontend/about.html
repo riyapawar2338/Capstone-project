@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>About — AI Internship System</title>
+<link rel="stylesheet" href="style.css"/>
+<style>
+.obj-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
+.obj-item{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius);padding:1.25rem;transition:var(--transition)}
+.obj-item:hover{border-color:rgba(0,180,216,.4);transform:translateY(-3px)}
+.obj-num{font-family:var(--font-mono);font-size:.75rem;color:var(--cyan);margin-bottom:.5rem}
+.tech-stack{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem}
+.tech-item{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius);padding:1.25rem;text-align:center;transition:var(--transition)}
+.tech-item:hover{border-color:var(--cyan);box-shadow:var(--shadow-glow)}
+.scope-item{display:flex;gap:.75rem;align-items:flex-start;margin-bottom:.75rem}
+.scope-dot{width:8px;height:8px;background:var(--cyan);border-radius:50%;margin-top:.45rem;flex-shrink:0}
+.arch-flow{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;justify-content:center;padding:2rem 0}
+.arch-box{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius);padding:.85rem 1.25rem;text-align:center;min-width:130px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:3rem;margin-bottom:2.5rem}
+.footer-col h4{font-family:var(--font-head);font-size:.9rem;margin-bottom:1rem;color:var(--white)}
+.footer-col ul{display:flex;flex-direction:column;gap:.5rem}
+.footer-col ul a{color:var(--muted);font-size:.875rem}.footer-col ul a:hover{color:var(--cyan)}
+@media(max-width:768px){.obj-grid{grid-template-columns:1fr}.tech-stack{grid-template-columns:repeat(2,1fr)}.footer-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<nav class="navbar">
+  <a href="index.html" class="nav-brand"><div class="brand-icon">🤖</div><span>AI Internship System</span></a>
+  <div class="nav-links">
+    <a href="index.html">Home</a><a href="about.html">About</a>
+    <a href="student-dashboard.html">Dashboard</a><a href="recommendations.html">Internships</a>
+    <a href="admin-dashboard.html" id="navAdmin" class="hidden">Admin Panel</a><a href="contact.html">Contact</a>
+    <span id="navAuthLink"></span>
+  </div>
+  <div id="navUserPill" style="display:flex;align-items:center"></div>
+  <button class="nav-toggle"><span></span><span></span><span></span></button>
+</nav>
+<div class="page-wrapper">
+  <div class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html">Home</a><span class="sep">›</span><span>About Project</span></div>
+      <h1>About the Project</h1>
+      <p>Problem statement, objectives, scope, technologies and system architecture.</p>
+    </div>
+  </div>
+
+  <!-- PROBLEM -->
+  <section>
+    <div class="container">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center">
+        <div>
+          <div class="section-label">Problem Statement</div>
+          <h2 class="section-title">The Challenge We Solve</h2>
+          <p style="color:var(--muted);line-height:1.9;margin-bottom:1rem">Diploma students face significant challenges finding internships aligned with their skills and career goals. Traditional placement processes are manual, time-consuming and often fail to make optimal matches.</p>
+          <p style="color:var(--muted);line-height:1.9;margin-bottom:1.5rem">Administrators struggle to allocate limited internship slots efficiently across hundreds of students, leading to suboptimal placements and missed opportunities.</p>
+          <div>
+            <div class="scope-item"><div class="scope-dot"></div><div style="font-size:.9rem;color:var(--white-2)">Manual profile screening is inefficient and inconsistent</div></div>
+            <div class="scope-item"><div class="scope-dot"></div><div style="font-size:.9rem;color:var(--white-2)">Students lack visibility into available internship opportunities</div></div>
+            <div class="scope-item"><div class="scope-dot"></div><div style="font-size:.9rem;color:var(--white-2)">No systematic skill-to-opportunity matching mechanism</div></div>
+            <div class="scope-item"><div class="scope-dot"></div><div style="font-size:.9rem;color:var(--white-2)">Administrative overhead in tracking applications and allocations</div></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div class="stat-card"><div class="stat-number">70%</div><div class="stat-label">Students placed suboptimally</div></div>
+          <div class="stat-card"><div class="stat-number">40hrs</div><div class="stat-label">Admin time wasted weekly</div></div>
+          <div class="stat-card"><div class="stat-number">3x</div><div class="stat-label">Faster with AI matching</div></div>
+          <div class="stat-card"><div class="stat-number">95%</div><div class="stat-label">Match accuracy achieved</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OBJECTIVES -->
+  <section style="background:var(--navy-2)">
+    <div class="container">
+      <div class="section-label">Objectives</div>
+      <h2 class="section-title">Project Objectives</h2>
+      <p class="section-sub mb-4">Six core objectives guide the design and development of this system.</p>
+      <div class="obj-grid">
+        <div class="obj-item"><div class="obj-num">OBJ — 01</div><div style="font-size:.9rem;color:var(--white-2);line-height:1.6">Develop an AI-powered recommendation engine that matches student profiles with relevant internship opportunities using multi-factor analysis.</div></div>
+        <div class="obj-item"><div class="obj-num">OBJ — 02</div><div style="font-size:.9rem;color:var(--white-2);line-height:1.6">Implement role-based authentication so students access their dashboard and admins manage the entire platform.</div></div>
+        <div class="obj-item"><div class="obj-num">OBJ — 03</div><div style="font-size:.9rem;color:var(--white-2);line-height:1.6">Create a comprehensive Student Management System with full CRUD operations including skills, certifications and projects.</div></div>
+        <div class="obj-item"><div class="obj-num">OBJ — 04</div><div style="font-size:.9rem;color:var(--white-2);line-height:1.6">Build an Admin Dashboard with live analytics, allocation tracking, status management and downloadable CSV reports.</div></div>
+        <div class="obj-item"><div class="obj-num">OBJ — 05</div><div style="font-size:.9rem;color:var(--white-2);line-height:1.6">Implement a scoring algorithm that considers CGPA, technical skills, domain preferences and interests for match calculation.</div></div>
+        <div class="obj-item"><div class="obj-num">OBJ — 06</div><div style="font-size:.9rem;color:var(--white-2);line-height:1.6">Enable persistent data storage using browser LocalStorage for seamless student profile management without backend server requirements.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECHNOLOGIES -->
+  <section>
+    <div class="container">
+      <div class="text-center mb-4">
+        <div class="section-label">Stack</div>
+        <h2 class="section-title">Technologies Used</h2>
+      </div>
+      <div class="tech-stack">
+        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🌐</div><div style="font-weight:600;font-size:.9rem">HTML5</div><div style="color:var(--muted);font-size:.75rem">Semantic Markup</div></div>
+        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🎨</div><div style="font-weight:600;font-size:.9rem">CSS3</div><div style="color:var(--muted);font-size:.75rem">Variables, Grid, Animations</div></div>
+        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">⚡</div><div style="font-weight:600;font-size:.9rem">JavaScript</div><div style="color:var(--muted);font-size:.75rem">DOM, Auth, LocalStorage</div></div>
+        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">💾</div><div style="font-weight:600;font-size:.9rem">LocalStorage API</div><div style="color:var(--muted);font-size:.75rem">Client-side Persistence</div></div>
+        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🤖</div><div style="font-weight:600;font-size:.9rem">AI Algorithm</div><div style="color:var(--muted);font-size:.75rem">Custom Match Scoring</div></div>
+        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🔐</div><div style="font-weight:600;font-size:.9rem">Role-Based Auth</div><div style="color:var(--muted);font-size:.75rem">Admin vs Student Access</div></div>
+        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">📐</div><div style="font-weight:600;font-size:.9rem">CSS Grid/Flexbox</div><div style="color:var(--muted);font-size:.75rem">Responsive Layouts</div></div>
+        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🌟</div><div style="font-weight:600;font-size:.9rem">Glassmorphism UI</div><div style="color:var(--muted);font-size:.75rem">Modern Design System</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section style="background:var(--navy-2)">
+    <div class="container">
+      <div class="text-center mb-4">
+        <div class="section-label">Architecture</div>
+        <h2 class="section-title">System Architecture</h2>
+      </div>
+      <div class="card" style="padding:2rem">
+        <div style="margin-bottom:1.5rem;text-align:center"><span class="badge badge-cyan">Presentation Layer — HTML Pages</span></div>
+        <div class="arch-flow">
+          <div class="arch-box"><div style="font-size:1.3rem">🔐</div><div style="font-weight:600;font-size:.82rem">login.html</div><div style="font-size:.7rem;color:var(--muted)">Auth Gate</div></div>
+          <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">→</div>
+          <div class="arch-box"><div style="font-size:1.3rem">🏠</div><div style="font-weight:600;font-size:.82rem">index.html</div><div style="font-size:.7rem;color:var(--muted)">Home</div></div>
+          <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">→</div>
+          <div class="arch-box"><div style="font-size:1.3rem">👤</div><div style="font-weight:600;font-size:.82rem">student-management</div><div style="font-size:.7rem;color:var(--muted)">CRUD Profiles</div></div>
+          <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">→</div>
+          <div class="arch-box"><div style="font-size:1.3rem">📊</div><div style="font-weight:600;font-size:.82rem">student-dashboard</div><div style="font-size:.7rem;color:var(--muted)">Student View</div></div>
+          <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">→</div>
+          <div class="arch-box"><div style="font-size:1.3rem">⚙️</div><div style="font-weight:600;font-size:.82rem">admin-dashboard</div><div style="font-size:.7rem;color:var(--muted)">Admin Only</div></div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--glass-border);margin:1.5rem 0"/>
+        <div style="margin-bottom:1.5rem;text-align:center"><span class="badge badge-purple">Logic Layer — script.js</span></div>
+        <div class="arch-flow">
+          <div class="arch-box"><div style="font-size:1.3rem">🔐</div><div style="font-weight:600;font-size:.82rem">Auth Object</div><div style="font-size:.7rem;color:var(--muted)">Session mgmt</div></div>
+          <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">→</div>
+          <div class="arch-box"><div style="font-size:1.3rem">🧠</div><div style="font-weight:600;font-size:.82rem">calcMatchScore()</div><div style="font-size:.7rem;color:var(--muted)">AI Engine</div></div>
+          <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">→</div>
+          <div class="arch-box"><div style="font-size:1.3rem">💾</div><div style="font-weight:600;font-size:.82rem">Store Object</div><div style="font-size:.7rem;color:var(--muted)">CRUD ops</div></div>
+          <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">→</div>
+          <div class="arch-box"><div style="font-size:1.3rem">🔔</div><div style="font-weight:600;font-size:.82rem">showToast()</div><div style="font-size:.7rem;color:var(--muted)">Notifications</div></div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--glass-border);margin:1.5rem 0"/>
+        <div style="margin-bottom:1.5rem;text-align:center"><span class="badge badge-green">Data Layer — Browser LocalStorage</span></div>
+        <div class="arch-flow">
+          <div class="arch-box"><div style="font-size:1.3rem">👥</div><div style="font-weight:600;font-size:.82rem">aiias_users</div><div style="font-size:.7rem;color:var(--muted)">Login accounts</div></div>
+          <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">↔</div>
+          <div class="arch-box"><div style="font-size:1.3rem">🎓</div><div style="font-weight:600;font-size:.82rem">aiias_students</div><div style="font-size:.7rem;color:var(--muted)">Student profiles</div></div>
+          <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">↔</div>
+          <div class="arch-box"><div style="font-size:1.3rem">🏢</div><div style="font-weight:600;font-size:.82rem">aiias_internships</div><div style="font-size:.7rem;color:var(--muted)">Listings</div></div>
+          <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">↔</div>
+          <div class="arch-box"><div style="font-size:1.3rem">📋</div><div style="font-weight:600;font-size:.82rem">aiias_applications</div><div style="font-size:.7rem;color:var(--muted)">Applications</div></div>
+          <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">↔</div>
+          <div class="arch-box"><div style="font-size:1.3rem">🔑</div><div style="font-weight:600;font-size:.82rem">aiias_session</div><div style="font-size:.7rem;color:var(--muted)">Current user</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI SCORING -->
+  <section>
+    <div class="container">
+      <div class="text-center mb-4"><div class="section-label">AI Engine</div><h2 class="section-title">How AI Scoring Works</h2></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem">
+        <div class="stat-card" style="text-align:center"><div style="font-size:2rem;margin-bottom:.5rem">⚡</div><div class="stat-number" style="color:var(--cyan)">40%</div><div class="stat-label">Technical Skills</div><div style="color:var(--muted);font-size:.78rem;margin-top:.5rem">Overlap between student skills and required skills</div></div>
+        <div class="stat-card" style="text-align:center"><div style="font-size:2rem;margin-bottom:.5rem">🎯</div><div class="stat-number" style="color:var(--accent-2)">25%</div><div class="stat-label">Domain Match</div><div style="color:var(--muted);font-size:.78rem;margin-top:.5rem">Preferred domain vs internship domain alignment</div></div>
+        <div class="stat-card" style="text-align:center"><div style="font-size:2rem;margin-bottom:.5rem">📚</div><div class="stat-number" style="color:var(--success)">20%</div><div class="stat-label">Academic Score</div><div style="color:var(--muted);font-size:.78rem;margin-top:.5rem">CGPA vs minimum CGPA requirement</div></div>
+        <div class="stat-card" style="text-align:center"><div style="font-size:2rem;margin-bottom:.5rem">❤️</div><div class="stat-number" style="color:var(--warning)">15%</div><div class="stat-label">Interest Match</div><div style="color:var(--muted);font-size:.78rem;margin-top:.5rem">Areas of interest and certifications relevance</div></div>
+      </div>
+      <div class="card mt-4" style="padding:1.5rem;margin-top:1.5rem;text-align:center">
+        <div style="font-family:var(--font-mono);font-size:.85rem;color:var(--cyan);margin-bottom:.75rem">Score Formula</div>
+        <div style="font-family:var(--font-mono);font-size:1.1rem;color:var(--white);background:rgba(0,180,216,.08);padding:1rem;border-radius:var(--radius);display:inline-block">
+          Match Score = Skills(40) + Domain(25) + CGPA(20) + Interest(15) = 0–100%
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div><div class="nav-brand" style="margin-bottom:.75rem"><div class="brand-icon">🤖</div><span>AI Internship System</span></div><p style="color:var(--muted);font-size:.875rem;line-height:1.7">Final Year Diploma Capstone Project.</p></div>
+        <div class="footer-col"><h4>Navigation</h4><ul><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="recommendations.html">Internships</a></li><li><a href="contact.html">Contact</a></li></ul></div>
+        <div class="footer-col"><h4>Features</h4><ul><li><a href="login.html">Login</a></li><li><a href="student-dashboard.html">Dashboard</a></li><li><a href="admin-dashboard.html">Admin</a></li></ul></div>
+        <div class="footer-col"><h4>Project</h4><ul><li><a href="#">Final Year Diploma</a></li><li><a href="#">Capstone Project</a></li><li><a href="#">Computer Engineering</a></li></ul></div>
+      </div>
+      <div style="border-top:1px solid var(--glass-border);padding-top:1.5rem;text-align:center;color:var(--muted);font-size:.8rem"><p>© 2025 AI Internship Allocation &amp; Recommendation System</p></div>
+    </div>
+  </footer>
+</div>
+<div id="toastContainer" class="toast-container"></div>
+<script src="script.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var session = Auth.getSession();
+  if (session && session.role === 'admin') document.getElementById('navAdmin').classList.remove('hidden');
+  var al = document.getElementById('navAuthLink');
+  if (al) al.innerHTML = !session ? '<a href="login.html" class="nav-cta btn">Login</a>' : '';
+});
+</script>
+</body>
+</html>

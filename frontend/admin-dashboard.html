@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard — AI Internship System</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* ── Admin Layout ───────────────────────────────────── */
+    .admin-layout { display:grid; grid-template-columns:240px 1fr; min-height:calc(100vh - 64px); }
+
+    /* Sidebar */
+    .admin-sidebar {
+      background:var(--navy-2); border-right:1px solid var(--glass-border);
+      padding:1.5rem 0; position:sticky; top:64px; height:calc(100vh - 64px);
+      overflow-y:auto; display:flex; flex-direction:column;
+    }
+    .sidebar-section { margin-bottom:.5rem; }
+    .sidebar-label { font-family:var(--font-mono); font-size:.65rem; color:var(--muted); letter-spacing:.12em; text-transform:uppercase; padding:.5rem 1.5rem; }
+    .sidebar-link {
+      display:flex; align-items:center; gap:.75rem; padding:.65rem 1.5rem;
+      color:var(--white-2); font-size:.875rem; cursor:pointer; transition:var(--transition);
+      border:none; background:none; width:100%; text-align:left;
+    }
+    .sidebar-link:hover  { color:var(--white); background:var(--glass-bg-2); }
+    .sidebar-link.active { color:var(--cyan); background:rgba(0,180,216,.1); border-right:2px solid var(--cyan); }
+    .sidebar-link .sicon { font-size:1rem; width:20px; text-align:center; }
+    .sidebar-link .sbadge { margin-left:auto; font-family:var(--font-mono); font-size:.7rem; background:rgba(0,180,216,.2); color:var(--cyan); padding:.1rem .45rem; border-radius:8px; }
+
+    /* Main Content */
+    .admin-main { padding:2rem; overflow-x:hidden; }
+    .admin-page  { display:none; }
+    .admin-page.active { display:block; animation:fadeIn .25s ease; }
+
+    /* Top bar */
+    .admin-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
+    .admin-topbar h2 { font-family:var(--font-head); font-size:1.6rem; font-weight:800; }
+    .admin-topbar p  { color:var(--muted); font-size:.875rem; margin-top:.2rem; }
+
+    /* Stat grid */
+    .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:1.25rem; margin-bottom:2rem; }
+
+    /* Chart area */
+    .chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:2rem; }
+    .chart-box  { background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:var(--radius-lg); padding:1.5rem; }
+    .chart-title{ font-family:var(--font-head); font-size:1rem; font-weight:700; margin-bottom:1.25rem; display:flex; align-items:center; justify-content:space-between; }
+
+    /* Bar chart */
+    .bar-chart   { display:flex; align-items:flex-end; gap:.75rem; height:160px; }
+    .bar-col     { display:flex; flex-direction:column; align-items:center; gap:.4rem; flex:1; }
+    .bar-fill    {
+      width:100%; border-radius:6px 6px 0 0;
+      background:linear-gradient(180deg,var(--cyan),var(--blue));
+      transition:height 1s cubic-bezier(.4,0,.2,1);
+      position:relative;
+    }
+    .bar-fill:hover::after {
+      content:attr(data-val); position:absolute; top:-24px; left:50%; transform:translateX(-50%);
+      background:var(--navy-2); color:var(--cyan); font-size:.7rem; padding:.2rem .45rem; border-radius:4px;
+      white-space:nowrap; pointer-events:none;
+    }
+    .bar-label   { font-size:.68rem; color:var(--muted); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; }
+
+    /* Donut chart */
+    .donut-wrap  { display:flex; align-items:center; gap:1.5rem; }
+    .donut-legend{ display:flex; flex-direction:column; gap:.6rem; flex:1; }
+    .legend-item { display:flex; align-items:center; gap:.5rem; font-size:.8rem; }
+    .legend-dot  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+    /* Activity feed */
+    .activity-feed { display:flex; flex-direction:column; gap:.85rem; }
+    .activity-item { display:flex; gap:.9rem; align-items:flex-start; }
+    .act-icon  { width:34px; height:34px; border-radius:10px; background:var(--glass-bg-2); border:1px solid var(--glass-border); display:flex; align-items:center; justify-content:center; font-size:.9rem; flex-shrink:0; }
+    .act-body  { flex:1; }
+    .act-title { font-size:.85rem; color:var(--white-2); }
+    .act-time  { font-size:.72rem; color:var(--muted); margin-top:.15rem; }
+
+    /* Applications table status */
+    .status-dot { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:.35rem; }
+
+    /* Internship management */
+    .int-mgmt-card { background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:var(--radius); padding:1.1rem; display:flex; align-items:center; gap:1rem; transition:var(--transition); }
+    .int-mgmt-card:hover { border-color:rgba(0,180,216,.3); }
+    .int-mgmt-icon { width:42px; height:42px; border-radius:10px; background:var(--glass-bg-2); display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; }
+    .int-mgmt-info { flex:1; min-width:0; }
+    .int-mgmt-title{ font-weight:600; font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .int-mgmt-sub  { font-size:.75rem; color:var(--muted); }
+
+    /* Progress mini */
+    .mini-progress { height:4px; border-radius:2px; background:rgba(255,255,255,.07); overflow:hidden; margin-top:.4rem; }
+    .mini-progress-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--blue),var(--cyan)); }
+
+    /* Allocation tracker */
+    .alloc-card { background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:var(--radius); padding:1.1rem; transition:var(--transition); }
+    .alloc-card:hover { border-color:rgba(0,180,216,.3); }
+
+    /* Report cards */
+    .report-card { background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:var(--radius-lg); padding:1.5rem; text-align:center; cursor:pointer; transition:var(--transition); }
+    .report-card:hover { transform:translateY(-4px); box-shadow:var(--shadow-glow); border-color:rgba(0,180,216,.4); }
+    .report-icon { font-size:2.2rem; margin-bottom:.75rem; }
+    .report-title { font-family:var(--font-head); font-weight:700; margin-bottom:.35rem; }
+    .report-desc  { color:var(--muted); font-size:.8rem; }
+
+    @media(max-width:1024px){
+      .admin-layout { grid-template-columns:1fr; }
+      .admin-sidebar { display:none; }
+      .stats-row { grid-template-columns:repeat(2,1fr); }
+      .chart-grid { grid-template-columns:1fr; }
+    }
+    @media(max-width:640px){ .stats-row { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<nav class="navbar">
+  <a href="index.html" class="nav-brand"><div class="brand-icon">🤖</div><span>AI Internship System</span></a>
+  <div class="nav-links">
+    <a href="index.html">Home</a><a href="about.html">About</a>
+    <a href="student-management.html">Students</a><a href="student-dashboard.html">Dashboard</a>
+    <a href="recommendations.html">Internships</a><a href="admin-dashboard.html">Admin</a>
+    <a href="contact.html">Contact</a>
+    <a href="student-management.html" class="nav-cta btn">+ Add Student</a>
+  </div>
+  <button class="nav-toggle"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page-wrapper" style="padding-top:64px">
+  <div class="admin-layout">
+
+    <!-- ── SIDEBAR ──────────────────────────────────────────── -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Overview</div>
+        <button class="sidebar-link active" data-page="overview" onclick="switchPage('overview',this)">
+          <span class="sicon">📊</span> Overview
+        </button>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Management</div>
+        <button class="sidebar-link" data-page="students" onclick="switchPage('students',this)">
+          <span class="sicon">🎓</span> Students <span class="sbadge" id="sbStudents">0</span>
+        </button>
+        <button class="sidebar-link" data-page="internships" onclick="switchPage('internships',this)">
+          <span class="sicon">🏢</span> Internships <span class="sbadge" id="sbInternships">0</span>
+        </button>
+        <button class="sidebar-link" data-page="applications" onclick="switchPage('applications',this)">
+          <span class="sicon">📋</span> Applications <span class="sbadge" id="sbApps">0</span>
+        </button>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Analytics</div>
+        <button class="sidebar-link" data-page="allocation" onclick="switchPage('allocation',this)">
+          <span class="sicon">🗂️</span> Allocation
+        </button>
+        <button class="sidebar-link" data-page="reports" onclick="switchPage('reports',this)">
+          <span class="sicon">📈</span> Reports
+        </button>
+      </div>
+      <div class="sidebar-section" style="margin-top:auto;padding-top:1rem">
+        <div class="sidebar-label">Quick Actions</div>
+        <a class="sidebar-link" href="student-management.html">
+          <span class="sicon">➕</span> Add Student
+        </a>
+        <a class="sidebar-link" href="recommendations.html">
+          <span class="sicon">🔍</span> Browse Internships
+        </a>
+      </div>
+    </aside>
+
+    <!-- ── MAIN CONTENT ──────────────────────────────────────── -->
+    <main class="admin-main">
+
+      <!-- ── PAGE: OVERVIEW ─────────────────────────────────── -->
+      <div class="admin-page active" id="page-overview">
+        <div class="admin-topbar">
+          <div>
+            <h2>📊 Overview Dashboard</h2>
+            <p>System-wide statistics, analytics, and recent activity.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="refreshAll()">🔄 Refresh</button>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row" id="overviewStats"></div>
+
+        <!-- Charts -->
+        <div class="chart-grid">
+          <!-- Department Bar Chart -->
+          <div class="chart-box">
+            <div class="chart-title">🏫 Students by Department <span class="badge badge-cyan" style="font-size:.7rem">Live</span></div>
+            <div class="bar-chart" id="deptBarChart"></div>
+          </div>
+
+          <!-- Domain Donut -->
+          <div class="chart-box">
+            <div class="chart-title">🎯 Preferred Domains</div>
+            <div class="donut-wrap">
+              <svg id="donutSvg" width="130" height="130" viewBox="0 0 130 130"></svg>
+              <div class="donut-legend" id="donutLegend"></div>
+            </div>
+          </div>
+
+          <!-- CGPA Distribution -->
+          <div class="chart-box">
+            <div class="chart-title">📈 CGPA Distribution</div>
+            <div id="cgpaChart" style="display:flex;flex-direction:column;gap:.6rem"></div>
+          </div>
+
+          <!-- Match Score Overview -->
+          <div class="chart-box">
+            <div class="chart-title">🤖 AI Recommendation Stats</div>
+            <div id="aiStats" style="display:flex;flex-direction:column;gap:1rem"></div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="chart-box">
+          <div class="chart-title">⚡ Recent Activity</div>
+          <div class="activity-feed" id="activityFeed"></div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: STUDENTS ─────────────────────────────────── -->
+      <div class="admin-page" id="page-students">
+        <div class="admin-topbar">
+          <div>
+            <h2>🎓 Student Management</h2>
+            <p>View, search, and manage all registered students.</p>
+          </div>
+          <a href="student-management.html" class="btn btn-primary btn-sm">➕ Add New Student</a>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center">
+              <div class="search-bar" style="flex:1;min-width:200px">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="adminStudentSearch" placeholder="Search students…"/>
+              </div>
+              <select class="form-control" id="adminDeptFilter" style="width:auto;padding:.48rem .9rem;font-size:.85rem">
+                <option value="">All Depts</option>
+                <option>Computer Engineering</option>
+                <option>Information Technology</option>
+                <option>Electronics &amp; Telecom</option>
+                <option>AI &amp; Data Science</option>
+                <option>Mechanical Engineering</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr>
+                <th>#</th><th>Name</th><th>Roll No.</th><th>Department</th>
+                <th>Semester</th><th>CGPA</th><th>Domain</th><th>Skills</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="adminStudentsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: INTERNSHIPS ──────────────────────────────── -->
+      <div class="admin-page" id="page-internships">
+        <div class="admin-topbar">
+          <div>
+            <h2>🏢 Internship Management</h2>
+            <p>All available internship listings with details and application counts.</p>
+          </div>
+          <span class="badge badge-cyan" id="intTotalBadge">0 listings</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.25rem" id="adminIntGrid"></div>
+      </div>
+
+      <!-- ── PAGE: APPLICATIONS ─────────────────────────────── -->
+      <div class="admin-page" id="page-applications">
+        <div class="admin-topbar">
+          <div>
+            <h2>📋 Applications</h2>
+            <p>Track and manage all student internship applications.</p>
+          </div>
+          <div style="display:flex;gap:.5rem">
+            <select class="form-control" id="appStatusFilter" style="width:auto;padding:.48rem .9rem;font-size:.85rem" onchange="renderApplications()">
+              <option value="">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Shortlisted">Shortlisted</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrapper">
+            <table>
+              <thead><tr>
+                <th>#</th><th>Student</th><th>Roll No.</th><th>Internship</th>
+                <th>Company</th><th>Match</th><th>Applied</th><th>Status</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="applicationsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: ALLOCATION ───────────────────────────────── -->
+      <div class="admin-page" id="page-allocation">
+        <div class="admin-topbar">
+          <div>
+            <h2>🗂️ Allocation Tracking</h2>
+            <p>View student-to-internship allocations and manage placements.</p>
+          </div>
+        </div>
+
+        <!-- Allocation Summary -->
+        <div class="stats-row" id="allocStats"></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:2rem">
+          <!-- Top Matched Students -->
+          <div class="chart-box">
+            <div class="chart-title">🏆 Top Matched Students</div>
+            <div style="display:flex;flex-direction:column;gap:.85rem" id="topMatchedList"></div>
+          </div>
+          <!-- Domain-wise Allocation -->
+          <div class="chart-box">
+            <div class="chart-title">📌 Domain-wise Applications</div>
+            <div id="domainAlloc" style="display:flex;flex-direction:column;gap:.75rem"></div>
+          </div>
+        </div>
+
+        <!-- Full Allocation Table -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-header"><h3>📋 Allocation Summary Table</h3></div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr>
+                <th>#</th><th>Student</th><th>Department</th><th>CGPA</th>
+                <th>Preferred Domain</th><th>Best Match</th><th>Score</th><th>Status</th>
+              </tr></thead>
+              <tbody id="allocationTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PAGE: REPORTS ──────────────────────────────────── -->
+      <div class="admin-page" id="page-reports">
+        <div class="admin-topbar">
+          <div>
+            <h2>📈 Analytics &amp; Reports</h2>
+            <p>Comprehensive system insights, statistics, and downloadable reports.</p>
+          </div>
+        </div>
+
+        <!-- Report Cards -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1.25rem;margin-bottom:2rem">
+          <div class="report-card" onclick="generateReport('students')">
+            <div class="report-icon">🎓</div>
+            <div class="report-title">Student Report</div>
+            <div class="report-desc">All students with skills and CGPA data</div>
+          </div>
+          <div class="report-card" onclick="generateReport('applications')">
+            <div class="report-icon">📋</div>
+            <div class="report-title">Applications Report</div>
+            <div class="report-desc">All applications with match scores</div>
+          </div>
+          <div class="report-card" onclick="generateReport('recommendations')">
+            <div class="report-icon">🤖</div>
+            <div class="report-title">AI Recommendations</div>
+            <div class="report-desc">Best matches per student</div>
+          </div>
+          <div class="report-card" onclick="generateReport('domains')">
+            <div class="report-icon">🎯</div>
+            <div class="report-title">Domain Analytics</div>
+            <div class="report-desc">Internship demand by domain</div>
+          </div>
+        </div>
+
+        <!-- Recommendation Statistics -->
+        <div class="chart-box" style="margin-bottom:1.5rem">
+          <div class="chart-title">🤖 AI Recommendation Statistics</div>
+          <div id="recStatsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem"></div>
+        </div>
+
+        <!-- Report Output -->
+        <div class="card" id="reportOutputCard" style="display:none">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+            <h3 id="reportOutputTitle">Report</h3>
+            <div style="display:flex;gap:.5rem">
+              <button class="btn btn-success btn-sm" onclick="downloadReport()">⬇️ Download CSV</button>
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('reportOutputCard').style.display='none'">✕</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table id="reportTable">
+              <thead id="reportTableHead"></thead>
+              <tbody id="reportTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- View Student Modal -->
+<div class="modal-overlay" id="viewStudentModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>🎓 Student Profile</h3>
+      <button class="modal-close" onclick="closeModal('viewStudentModal')">✕</button>
+    </div>
+    <div class="modal-body" id="viewStudentContent"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('viewStudentModal')">Close</button>
+      <a href="student-management.html" class="btn btn-primary">✏️ Edit Profile</a>
+    </div>
+  </div>
+</div>
+
+<!-- Change Status Modal -->
+<div class="modal-overlay" id="statusModal">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-header">
+      <h3>Update Application Status</h3>
+      <button class="modal-close" onclick="closeModal('statusModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);margin-bottom:1rem">Change status for: <strong id="statusAppName" style="color:var(--white)"></strong></p>
+      <div class="form-group">
+        <label class="form-label">New Status</label>
+        <select class="form-control" id="newStatusSelect">
+          <option value="Pending">Pending</option>
+          <option value="Shortlisted">Shortlisted</option>
+          <option value="Accepted">Accepted</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('statusModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmStatusChange()">Update</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+<script src="script.js"></script>
+<script>
+'use strict';
+
+let currentReportData = [], currentReportHeaders = [], currentReportType = '';
+let pendingStatusAppId = null;
+
+// ── Page switching ────────────────────────────────────────────
+function switchPage(pageId, btn) {
+  document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + pageId)?.classList.add('active');
+  if (btn) btn.classList.add('active');
+
+  const loaders = {
+    overview:     renderOverview,
+    students:     renderAdminStudents,
+    internships:  renderAdminInternships,
+    applications: renderApplications,
+    allocation:   renderAllocation,
+    reports:      renderReports,
+  };
+  loaders[pageId]?.();
+}
+
+function refreshAll() {
+  renderOverview();
+  updateSidebarBadges();
+  showToast('Dashboard refreshed!', 'success');
+}
+
+// ── Sidebar badges ────────────────────────────────────────────
+function updateSidebarBadges() {
+  document.getElementById('sbStudents').textContent    = Store.get(KEYS.STUDENTS).length;
+  document.getElementById('sbInternships').textContent = Store.get(KEYS.INTERNSHIPS).length;
+  document.getElementById('sbApps').textContent        = Store.get(KEYS.APPLICATIONS).length;
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────
+function renderOverview() {
+  const students     = Store.get(KEYS.STUDENTS);
+  const internships  = Store.get(KEYS.INTERNSHIPS);
+  const applications = Store.get(KEYS.APPLICATIONS);
+  const accepted     = applications.filter(a=>a.status==='Accepted').length;
+
+  // Stats
+  const statsData = [
+    { icon:'🎓', num: students.length,    label:'Total Students',    change:'↑ Registered' },
+    { icon:'🏢', num: internships.length,  label:'Internship Listings',change:'↑ Available' },
+    { icon:'📋', num: applications.length, label:'Total Applications', change:'↑ Submitted' },
+    { icon:'✅', num: accepted,            label:'Allocations Made',   change:'↑ Accepted' },
+  ];
+  document.getElementById('overviewStats').innerHTML = statsData.map(s=>`
+    <div class="stat-card">
+      <div style="font-size:1.5rem;margin-bottom:.4rem">${s.icon}</div>
+      <div class="stat-number">${s.num}</div>
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-change up">${s.change}</div>
+    </div>`).join('');
+
+  // Department bar chart
+  const deptCounts = {};
+  students.forEach(s => { deptCounts[s.department] = (deptCounts[s.department]||0)+1; });
+  const maxDept = Math.max(...Object.values(deptCounts), 1);
+  const shortName = n => n?.replace('Engineering','Eng.')?.replace('Information Technology','IT')?.replace('Electronics & Telecom','E&TC') || n;
+  document.getElementById('deptBarChart').innerHTML = Object.entries(deptCounts).map(([dept,count])=>`
+    <div class="bar-col">
+      <div class="bar-fill" data-val="${count}" style="height:${Math.max(8,(count/maxDept)*140)}px"></div>
+      <div class="bar-label">${shortName(dept)}</div>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:.85rem;padding:1rem">No student data yet.</div>';
+
+  // Domain donut
+  const domainCounts = {};
+  students.forEach(s=>{ if(s.preferredDomain) domainCounts[s.preferredDomain]=(domainCounts[s.preferredDomain]||0)+1; });
+  const domainEntries = Object.entries(domainCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const total = domainEntries.reduce((s,[,v])=>s+v,0)||1;
+  const donutColors = ['#00b4d8','#7c4dff','#00c897','#ffaa00','#ff4d6d'];
+  const cx=65,cy=65,r=50,r2=32;
+  let angle = -Math.PI/2;
+  let svgPaths = '';
+  domainEntries.forEach(([d,cnt],i) => {
+    const slice = (cnt/total)*2*Math.PI;
+    const x1=cx+r*Math.cos(angle), y1=cy+r*Math.sin(angle);
+    angle+=slice;
+    const x2=cx+r*Math.cos(angle), y2=cy+r*Math.sin(angle);
+    const ix1=cx+r2*Math.cos(angle-slice), iy1=cy+r2*Math.sin(angle-slice);
+    const ix2=cx+r2*Math.cos(angle), iy2=cy+r2*Math.sin(angle);
+    const large=slice>Math.PI?1:0;
+    svgPaths+=`<path d="M${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} L${ix2},${iy2} A${r2},${r2} 0 ${large} 0 ${ix1},${iy1} Z" fill="${donutColors[i]}" opacity=".85"/>`;
+  });
+  svgPaths+=`<circle cx="${cx}" cy="${cy}" r="22" fill="var(--navy-2)"/>`;
+  document.getElementById('donutSvg').innerHTML = svgPaths||'<text x="65" y="70" text-anchor="middle" fill="var(--muted)" font-size="11">No data</text>';
+  document.getElementById('donutLegend').innerHTML = domainEntries.map(([d,cnt],i)=>`
+    <div class="legend-item"><div class="legend-dot" style="background:${donutColors[i]}"></div><span style="color:var(--white-2)">${d}</span><span style="margin-left:auto;font-family:var(--font-mono);font-size:.72rem;color:var(--muted)">${cnt}</span></div>`).join('')
+    || '<div style="color:var(--muted);font-size:.82rem">No data yet.</div>';
+
+  // CGPA distribution
+  const cgpaBrackets = [
+    { label:'9.0–10.0', min:9, max:10 },
+    { label:'8.0–8.9',  min:8, max:9  },
+    { label:'7.0–7.9',  min:7, max:8  },
+    { label:'6.0–6.9',  min:6, max:7  },
+    { label:'Below 6',  min:0, max:6  },
+  ];
+  const cgpaDiv = document.getElementById('cgpaChart');
+  const maxCgpa = Math.max(...cgpaBrackets.map(b=>students.filter(s=>parseFloat(s.cgpa||0)>=b.min&&parseFloat(s.cgpa||0)<b.max).length), 1);
+  cgpaDiv.innerHTML = cgpaBrackets.map(b=>{
+    const cnt=students.filter(s=>{const c=parseFloat(s.cgpa||0);return c>=b.min&&c<=(b.max===10?10:b.max-.01);}).length;
+    const pct=Math.round((cnt/maxCgpa)*100);
+    return `<div style="display:flex;align-items:center;gap:.75rem">
+      <div style="width:70px;font-size:.75rem;color:var(--muted);flex-shrink:0">${b.label}</div>
+      <div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--accent-2),var(--cyan))"></div></div></div>
+      <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--cyan);width:16px;text-align:right">${cnt}</div>
+    </div>`;
+  }).join('');
+
+  // AI stats
+  let totalScore=0, scoreCount=0, excellent=0, good=0, low=0;
+  students.forEach(s=>{ internships.forEach(i=>{ const sc=calcMatchScore(s,i); totalScore+=sc; scoreCount++; if(sc>=80)excellent++; else if(sc>=60)good++; else low++; }); });
+  const avg=scoreCount?Math.round(totalScore/scoreCount):0;
+  document.getElementById('aiStats').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="color:var(--muted);font-size:.85rem">Average Match Score</span>
+      <span style="font-family:var(--font-head);font-size:1.3rem;font-weight:800;color:var(--cyan)">${avg}%</span>
+    </div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:.3rem"><span style="font-size:.8rem;color:var(--success)">✅ Excellent (≥80%)</span><span style="font-size:.8rem;color:var(--success)">${excellent}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${scoreCount?Math.round(excellent/scoreCount*100):0}%;background:var(--success)"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:.3rem"><span style="font-size:.8rem;color:var(--warning)">⚡ Good (60–79%)</span><span style="font-size:.8rem;color:var(--warning)">${good}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${scoreCount?Math.round(good/scoreCount*100):0}%;background:var(--warning)"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:.3rem"><span style="font-size:.8rem;color:var(--muted)">🔸 Low (&lt;60%)</span><span style="font-size:.8rem;color:var(--muted)">${low}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${scoreCount?Math.round(low/scoreCount*100):0}%;background:var(--muted)"></div></div></div>`;
+
+  // Activity feed
+  const allActivities = [
+    ...students.slice(-4).reverse().map(s=>({ icon:'🎓', title:`<strong>${s.fullName}</strong> profile added (${s.department})`, time: fmtDate(s.createdAt) })),
+    ...applications.slice(-3).reverse().map(a=>{
+      const i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);
+      return { icon:'📋', title:`<strong>${a.studentName}</strong> applied to ${i?.title||'an internship'}`, time: fmtDate(a.appliedAt) };
+    }),
+  ].slice(0,7);
+
+  document.getElementById('activityFeed').innerHTML = allActivities.length
+    ? allActivities.map(a=>`<div class="activity-item"><div class="act-icon">${a.icon}</div><div class="act-body"><div class="act-title">${a.title}</div><div class="act-time">${a.time}</div></div></div>`).join('')
+    : '<div style="color:var(--muted);font-size:.85rem">No recent activity. Start by adding students.</div>';
+}
+
+// ── STUDENTS ──────────────────────────────────────────────────
+function renderAdminStudents() {
+  const search = document.getElementById('adminStudentSearch')?.value?.toLowerCase()||'';
+  const dept   = document.getElementById('adminDeptFilter')?.value||'';
+  let students = Store.get(KEYS.STUDENTS).filter(s=>{
+    const ms = !search || s.fullName?.toLowerCase().includes(search)||s.rollNo?.toLowerCase().includes(search);
+    const md = !dept || s.department===dept;
+    return ms&&md;
+  });
+  const tbody = document.getElementById('adminStudentsTable');
+  tbody.innerHTML = '';
+  if(!students.length){
+    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem">No students found. <a href="student-management.html" style="color:var(--cyan)">Add students →</a></td></tr>';
+    return;
+  }
+  students.forEach((s,idx)=>{
+    const cgpa=parseFloat(s.cgpa)||0;
+    const skills=(s.technicalSkills||'').split(',').slice(0,3).map(t=>t.trim()).filter(Boolean);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="color:var(--muted);font-family:var(--font-mono);font-size:.78rem">${idx+1}</td>
+      <td><strong>${s.fullName}</strong></td>
+      <td><span style="font-family:var(--font-mono);font-size:.78rem">${s.rollNo}</span></td>
+      <td>${s.department}</td><td>${s.semester}</td>
+      <td style="color:${cgpa>=8?'var(--success)':cgpa>=6?'var(--warning)':'var(--danger)'}"><strong>${cgpa}</strong></td>
+      <td>${s.preferredDomain||'—'}</td>
+      <td><div style="display:flex;gap:.25rem;flex-wrap:wrap">${skills.map(sk=>`<span class="chip" style="font-size:.68rem;padding:.1rem .45rem">${sk}</span>`).join('')}</div></td>
+      <td><div style="display:flex;gap:.35rem">
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="viewStudentAdmin('${s.id}')" title="View">👁️</button>
+        <a href="student-management.html" class="btn btn-ghost btn-icon btn-sm" title="Edit">✏️</a>
+      </div></td>`;
+    tbody.appendChild(tr);
+  });
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('adminStudentSearch')?.addEventListener('input',renderAdminStudents);
+  document.getElementById('adminDeptFilter')?.addEventListener('change',renderAdminStudents);
+});
+
+function viewStudentAdmin(id) {
+  const s=Store.getOne(KEYS.STUDENTS,id); if(!s)return;
+  const certs=(s.certifications||'').split(',').filter(Boolean);
+  const skills=(s.technicalSkills||'').split(',').map(t=>t.trim()).filter(Boolean);
+  document.getElementById('viewStudentContent').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+      <div><div class="pm-row" style="padding:.5rem 0;border-bottom:1px solid var(--glass-border)"><span style="color:var(--muted)">Name</span><strong>${s.fullName}</strong></div>
+      <div class="pm-row" style="padding:.5rem 0;border-bottom:1px solid var(--glass-border)"><span style="color:var(--muted)">Roll No.</span><span style="font-family:var(--font-mono)">${s.rollNo}</span></div>
+      <div class="pm-row" style="padding:.5rem 0;border-bottom:1px solid var(--glass-border)"><span style="color:var(--muted)">Department</span>${s.department}</div>
+      <div class="pm-row" style="padding:.5rem 0;border-bottom:1px solid var(--glass-border)"><span style="color:var(--muted)">Semester</span>${s.semester}</div>
+      <div class="pm-row" style="padding:.5rem 0"><span style="color:var(--muted)">CGPA</span><strong style="color:var(--success)">${s.cgpa}</strong></div></div>
+      <div><div class="pm-row" style="padding:.5rem 0;border-bottom:1px solid var(--glass-border)"><span style="color:var(--muted)">Email</span>${s.email||'—'}</div>
+      <div class="pm-row" style="padding:.5rem 0;border-bottom:1px solid var(--glass-border)"><span style="color:var(--muted)">Phone</span>${s.phone||'—'}</div>
+      <div class="pm-row" style="padding:.5rem 0;border-bottom:1px solid var(--glass-border)"><span style="color:var(--muted)">City</span>${s.city||'—'}</div>
+      <div class="pm-row" style="padding:.5rem 0"><span style="color:var(--muted)">Domain</span>${s.preferredDomain||'—'}</div></div>
+    </div>
+    <hr class="divider"/>
+    <div style="margin-bottom:1rem"><div style="font-size:.75rem;color:var(--cyan);margin-bottom:.5rem;font-family:var(--font-mono)">TECHNICAL SKILLS</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">${skills.map(sk=>`<span class="chip">${sk}</span>`).join('')||'<span style="color:var(--muted)">None</span>'}</div></div>
+    <div><div style="font-size:.75rem;color:var(--cyan);margin-bottom:.5rem;font-family:var(--font-mono)">CERTIFICATIONS</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">${certs.map(c=>`<span class="badge badge-green">${c.trim()}</span>`).join('')||'<span style="color:var(--muted)">None</span>'}</div></div>`;
+  openModal('viewStudentModal');
+}
+
+// ── INTERNSHIPS ───────────────────────────────────────────────
+function renderAdminInternships() {
+  const internships=Store.get(KEYS.INTERNSHIPS);
+  const apps=Store.get(KEYS.APPLICATIONS);
+  const icons={'Artificial Intelligence':'🤖','Web Development':'🌐','Data Science':'📊','Mobile Development':'📱','Cybersecurity':'🔒','Cloud Computing':'☁️','UI/UX Design':'🎨','Internet of Things':'🔌'};
+  document.getElementById('intTotalBadge').textContent=internships.length+' listings';
+  document.getElementById('adminIntGrid').innerHTML=internships.map(i=>{
+    const appCount=apps.filter(a=>a.internshipId===i.id).length;
+    const fillPct=Math.min(100,Math.round((appCount/i.seats)*100));
+    return `<div class="int-mgmt-card">
+      <div class="int-mgmt-icon">${icons[i.domain]||'🏢'}</div>
+      <div class="int-mgmt-info">
+        <div class="int-mgmt-title">${i.title}</div>
+        <div class="int-mgmt-sub">${i.company} · ${i.location} · ${i.stipend}</div>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-top:.4rem">
+          <div class="mini-progress" style="flex:1"><div class="mini-progress-fill" style="width:${fillPct}%"></div></div>
+          <span style="font-size:.72rem;color:var(--muted)">${appCount}/${i.seats}</span>
+        </div>
+        <div style="display:flex;gap:.35rem;margin-top:.4rem;flex-wrap:wrap">
+          <span class="badge badge-cyan" style="font-size:.68rem">${i.domain}</span>
+          <span class="badge badge-yellow" style="font-size:.68rem">Min ${i.minCgpa} CGPA</span>
+          ${appCount>0?`<span class="badge badge-green" style="font-size:.68rem">${appCount} Applied</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── APPLICATIONS ──────────────────────────────────────────────
+function renderApplications() {
+  const statusFilter=document.getElementById('appStatusFilter')?.value||'';
+  let apps=Store.get(KEYS.APPLICATIONS);
+  if(statusFilter) apps=apps.filter(a=>a.status===statusFilter);
+  const tbody=document.getElementById('applicationsTable');
+  tbody.innerHTML='';
+  if(!apps.length){
+    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem">No applications found. <a href="recommendations.html" style="color:var(--cyan)">Browse internships →</a></td></tr>';
+    return;
+  }
+  const statusColors={Pending:'badge-yellow',Shortlisted:'badge-cyan',Accepted:'badge-green',Rejected:'badge-red'};
+  apps.forEach((a,idx)=>{
+    const i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);
+    const scoreColor=a.matchScore>=80?'var(--success)':a.matchScore>=60?'var(--warning)':'var(--danger)';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="color:var(--muted);font-family:var(--font-mono);font-size:.78rem">${idx+1}</td>
+      <td><strong>${a.studentName}</strong></td>
+      <td><span style="font-family:var(--font-mono);font-size:.78rem">${a.rollNo}</span></td>
+      <td>${i?.title||'—'}</td><td>${i?.company||'—'}</td>
+      <td style="color:${scoreColor}"><strong>${a.matchScore||0}%</strong></td>
+      <td style="font-size:.78rem">${fmtDate(a.appliedAt)}</td>
+      <td><span class="badge ${statusColors[a.status]||'badge-cyan'}">${a.status}</span></td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="changeStatus('${a.id}','${a.studentName}')">✏️ Status</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+let pendingStatusId=null;
+function changeStatus(appId,name){
+  pendingStatusId=appId;
+  document.getElementById('statusAppName').textContent=name;
+  const app=Store.get(KEYS.APPLICATIONS).find(a=>a.id===appId);
+  document.getElementById('newStatusSelect').value=app?.status||'Pending';
+  openModal('statusModal');
+}
+function confirmStatusChange(){
+  if(!pendingStatusId)return;
+  const apps=Store.get(KEYS.APPLICATIONS);
+  const idx=apps.findIndex(a=>a.id===pendingStatusId);
+  if(idx>=0){ apps[idx].status=document.getElementById('newStatusSelect').value; Store.set(KEYS.APPLICATIONS,apps); }
+  closeModal('statusModal'); showToast('Application status updated!','success');
+  renderApplications();
+}
+
+// ── ALLOCATION ─────────────────────────────────────────────────
+function renderAllocation(){
+  const students=Store.get(KEYS.STUDENTS);
+  const internships=Store.get(KEYS.INTERNSHIPS);
+  const apps=Store.get(KEYS.APPLICATIONS);
+  const accepted=apps.filter(a=>a.status==='Accepted').length;
+  const pending=apps.filter(a=>a.status==='Pending').length;
+  const shortlisted=apps.filter(a=>a.status==='Shortlisted').length;
+
+  document.getElementById('allocStats').innerHTML=[
+    {icon:'📋',num:apps.length,label:'Total Applications'},
+    {icon:'✅',num:accepted,label:'Allocated / Accepted'},
+    {icon:'⏳',num:pending,label:'Pending Review'},
+    {icon:'🔖',num:shortlisted,label:'Shortlisted'},
+  ].map(s=>`<div class="stat-card"><div style="font-size:1.5rem;margin-bottom:.4rem">${s.icon}</div><div class="stat-number">${s.num}</div><div class="stat-label">${s.label}</div></div>`).join('');
+
+  // Top matched students
+  const studentScores=students.map(s=>{
+    const best=internships.map(i=>calcMatchScore(s,i)).sort((a,b)=>b-a)[0]||0;
+    const bestInt=internships.find(i=>calcMatchScore(s,i)===best);
+    return {...s,bestScore:best,bestInternship:bestInt};
+  }).sort((a,b)=>b.bestScore-a.bestScore).slice(0,6);
+
+  document.getElementById('topMatchedList').innerHTML=studentScores.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted);width:20px;text-align:center">${i+1}</div>
+      <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;color:var(--navy);flex-shrink:0">${s.fullName?.charAt(0)||'?'}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.fullName}</div><div style="font-size:.72rem;color:var(--muted)">${s.bestInternship?.title||'—'}</div></div>
+      <div style="font-family:var(--font-head);font-weight:800;color:${s.bestScore>=80?'var(--success)':s.bestScore>=60?'var(--warning)':'var(--muted)'}">${s.bestScore}%</div>
+    </div>`).join('')||'<div style="color:var(--muted)">No students yet.</div>';
+
+  // Domain-wise apps
+  const domainApps={};
+  apps.forEach(a=>{const i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId); if(i?.domain)domainApps[i.domain]=(domainApps[i.domain]||0)+1;});
+  const maxDA=Math.max(...Object.values(domainApps),1);
+  document.getElementById('domainAlloc').innerHTML=Object.entries(domainApps).sort((a,b)=>b[1]-a[1]).map(([d,cnt])=>`
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:.3rem"><span style="font-size:.8rem;color:var(--white-2)">${d}</span><span style="font-size:.78rem;color:var(--cyan)">${cnt}</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(cnt/maxDA*100)}%"></div></div></div>`).join('')
+    ||'<div style="color:var(--muted);font-size:.85rem">No applications yet.</div>';
+
+  // Allocation table
+  const tbody=document.getElementById('allocationTable');
+  tbody.innerHTML='';
+  if(!students.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">No students yet.</td></tr>';return;}
+  students.forEach((s,idx)=>{
+    const best=internships.map(i=>({...i,score:calcMatchScore(s,i)})).sort((a,b)=>b.score-a.score)[0];
+    const appForStudent=apps.filter(a=>a.studentId===s.id).sort((a,b)=>b.matchScore-a.matchScore)[0];
+    const status=appForStudent?.status||'Not Applied';
+    const statusColors={Pending:'badge-yellow',Shortlisted:'badge-cyan',Accepted:'badge-green',Rejected:'badge-red','Not Applied':'badge-cyan'};
+    const scoreColor=best?.score>=80?'var(--success)':best?.score>=60?'var(--warning)':'var(--muted)';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="color:var(--muted);font-size:.78rem">${idx+1}</td>
+      <td><strong>${s.fullName}</strong></td>
+      <td>${s.department}</td>
+      <td style="color:${parseFloat(s.cgpa)>=8?'var(--success)':parseFloat(s.cgpa)>=6?'var(--warning)':'var(--danger)'}">${s.cgpa}</td>
+      <td>${s.preferredDomain||'—'}</td>
+      <td style="font-size:.82rem;color:var(--white-2)">${best?.title||'—'}</td>
+      <td style="color:${scoreColor};font-weight:700">${best?.score||0}%</td>
+      <td><span class="badge ${statusColors[status]||'badge-cyan'}">${status}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── REPORTS ───────────────────────────────────────────────────
+function renderReports(){
+  const students=Store.get(KEYS.STUDENTS);
+  const internships=Store.get(KEYS.INTERNSHIPS);
+  const apps=Store.get(KEYS.APPLICATIONS);
+  let totalScores=0,cnt=0,exc=0,good=0,low=0;
+  students.forEach(s=>internships.forEach(i=>{const sc=calcMatchScore(s,i);totalScores+=sc;cnt++;if(sc>=80)exc++;else if(sc>=60)good++;else low++;}));
+  const avg=cnt?Math.round(totalScores/cnt):0;
+  document.getElementById('recStatsGrid').innerHTML=[
+    {icon:'🎯',num:avg+'%',label:'Average Match Score',sub:'Across all pairs'},
+    {icon:'✅',num:exc,label:'Excellent Matches (≥80%)',sub:'High compatibility'},
+    {icon:'⚡',num:good,label:'Good Matches (60–79%)',sub:'Moderate fit'},
+    {icon:'📋',num:apps.length,label:'Total Applications',sub:'Submitted by students'},
+    {icon:'🏆',num:apps.filter(a=>a.status==='Accepted').length,label:'Accepted',sub:'Final allocations'},
+    {icon:'🔍',num:students.length,label:'Students Profiled',sub:'In the system'},
+  ].map(s=>`<div class="stat-card" style="text-align:center">
+    <div style="font-size:1.5rem;margin-bottom:.4rem">${s.icon}</div>
+    <div class="stat-number">${s.num}</div>
+    <div class="stat-label">${s.label}</div>
+    <div class="stat-change up">${s.sub}</div>
+  </div>`).join('');
+}
+
+function generateReport(type){
+  const students=Store.get(KEYS.STUDENTS);
+  const internships=Store.get(KEYS.INTERNSHIPS);
+  const apps=Store.get(KEYS.APPLICATIONS);
+  let headers=[], rows=[], title='';
+  currentReportType=type;
+
+  if(type==='students'){
+    title='Student Report'; headers=['Name','Roll No.','Department','Semester','CGPA','Preferred Domain','Email','Skills'];
+    rows=students.map(s=>[s.fullName,s.rollNo,s.department,s.semester,s.cgpa,s.preferredDomain,s.email,(s.technicalSkills||'').slice(0,50)]);
+  }else if(type==='applications'){
+    title='Applications Report'; headers=['Student','Roll No.','Internship','Company','Match Score','Status','Applied On'];
+    rows=apps.map(a=>{const i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);return[a.studentName,a.rollNo,i?.title||'—',i?.company||'—',a.matchScore+'%',a.status,fmtDate(a.appliedAt)];});
+  }else if(type==='recommendations'){
+    title='AI Recommendations Report'; headers=['Student','Department','CGPA','Best Match Internship','Company','Match Score'];
+    rows=students.map(s=>{const best=internships.map(i=>({...i,score:calcMatchScore(s,i)})).sort((a,b)=>b.score-a.score)[0];return[s.fullName,s.department,s.cgpa,best?.title||'—',best?.company||'—',(best?.score||0)+'%'];});
+  }else if(type==='domains'){
+    title='Domain Analytics'; headers=['Domain','Available Internships','Applications','Avg Match Score'];
+    const doms=[...new Set(internships.map(i=>i.domain))];
+    rows=doms.map(d=>{
+      const dInts=internships.filter(i=>i.domain===d);
+      const dApps=apps.filter(a=>dInts.some(i=>i.id===a.internshipId));
+      const avgSc=dApps.length?Math.round(dApps.reduce((s,a)=>s+(a.matchScore||0),0)/dApps.length):0;
+      return[d,dInts.length,dApps.length,avgSc+'%'];
+    });
+  }
+  currentReportHeaders=headers; currentReportData=rows;
+  document.getElementById('reportOutputTitle').textContent=title;
+  document.getElementById('reportTableHead').innerHTML=`<tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
+  document.getElementById('reportTableBody').innerHTML=rows.length
+    ?rows.map(r=>`<tr>${r.map(c=>`<td>${c||'—'}</td>`).join('')}</tr>`).join('')
+    :'<tr><td colspan="'+headers.length+'" style="text-align:center;color:var(--muted);padding:2rem">No data available.</td></tr>';
+  document.getElementById('reportOutputCard').style.display='block';
+  document.getElementById('reportOutputCard').scrollIntoView({behavior:'smooth'});
+  showToast(`📊 ${title} generated!`,'success');
+}
+
+function downloadReport(){
+  if(!currentReportData.length){showToast('No data to download.','warning');return;}
+  const csv=[currentReportHeaders,...currentReportData].map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`${currentReportType}_report_${Date.now()}.csv`; a.click();
+  showToast('📥 Report downloaded!','success');
+}
+
+// ── Init ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  updateSidebarBadges();
+  renderOverview();
+});
+</script>
+</body>
+</html>

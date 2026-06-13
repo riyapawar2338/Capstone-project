@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Internship Listings — AI Internship System</title>
+<link rel="stylesheet" href="style.css"/>
+<style>
+.rec-layout{display:grid;grid-template-columns:255px 1fr;gap:2rem;align-items:start}
+.fp{position:sticky;top:80px}
+.fcr{display:flex;align-items:center;gap:.6rem;padding:.3rem 0}
+.fcr input{accent-color:var(--cyan);width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.fcr label{font-size:.84rem;color:var(--white-2);cursor:pointer}
+.fsec{margin-bottom:1.25rem}
+.fsec h4{font-family:var(--font-mono);font-size:.68rem;color:var(--cyan);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem}
+.ic{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:1.5rem;transition:var(--transition);position:relative;overflow:hidden}
+.ic::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--cyan));transform:scaleX(0);transform-origin:left;transition:transform .3s ease}
+.ic:hover{transform:translateY(-3px);box-shadow:var(--shadow-glow);border-color:rgba(0,180,216,.4)}
+.ic:hover::before,.ic.rec::before{transform:scaleX(1)}
+.ic.rec{border-color:rgba(0,200,151,.3)}
+.ic.rec::before{background:linear-gradient(90deg,var(--success),var(--cyan))}
+.clogo{width:44px;height:44px;border-radius:12px;background:var(--glass-bg-2);border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.ititle{font-family:var(--font-head);font-size:1.05rem;font-weight:700}
+.imeta{display:flex;flex-wrap:wrap;gap:.55rem;margin:.75rem 0}
+.imeta span{font-size:.77rem;color:var(--muted)}
+.mring{position:relative;width:56px;height:56px;flex-shrink:0}
+.mring svg{transform:rotate(-90deg)}
+.mpct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:800;font-size:.78rem}
+.applied-stamp{position:absolute;top:.85rem;right:.85rem;background:rgba(0,200,151,.2);border:1px solid rgba(0,200,151,.4);color:var(--success);padding:.2rem .6rem;border-radius:6px;font-size:.72rem;font-weight:600}
+.aibar{background:var(--glass-bg-2);border:1px solid var(--glass-border);border-radius:var(--radius);padding:.85rem 1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.login-prompt{background:rgba(255,170,0,.08);border:1px solid rgba(255,170,0,.25);border-radius:var(--radius);padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem}
+@media(max-width:1024px){.rec-layout{grid-template-columns:1fr}.fp{position:static}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<nav class="navbar">
+  <a href="index.html" class="nav-brand"><div class="brand-icon">🤖</div><span>AI Internship System</span></a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="student-dashboard.html">Dashboard</a>
+    <a href="student-management.html">Students</a>
+    <a href="recommendations.html">Internships</a>
+    <a href="admin-dashboard.html" id="navAdmin" class="hidden">Admin Panel</a>
+    <a href="contact.html">Contact</a>
+  </div>
+  <div id="navUserPill" style="display:flex;align-items:center"></div>
+  <button class="nav-toggle"><span></span><span></span><span></span></button>
+</nav>
+<div class="page-wrapper">
+  <div class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html">Home</a><span class="sep">›</span><span>Internships</span></div>
+      <h1>Internship Listings</h1>
+      <p>Browse all opportunities. Login and fill your profile to see AI match scores.</p>
+    </div>
+  </div>
+  <section>
+    <div class="container">
+      <div class="rec-layout">
+        <div class="fp">
+          <div class="card">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+              <h3>🔧 Filters</h3>
+              <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
+            </div>
+            <div class="card-body">
+              <div class="search-bar" style="margin-bottom:1rem">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="iSearch" placeholder="Search title, company…" oninput="render()"/>
+              </div>
+              <div class="fsec"><h4>Domain</h4><div id="fDomain"></div></div>
+              <div class="fsec"><h4>Location</h4><div id="fLocation"></div></div>
+              <div class="fsec"><h4>Duration</h4><div id="fDuration"></div></div>
+              <div class="fsec">
+                <h4>Min Stipend</h4>
+                <div class="fcr"><input type="checkbox" id="s10" class="sc" value="10000" onchange="render()"/><label for="s10">₹10,000+/mo</label></div>
+                <div class="fcr"><input type="checkbox" id="s15" class="sc" value="15000" onchange="render()"/><label for="s15">₹15,000+/mo</label></div>
+                <div class="fcr"><input type="checkbox" id="s20" class="sc" value="20000" onchange="render()"/><label for="s20">₹20,000+/mo</label></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <!-- Login prompt for non-logged-in users -->
+          <div class="login-prompt" id="loginPrompt" style="display:none">
+            <span style="color:var(--warning)">⚠️ Login to see AI Match Scores and apply for internships.</span>
+            <a href="login.html" class="btn btn-primary btn-sm">Login / Register</a>
+          </div>
+          <!-- AI Student selector (shown when logged in as student with profile) -->
+          <div class="aibar" id="aiBar" style="display:none">
+            <span style="font-size:1.5rem">🤖</span>
+            <p style="flex:1;font-size:.875rem;color:var(--muted);min-width:160px">AI Match Scores active for your profile.</p>
+            <select id="stuSel" class="form-control" style="min-width:220px;width:auto" onchange="onStuChange()">
+              <option value="">— Select Profile —</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem">
+            <div id="rCount" style="color:var(--muted);font-size:.875rem">Loading…</div>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <span style="font-size:.8rem;color:var(--muted)">Sort:</span>
+              <select class="form-control" id="sortSel" style="width:auto;padding:.4rem .8rem;font-size:.82rem" onchange="render()">
+                <option value="match">Best Match</option>
+                <option value="stipend">Stipend ↓</option>
+                <option value="deadline">Deadline ↑</option>
+                <option value="seats">Seats ↓</option>
+              </select>
+            </div>
+          </div>
+          <div id="iGrid" style="display:flex;flex-direction:column;gap:1.25rem"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <footer><div class="container"><div class="footer-bottom"><p>© 2025 AI Internship Allocation &amp; Recommendation System</p></div></div></footer>
+</div>
+
+<div class="modal-overlay" id="applyModal">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-header"><h3>📋 Apply for Internship</h3><button class="modal-close" onclick="closeModal('applyModal')">✕</button></div>
+    <div class="modal-body">
+      <div id="applyInfo"></div>
+      <div class="form-group" style="margin-top:1rem">
+        <label class="form-label">Cover Letter (optional)</label>
+        <textarea class="form-control" id="cover" rows="3" placeholder="Why are you a great fit?…" maxlength="500"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('applyModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doApply()">✅ Submit Application</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+<script src="script.js"></script>
+<script>
+var selStudent=null, pendingIid=null;
+var ICONS={'Artificial Intelligence':'🤖','Web Development':'🌐','Data Science':'📊','Mobile Development':'📱',
+           'Cybersecurity':'🔒','Cloud Computing':'☁️','UI/UX Design':'🎨','Internet of Things':'🔌',
+           'Embedded Systems':'🔧','DevOps':'⚙️'};
+
+document.addEventListener('DOMContentLoaded',function(){
+  var session=Auth.getSession();
+  if(session && session.role==='admin') document.getElementById('navAdmin').classList.remove('hidden');
+
+  if(!session){
+    document.getElementById('loginPrompt').style.display='flex';
+  } else {
+    document.getElementById('aiBar').style.display='flex';
+    fillStudentSelector(session);
+    /* Auto-select student whose email matches session */
+    var students=Store.get(KEYS.STUDENTS);
+    var mine=students.find(function(s){ return s.email&&s.email.toLowerCase()===session.email.toLowerCase(); });
+    if(mine){
+      document.getElementById('stuSel').value=mine.id;
+      selStudent=mine;
+    }
+  }
+  buildFilters();
+  render();
+});
+
+function fillStudentSelector(session){
+  var sel=document.getElementById('stuSel');
+  while(sel.options.length>1) sel.remove(1);
+  var students=Store.get(KEYS.STUDENTS);
+  students.forEach(function(s){
+    /* Students can only see themselves; admins see all */
+    if(session.role==='admin'||(s.email&&s.email.toLowerCase()===session.email.toLowerCase())){
+      var o=document.createElement('option');
+      o.value=s.id; o.textContent=s.fullName+' ('+s.rollNo+')';
+      sel.appendChild(o);
+    }
+  });
+}
+
+function onStuChange(){
+  var id=document.getElementById('stuSel').value;
+  selStudent=id?Store.getOne(KEYS.STUDENTS,id):null;
+  render();
+}
+
+function buildFilters(){
+  var all=Store.get(KEYS.INTERNSHIPS);
+  function uniq(arr,key){var seen={};return arr.map(function(i){return i[key];}).filter(function(v){if(!v||seen[v])return false;seen[v]=true;return true;});}
+  function makeList(divId,items){
+    var div=document.getElementById(divId);if(!div)return;
+    div.innerHTML=items.map(function(item){
+      var sid='f_'+item.replace(/[^a-zA-Z0-9]/g,'_');
+      return '<div class="fcr"><input type="checkbox" id="'+sid+'" value="'+item+'" class="flt" onchange="render()"/><label for="'+sid+'">'+item+'</label></div>';
+    }).join('');
+  }
+  makeList('fDomain',uniq(all,'domain'));
+  makeList('fLocation',uniq(all,'location'));
+  makeList('fDuration',uniq(all,'duration'));
+}
+
+function checked(cls){return Array.from(document.querySelectorAll('.'+cls+':checked')).map(function(el){return el.value;});}
+function clearFilters(){document.querySelectorAll('.flt,.sc').forEach(function(c){c.checked=false;});document.getElementById('iSearch').value='';render();}
+function stipNum(s){if(!s)return 0;var m=String(s).replace(/,/g,'').match(/\d+/);return m?parseInt(m[0]):0;}
+
+function render(){
+  var q=(document.getElementById('iSearch').value||'').toLowerCase();
+  var selDoms=Array.from(document.querySelectorAll('#fDomain .flt:checked')).map(function(e){return e.value;});
+  var selLocs=Array.from(document.querySelectorAll('#fLocation .flt:checked')).map(function(e){return e.value;});
+  var selDurs=Array.from(document.querySelectorAll('#fDuration .flt:checked')).map(function(e){return e.value;});
+  var stipChk=Array.from(document.querySelectorAll('.sc:checked'));
+  var minStip=0; stipChk.forEach(function(c){var v=parseInt(c.value)||0;if(v>minStip)minStip=v;});
+
+  var list=Store.get(KEYS.INTERNSHIPS).filter(function(i){
+    var sq=!q||(i.title||'').toLowerCase().indexOf(q)!==-1||(i.company||'').toLowerCase().indexOf(q)!==-1||(i.domain||'').toLowerCase().indexOf(q)!==-1;
+    var sd=!selDoms.length||selDoms.indexOf(i.domain)!==-1;
+    var sl=!selLocs.length||selLocs.indexOf(i.location)!==-1;
+    var du=!selDurs.length||selDurs.indexOf(i.duration)!==-1;
+    var st=!minStip||(i.stipendAmount||stipNum(i.stipend))>=minStip;
+    return sq&&sd&&sl&&du&&st;
+  });
+
+  list=list.map(function(i){return Object.assign({},i,{score:selStudent?calcMatchScore(selStudent,i):null});});
+
+  var by=document.getElementById('sortSel').value;
+  if(by==='match'&&selStudent) list.sort(function(a,b){return b.score-a.score;});
+  else if(by==='stipend') list.sort(function(a,b){return(b.stipendAmount||stipNum(b.stipend))-(a.stipendAmount||stipNum(a.stipend));});
+  else if(by==='deadline') list.sort(function(a,b){return new Date(a.deadline)-new Date(b.deadline);});
+  else if(by==='seats') list.sort(function(a,b){return(b.seats||0)-(a.seats||0);});
+
+  document.getElementById('rCount').textContent=list.length+' internship'+(list.length!==1?'s':'')+' found';
+
+  var apps=Store.get(KEYS.APPLICATIONS);
+  var grid=document.getElementById('iGrid'); grid.innerHTML='';
+  var session=Auth.getSession();
+
+  if(!list.length){
+    grid.innerHTML='<div style="text-align:center;padding:4rem;color:var(--muted)"><div style="font-size:3rem;margin-bottom:1rem">🔍</div><p>No internships match your filters.</p><button class="btn btn-ghost" onclick="clearFilters()" style="margin-top:1rem">Clear Filters</button></div>';
+    return;
+  }
+
+  list.forEach(function(i){
+    var sc=i.score, isRec=sc!==null&&sc>=60;
+    var isApp=selStudent&&apps.some(function(a){return a.internshipId===i.id&&a.studentId===selStudent.id;});
+    var col=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--danger)';
+    var R=22,circ=(2*Math.PI*R).toFixed(1),offset=sc!==null?(parseFloat(circ)-(sc/100)*parseFloat(circ)).toFixed(1):circ;
+    var skills=Array.isArray(i.requiredSkills)?i.requiredSkills:(i.requiredSkills||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+    var tags=Array.isArray(i.tags)?i.tags:(i.tags||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+
+    var scoreHtml='';
+    if(sc!==null){
+      scoreHtml='<div style="display:flex;align-items:center;gap:.75rem">'+
+        '<div class="mring"><svg width="56" height="56" viewBox="0 0 56 56">'+
+        '<circle cx="28" cy="28" r="'+R+'" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="4"/>'+
+        '<circle cx="28" cy="28" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="4" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" stroke-linecap="round"/>'+
+        '</svg><div class="mpct" style="color:'+col+'">'+sc+'%</div></div>'+
+        '<div style="line-height:1.3"><div style="font-weight:700;color:'+col+';font-size:.8rem">'+(sc>=80?'Excellent':sc>=60?'Good':sc>=40?'Fair':'Low')+'</div>'+
+        '<div style="font-size:.72rem;color:var(--muted)">Match</div></div></div>';
+    }
+
+    /* Apply button logic */
+    var applyHtml='';
+    if(!session){
+      applyHtml='<a href="login.html" class="btn btn-outline btn-sm">Login to Apply</a>';
+    } else if(isApp){
+      applyHtml='<span class="btn btn-success btn-sm" style="cursor:default;pointer-events:none">✅ Applied</span>';
+    } else if(!selStudent){
+      applyHtml='<a href="student-management.html" class="btn btn-outline btn-sm">Fill Profile First</a>';
+    } else {
+      applyHtml='<button class="btn btn-primary btn-sm" onclick="openApply(\''+i.id+'\')">Apply Now →</button>';
+    }
+
+    var card=document.createElement('div');
+    card.className='ic'+(isRec?' rec':'');
+    card.innerHTML=
+      (isApp?'<span class="applied-stamp">✅ Applied</span>':'')+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">'+
+        '<div style="display:flex;gap:.75rem;align-items:center">'+
+          '<div class="clogo">'+(ICONS[i.domain]||'🏢')+'</div>'+
+          '<div><div class="ititle">'+i.title+'</div><div style="font-size:.82rem;color:var(--muted)">'+i.company+'</div></div>'+
+        '</div>'+scoreHtml+
+      '</div>'+
+      '<div class="imeta">'+
+        '<span>📍 '+i.location+'</span><span>⏱️ '+i.duration+'</span>'+
+        '<span>💰 '+i.stipend+'</span><span>🎓 Min CGPA: '+(i.minCgpa||'0')+'</span>'+
+        '<span>👥 '+(i.seats||'—')+' Seats</span><span>📅 '+fmtDate(i.deadline)+'</span>'+
+      '</div>'+
+      '<p style="font-size:.875rem;color:var(--white-2);line-height:1.7;margin-bottom:1rem">'+i.description+'</p>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:1rem">'+
+        skills.map(function(s){return '<span class="chip" style="font-size:.72rem">'+s+'</span>';}).join('')+
+      '</div>'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">'+
+        '<div style="display:flex;gap:.35rem;flex-wrap:wrap">'+tags.slice(0,3).map(function(t){return '<span class="badge badge-cyan">'+t+'</span>';}).join('')+'</div>'+
+        '<div>'+applyHtml+'</div>'+
+      '</div>';
+    grid.appendChild(card);
+  });
+}
+
+function openApply(iid){
+  if(!selStudent){showToast('Please select your student profile first.','warning');return;}
+  var i=Store.getOne(KEYS.INTERNSHIPS,iid); if(!i) return;
+  pendingIid=iid;
+  var sc=calcMatchScore(selStudent,i);
+  document.getElementById('applyInfo').innerHTML=
+    '<p style="color:var(--muted);margin-bottom:1rem">Applying for:</p>'+
+    '<div class="card" style="padding:1rem;margin-bottom:.75rem">'+
+      '<div style="font-weight:700">'+i.title+'</div>'+
+      '<div style="font-size:.85rem;color:var(--muted)">'+i.company+' · '+i.location+'</div>'+
+    '</div>'+
+    '<p style="color:var(--muted)">Student: <strong style="color:var(--white)">'+selStudent.fullName+'</strong> ('+selStudent.rollNo+')</p>'+
+    '<p style="color:var(--muted);margin-top:.5rem">AI Match Score: <strong style="color:var(--success)">'+sc+'%</strong></p>';
+  document.getElementById('cover').value='';
+  openModal('applyModal');
+}
+
+function doApply(){
+  if(!pendingIid||!selStudent) return;
+  var apps=Store.get(KEYS.APPLICATIONS);
+  if(apps.some(function(a){return a.internshipId===pendingIid&&a.studentId===selStudent.id;})){
+    showToast('Already applied for this internship.','warning');closeModal('applyModal');return;
+  }
+  var i=Store.getOne(KEYS.INTERNSHIPS,pendingIid);
+  apps.push({id:genId(),internshipId:pendingIid,studentId:selStudent.id,
+    studentName:selStudent.fullName,rollNo:selStudent.rollNo,
+    matchScore:calcMatchScore(selStudent,i),
+    coverLetter:document.getElementById('cover').value,
+    status:'Pending',appliedAt:new Date().toISOString(),createdAt:new Date().toISOString()});
+  Store.set(KEYS.APPLICATIONS,apps);
+  closeModal('applyModal');
+  showToast('🎉 Application submitted!','success');
+  render();
+}
+</script>
+</body>
+</html>

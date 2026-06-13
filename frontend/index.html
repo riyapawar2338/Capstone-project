@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Internship Allocation & Recommendation System</title>
+<link rel="stylesheet" href="style.css"/>
+<style>
+.hero{min-height:calc(100vh - 64px);display:flex;align-items:center;position:relative;overflow:hidden;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(21,101,192,.35) 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 80% 80%,rgba(0,180,216,.12) 0%,transparent 60%),var(--navy)}
+canvas#heroCanvas{position:absolute;inset:0;z-index:0;pointer-events:none}
+.hero-content{position:relative;z-index:2;max-width:700px}
+.hero-eye{display:inline-flex;align-items:center;gap:.6rem;background:rgba(0,180,216,.1);border:1px solid rgba(0,180,216,.25);color:var(--cyan);padding:.3rem .9rem;border-radius:999px;font-family:var(--font-mono);font-size:.75rem;margin-bottom:1.5rem;letter-spacing:.05em}
+.hero-eye .dot{width:7px;height:7px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
+.hero-title{font-family:var(--font-head);font-size:clamp(2.4rem,6vw,4rem);font-weight:800;line-height:1.08;margin-bottom:1.5rem}
+.hero-title .grad{background:linear-gradient(90deg,var(--cyan),var(--accent),var(--accent-2));background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:gradShift 4s linear infinite}
+.hero-desc{font-size:1.1rem;color:var(--muted);max-width:540px;margin-bottom:2.5rem;line-height:1.8}
+.hero-cta{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:3rem}
+.hero-stats{display:flex;gap:2.5rem;flex-wrap:wrap}
+.hs-num{font-family:var(--font-head);font-size:1.8rem;font-weight:800;color:var(--white)}
+.hs-lbl{font-size:.8rem;color:var(--muted)}
+.fc{position:absolute;animation:float 4s ease-in-out infinite;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius);padding:.75rem 1rem;backdrop-filter:blur(16px);font-size:.8rem;white-space:nowrap;box-shadow:var(--shadow-md);z-index:1}
+.fc1{top:15%;right:8%;animation-delay:0s}.fc2{top:55%;right:2%;animation-delay:1.4s}.fc3{top:78%;right:20%;animation-delay:.7s}
+.fc-lbl{color:var(--muted);font-size:.7rem;margin-bottom:.25rem;font-family:var(--font-mono)}
+.fc-val{color:var(--white);font-weight:600}
+.fc-badge{display:inline-block;background:rgba(0,200,151,.2);color:var(--success);padding:.1rem .5rem;border-radius:4px;font-size:.7rem}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.feat-card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:1.75rem;transition:var(--transition);position:relative;overflow:hidden}
+.feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--cyan));transform:scaleX(0);transform-origin:left;transition:transform .4s ease}
+.feat-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-glow)}.feat-card:hover::before{transform:scaleX(1)}
+.feat-icon{width:52px;height:52px;border-radius:14px;margin-bottom:1.25rem;background:var(--glass-bg-2);border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;font-size:1.5rem}
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;position:relative}
+.steps-grid::before{content:'';position:absolute;top:28px;left:10%;right:10%;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.3}
+.step-card{text-align:center;padding:1.5rem 1rem}
+.step-num{width:56px;height:56px;border-radius:50%;margin:0 auto 1rem;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:1.3rem;font-weight:800;color:var(--navy);box-shadow:var(--shadow-glow);position:relative;z-index:1}
+.stats-section{background:linear-gradient(135deg,var(--navy-3),var(--navy));position:relative;overflow:hidden}
+.stats-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 50% 50%,rgba(21,101,192,.2) 0%,transparent 70%)}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;position:relative;z-index:1}
+.tech-banner{padding:3rem 0;border-top:1px solid var(--glass-border);border-bottom:1px solid var(--glass-border);overflow:hidden}
+.tech-track{display:flex;gap:2.5rem;animation:scrollTrack 22s linear infinite;width:max-content}
+.tech-item{display:flex;align-items:center;gap:.6rem;color:var(--muted);font-size:.875rem;white-space:nowrap}
+.tech-item .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan)}
+@keyframes scrollTrack{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:3rem;margin-bottom:2.5rem}
+.footer-col h4{font-family:var(--font-head);font-size:.9rem;margin-bottom:1rem;color:var(--white)}
+.footer-col ul{display:flex;flex-direction:column;gap:.5rem}
+.footer-col ul a{color:var(--muted);font-size:.875rem}.footer-col ul a:hover{color:var(--cyan)}
+@media(max-width:1024px){.feat-grid{grid-template-columns:repeat(2,1fr)}.steps-grid{grid-template-columns:repeat(2,1fr)}.stats-grid{grid-template-columns:repeat(2,1fr)}.footer-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:768px){.fc{display:none}.feat-grid{grid-template-columns:1fr}.steps-grid{grid-template-columns:1fr}.steps-grid::before{display:none}.footer-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<nav class="navbar">
+  <a href="index.html" class="nav-brand"><div class="brand-icon">🤖</div><span>AI Internship System</span></a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="student-dashboard.html">Dashboard</a>
+    <a href="recommendations.html">Internships</a>
+    <a href="admin-dashboard.html" id="navAdmin" class="hidden">Admin Panel</a>
+    <a href="contact.html">Contact</a>
+    <span id="navAuthLink"></span>
+  </div>
+  <div id="navUserPill" style="display:flex;align-items:center"></div>
+  <button class="nav-toggle"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page-wrapper">
+  <!-- HERO -->
+  <section class="hero">
+    <canvas id="heroCanvas"></canvas>
+    <div class="container">
+      <div class="hero-content fade-in-up">
+        <div class="hero-eye"><span class="dot"></span>Final Year Diploma Capstone Project</div>
+        <h1 class="hero-title">
+          AI-Powered<br>
+          <span class="grad">Internship Allocation</span><br>
+          &amp; Recommendation
+        </h1>
+        <p class="hero-desc">Intelligent system that analyzes student profiles — skills, academics, certifications and interests — to match them with the most relevant internship opportunities using AI.</p>
+        <div class="hero-cta" id="heroCta"></div>
+        <div class="hero-stats">
+          <div><div class="hs-num" id="hStudents">0</div><div class="hs-lbl">Students Registered</div></div>
+          <div><div class="hs-num">10+</div><div class="hs-lbl">Internship Listings</div></div>
+          <div><div class="hs-num">95%</div><div class="hs-lbl">Match Accuracy</div></div>
+          <div><div class="hs-num">24/7</div><div class="hs-lbl">AI-Driven System</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="fc fc1 fade-in-up"><div class="fc-lbl">AI Match Score</div><div class="fc-val">Riya Sharma — <span style="color:var(--success)">92%</span></div><div class="fc-badge">✓ ML Engineer Role</div></div>
+    <div class="fc fc2 fade-in-up"><div class="fc-lbl">New Application</div><div class="fc-val">Full Stack Intern</div><div style="color:var(--muted);font-size:.7rem;margin-top:.2rem">TechCorp Solutions · Pune</div></div>
+    <div class="fc fc3 fade-in-up"><div class="fc-lbl">Profile Complete</div><div class="fc-val">Arjun Patil — CSE</div><div class="fc-badge">🎯 3 Matches Found</div></div>
+  </section>
+
+  <!-- TECH SCROLL -->
+  <div class="tech-banner"><div class="tech-track">
+    <div class="tech-item"><span class="dot"></span>Artificial Intelligence</div><div class="tech-item"><span class="dot"></span>Machine Learning</div>
+    <div class="tech-item"><span class="dot"></span>Data Science</div><div class="tech-item"><span class="dot"></span>Web Development</div>
+    <div class="tech-item"><span class="dot"></span>Cloud Computing</div><div class="tech-item"><span class="dot"></span>Cybersecurity</div>
+    <div class="tech-item"><span class="dot"></span>Mobile Development</div><div class="tech-item"><span class="dot"></span>IoT Systems</div>
+    <div class="tech-item"><span class="dot"></span>UI/UX Design</div><div class="tech-item"><span class="dot"></span>DevOps</div>
+    <div class="tech-item"><span class="dot"></span>Artificial Intelligence</div><div class="tech-item"><span class="dot"></span>Machine Learning</div>
+    <div class="tech-item"><span class="dot"></span>Data Science</div><div class="tech-item"><span class="dot"></span>Web Development</div>
+    <div class="tech-item"><span class="dot"></span>Cloud Computing</div><div class="tech-item"><span class="dot"></span>Cybersecurity</div>
+    <div class="tech-item"><span class="dot"></span>Mobile Development</div><div class="tech-item"><span class="dot"></span>IoT Systems</div>
+  </div></div>
+
+  <!-- FEATURES -->
+  <section>
+    <div class="container">
+      <div class="text-center mb-4">
+        <div class="section-label">Core Features</div>
+        <h2 class="section-title">Everything You Need</h2>
+        <p class="section-sub" style="margin:0 auto">A complete platform for AI-powered internship matching, student management and career guidance.</p>
+      </div>
+      <div class="feat-grid">
+        <div class="feat-card fade-in-up delay-1"><div class="feat-icon">🧠</div><div style="font-family:var(--font-head);font-size:1.1rem;font-weight:700;margin-bottom:.5rem">AI-Powered Matching</div><p style="color:var(--muted);font-size:.875rem;line-height:1.7">Sophisticated algorithm analyzes skills, CGPA, interests and certifications to compute a precise match score for every internship.</p></div>
+        <div class="feat-card fade-in-up delay-2"><div class="feat-icon">🔐</div><div style="font-family:var(--font-head);font-size:1.1rem;font-weight:700;margin-bottom:.5rem">Role-Based Login</div><p style="color:var(--muted);font-size:.875rem;line-height:1.7">Separate dashboards for Students and Admins. Students see their AI recommendations; Admins manage everything from one panel.</p></div>
+        <div class="feat-card fade-in-up delay-3"><div class="feat-icon">👤</div><div style="font-family:var(--font-head);font-size:1.1rem;font-weight:700;margin-bottom:.5rem">Student Profiles</div><p style="color:var(--muted);font-size:.875rem;line-height:1.7">Full CRUD interface to add, edit, update and delete student profiles with skills, projects, certifications and more.</p></div>
+        <div class="feat-card fade-in-up delay-1"><div class="feat-icon">📊</div><div style="font-family:var(--font-head);font-size:1.1rem;font-weight:700;margin-bottom:.5rem">Admin Analytics</div><p style="color:var(--muted);font-size:.875rem;line-height:1.7">Admin panel with live charts, allocation tracking, department-wise analytics and downloadable CSV reports.</p></div>
+        <div class="feat-card fade-in-up delay-2"><div class="feat-icon">🎯</div><div style="font-family:var(--font-head);font-size:1.1rem;font-weight:700;margin-bottom:.5rem">Smart Recommendations</div><p style="color:var(--muted);font-size:.875rem;line-height:1.7">Personalized internship recommendations ranked by match percentage to help students find the perfect opportunity.</p></div>
+        <div class="feat-card fade-in-up delay-3"><div class="feat-icon">📋</div><div style="font-family:var(--font-head);font-size:1.1rem;font-weight:700;margin-bottom:.5rem">Application Tracking</div><p style="color:var(--muted);font-size:.875rem;line-height:1.7">Track applications from submission to allocation with status updates: Pending, Shortlisted, Accepted or Rejected.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section style="background:var(--navy-2)">
+    <div class="container">
+      <div class="text-center mb-4">
+        <div class="section-label">Process</div>
+        <h2 class="section-title">How It Works</h2>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card fade-in-up delay-1"><div class="step-num">1</div><div style="font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:.4rem">Register & Login</div><p style="color:var(--muted);font-size:.83rem;line-height:1.6">Create your account on the Login page. Students get a personalized dashboard; admins get full system access.</p></div>
+        <div class="step-card fade-in-up delay-2"><div class="step-num">2</div><div style="font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:.4rem">Build Your Profile</div><p style="color:var(--muted);font-size:.83rem;line-height:1.6">Add your academic details, technical skills, certifications, projects and career interests to complete your profile.</p></div>
+        <div class="step-card fade-in-up delay-3"><div class="step-num">3</div><div style="font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:.4rem">Get AI Matches</div><p style="color:var(--muted);font-size:.83rem;line-height:1.6">The AI engine instantly computes compatibility scores (0–100%) for every internship based on your profile.</p></div>
+        <div class="step-card fade-in-up delay-4"><div class="step-num">4</div><div style="font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:.4rem">Apply & Track</div><p style="color:var(--muted);font-size:.83rem;line-height:1.6">Apply directly with a cover letter and track your application status in real time from your dashboard.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="text-center mb-4" style="position:relative;z-index:1">
+        <div class="section-label">Impact</div>
+        <h2 class="section-title">System Statistics</h2>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card fade-in-up delay-1"><div style="font-size:2rem;margin-bottom:.5rem">🎓</div><div class="stat-number" id="statStudents">0</div><div class="stat-label">Students Registered</div><div class="stat-change up">↑ Add more via Student Management</div></div>
+        <div class="stat-card fade-in-up delay-2"><div style="font-size:2rem;margin-bottom:.5rem">🏢</div><div class="stat-number">10</div><div class="stat-label">Internship Listings</div><div class="stat-change up">↑ Across 10 domains</div></div>
+        <div class="stat-card fade-in-up delay-3"><div style="font-size:2rem;margin-bottom:.5rem">🤖</div><div class="stat-number">95%</div><div class="stat-label">AI Match Accuracy</div><div class="stat-change up">↑ Multi-factor scoring</div></div>
+        <div class="stat-card fade-in-up delay-4"><div style="font-size:2rem;margin-bottom:.5rem">⚡</div><div class="stat-number">&lt;1s</div><div class="stat-label">Recommendation Time</div><div class="stat-change up">↑ Real-time AI processing</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section>
+    <div class="container">
+      <div class="card text-center" style="background:linear-gradient(135deg,rgba(21,101,192,.3),rgba(0,180,216,.15));padding:4rem 2rem;border-color:rgba(0,180,216,.3)">
+        <div class="section-label" style="justify-content:center">Get Started</div>
+        <h2 class="section-title" style="margin:0 auto 1rem">Ready to Find Your Internship?</h2>
+        <p class="section-sub" style="margin:0 auto 2rem;color:var(--muted)">Register now and let our AI match you with the perfect internship in seconds.</p>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap" id="ctaButtons"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="nav-brand" style="margin-bottom:.75rem"><div class="brand-icon">🤖</div><span>AI Internship System</span></div>
+          <p style="color:var(--muted);font-size:.875rem;line-height:1.7;max-width:280px">An AI-powered internship allocation and recommendation platform — Final Year Diploma Capstone Project.</p>
+        </div>
+        <div class="footer-col"><h4>Navigation</h4><ul>
+          <li><a href="index.html">Home</a></li><li><a href="about.html">About Project</a></li>
+          <li><a href="student-dashboard.html">My Dashboard</a></li><li><a href="recommendations.html">Internships</a></li>
+        </ul></div>
+        <div class="footer-col"><h4>Features</h4><ul>
+          <li><a href="login.html">Login / Register</a></li><li><a href="student-management.html">Student Management</a></li>
+          <li><a href="admin-dashboard.html">Admin Panel</a></li><li><a href="contact.html">Contact</a></li>
+        </ul></div>
+        <div class="footer-col"><h4>Technology</h4><ul>
+          <li><a href="#">HTML5 / CSS3</a></li><li><a href="#">Vanilla JavaScript</a></li>
+          <li><a href="#">LocalStorage API</a></li><li><a href="#">AI Match Algorithm</a></li>
+        </ul></div>
+      </div>
+      <div style="border-top:1px solid var(--glass-border);padding-top:1.5rem;text-align:center;color:var(--muted);font-size:.8rem">
+        <p>© 2025 AI Internship Allocation &amp; Recommendation System · Final Year Diploma Capstone Project</p>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+<script src="script.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var session = Auth.getSession();
+  var cnt = Store.get(KEYS.STUDENTS).length;
+  document.getElementById('hStudents').textContent = cnt;
+  document.getElementById('statStudents').textContent = cnt;
+
+  /* Show admin link */
+  if (session && session.role === 'admin') {
+    document.getElementById('navAdmin').classList.remove('hidden');
+  }
+
+  /* Auth link in nav */
+  var authLink = document.getElementById('navAuthLink');
+  if (!session) {
+    authLink.innerHTML = '<a href="login.html" class="nav-cta btn">Login / Register</a>';
+  }
+
+  /* Hero CTA buttons */
+  var heroCta = document.getElementById('heroCta');
+  var ctaBtns = document.getElementById('ctaButtons');
+  if (!session) {
+    heroCta.innerHTML = '<a href="login.html" class="btn btn-primary btn-lg">🚀 Get Started — Login</a><a href="about.html" class="btn btn-outline btn-lg">📖 Learn More</a>';
+    ctaBtns.innerHTML = '<a href="login.html" class="btn btn-primary btn-lg">🚀 Register Now — It\'s Free</a><a href="about.html" class="btn btn-outline btn-lg">📖 Learn More</a>';
+  } else if (session.role === 'admin') {
+    heroCta.innerHTML = '<a href="admin-dashboard.html" class="btn btn-primary btn-lg">📊 Admin Dashboard</a><a href="student-management.html" class="btn btn-outline btn-lg">🎓 Manage Students</a>';
+    ctaBtns.innerHTML = '<a href="admin-dashboard.html" class="btn btn-primary btn-lg">📊 Go to Admin Dashboard</a>';
+  } else {
+    heroCta.innerHTML = '<a href="student-dashboard.html" class="btn btn-primary btn-lg">📊 My Dashboard</a><a href="recommendations.html" class="btn btn-outline btn-lg">🔍 Browse Internships</a>';
+    ctaBtns.innerHTML = '<a href="student-dashboard.html" class="btn btn-primary btn-lg">📊 View My Dashboard</a><a href="recommendations.html" class="btn btn-outline btn-lg">🔍 Browse Internships</a>';
+  }
+
+  /* Hero canvas particles */
+  var canvas = document.getElementById('heroCanvas');
+  var ctx = canvas.getContext('2d');
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  var particles = [];
+  for (var i = 0; i < 55; i++) {
+    particles.push({ x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight,
+      r: Math.random()*1.5+.5, dx: (Math.random()-.5)*.4, dy: (Math.random()-.5)*.4, a: Math.random()*.5+.1 });
+  }
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(function(p){
+      p.x+=p.dx; p.y+=p.dy;
+      if(p.x<0) p.x=canvas.width; if(p.x>canvas.width) p.x=0;
+      if(p.y<0) p.y=canvas.height; if(p.y>canvas.height) p.y=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,180,216,'+p.a+')'; ctx.fill();
+    });
+    for(var i=0;i<particles.length;i++) for(var j=i+1;j<particles.length;j++){
+      var dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
+      var dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<100){ ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.strokeStyle='rgba(0,180,216,'+(0.06*(1-dist/100))+')'; ctx.lineWidth=.6; ctx.stroke(); }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+});
+</script>
+</body>
+</html>
