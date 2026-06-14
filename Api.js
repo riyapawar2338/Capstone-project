@@ -8,7 +8,7 @@
 
 // ── Backend base URL ──────────────────────────────────────────
 // Change this to your deployed server URL in production
-const API_BASE = window.AIIAS_API_BASE || 'http://localhost:5000/api';
+const API_BASE = window.AIIAS_API_BASE || 'https://capstone-project-backend-m20u.onrender.com/api';
 
 // ── Token management ──────────────────────────────────────────
 const TokenStore = {
@@ -37,7 +37,7 @@ async function isBackendOnline() {
     badge.style.color    = _backendOnline ? 'var(--success)' : 'var(--warning)';
   }
   console.info(_backendOnline
-    ? '✅ Backend API connected — http://localhost:5000'
+    ? '✅ Backend API connected — https://capstone-project-backend-m20u.onrender.com'
     : '⚠️  Backend offline — using LocalStorage mode');
   return _backendOnline;
 }
