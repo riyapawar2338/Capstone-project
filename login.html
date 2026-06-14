@@ -18,9 +18,6 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;bac
 .tab-btn.active{background:linear-gradient(135deg,var(--blue),var(--cyan));color:var(--navy)}
 .auth-form{display:none}
 .auth-form.active{display:block}
-.divider-text{text-align:center;color:var(--muted);font-size:.8rem;margin:1rem 0;position:relative}
-.divider-text::before,.divider-text::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--glass-border)}
-.divider-text::before{left:0}.divider-text::after{right:0}
 .demo-box{background:rgba(0,180,216,.07);border:1px solid rgba(0,180,216,.2);border-radius:var(--radius);padding:1rem;margin-top:1.25rem;font-size:.8rem}
 .demo-box p{color:var(--muted);margin-bottom:.4rem}
 .demo-cred{font-family:var(--font-mono);color:var(--cyan);font-size:.78rem}
@@ -29,11 +26,12 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;bac
 .back-link{text-align:center;margin-top:1.25rem}
 .back-link a{color:var(--muted);font-size:.83rem}
 .back-link a:hover{color:var(--cyan)}
+/* Connection badge */
+#connBadge{font-size:.72rem;padding:.2rem .6rem;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--glass-border);margin-bottom:1rem;display:block;text-align:center}
 </style>
 </head>
 <body>
 <div class="bg-grid"></div>
-
 <div class="auth-wrap">
   <div class="auth-card">
     <div class="auth-logo">
@@ -42,7 +40,8 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;bac
       <p>Login or Register to continue</p>
     </div>
 
-    <!-- Tab bar -->
+    <span id="connBadge">🔄 Checking backend…</span>
+
     <div class="tab-bar">
       <button class="tab-btn active" onclick="switchTab('login',this)">🔑 Login</button>
       <button class="tab-btn" onclick="switchTab('register',this)">📝 Register</button>
@@ -62,10 +61,7 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;bac
           <button type="button" onclick="togglePwd('lPass',this)" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">👁️</button>
         </div>
       </div>
-      <button type="button" class="btn btn-primary w-full btn-lg" onclick="doLogin()" style="margin-top:.5rem">
-        Login →
-      </button>
-
+      <button type="button" class="btn btn-primary w-full btn-lg" id="loginBtn" onclick="doLogin()" style="margin-top:.5rem">Login →</button>
       <div class="demo-box">
         <p>Demo credentials:</p>
         <div class="demo-cred">👑 Admin &nbsp; admin@aiias.edu / Admin@1234</div>
@@ -99,24 +95,31 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;bac
         <label class="form-label">Confirm Password <span class="req">*</span></label>
         <input class="form-control" id="rPass2" type="password" placeholder="Re-enter password" autocomplete="new-password"/>
       </div>
-      <button type="button" class="btn btn-primary w-full btn-lg" onclick="doRegister()" style="margin-top:.5rem">
-        Create Account →
-      </button>
+      <button type="button" class="btn btn-primary w-full btn-lg" id="regBtn" onclick="doRegister()" style="margin-top:.5rem">Create Account →</button>
     </div>
 
-    <div class="back-link">
-      <a href="index.html">← Back to Home</a>
-    </div>
+    <div class="back-link"><a href="index.html">← Back to Home</a></div>
   </div>
 </div>
 
 <div id="toastContainer" class="toast-container"></div>
 <script src="script.js"></script>
+<script src="api.js"></script>
 <script>
+'use strict';
+
 /* If already logged in, redirect */
 if (Auth.isLoggedIn()) {
   window.location.href = Auth.isAdmin() ? 'admin-dashboard.html' : 'student-dashboard.html';
 }
+
+/* Check backend and update badge */
+(async function() {
+  var online = await isBackendOnline();
+  var badge  = document.getElementById('connBadge');
+  badge.textContent  = online ? '🟢 Backend Connected — data saves to MongoDB' : '🟡 Offline Mode — data saves to browser only';
+  badge.style.color  = online ? 'var(--success)' : 'var(--warning)';
+})();
 
 function switchTab(tab, btn) {
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
@@ -129,8 +132,8 @@ function switchTab(tab, btn) {
 
 function togglePwd(id, btn) {
   var inp = document.getElementById(id);
-  if (inp.type==='password') { inp.type='text'; btn.textContent='🙈'; }
-  else { inp.type='password'; btn.textContent='👁️'; }
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁️'; }
 }
 
 function showErr(id, msg) {
@@ -139,46 +142,92 @@ function showErr(id, msg) {
   el.classList.add('show');
 }
 
-function doLogin() {
+async function doLogin() {
   document.getElementById('loginError').classList.remove('show');
-  var email = (document.getElementById('lEmail').value||'').trim();
-  var pass  = (document.getElementById('lPass').value||'');
-  if (!email||!pass) { showErr('loginError','Please enter email and password.'); return; }
-  var res = loginUser(email, pass);
-  if (!res.ok) { showErr('loginError', res.msg); return; }
-  showToast('Welcome back, '+res.user.name+'! 🎉','success');
-  setTimeout(function() {
-    window.location.href = res.user.role==='admin' ? 'admin-dashboard.html' : 'student-dashboard.html';
-  }, 600);
+  var email = (document.getElementById('lEmail').value || '').trim();
+  var pass  =  document.getElementById('lPass').value  || '';
+  if (!email || !pass) { showErr('loginError', 'Please enter email and password.'); return; }
+
+  var btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = '⏳ Logging in…';
+
+  try {
+    var online = await isBackendOnline();
+    var user;
+
+    if (online) {
+      /* ✅ Backend login — stores JWT token via TokenStore */
+      var result = await AdminAPI.login(email, pass);
+      user = result.user || result;
+      /* Also set localStorage session so other pages (script.js) can read it */
+      Auth.setSession({ id: user._id || user.id, name: user.name, email: user.email, role: user.role, rollNo: user.rollNo || '' });
+    } else {
+      /* Fallback: localStorage login */
+      var res = loginUser(email, pass);
+      if (!res.ok) { showErr('loginError', res.msg); return; }
+      user = res.user;
+    }
+
+    showToast('Welcome back, ' + user.name + '! 🎉', 'success');
+    setTimeout(function() {
+      window.location.href = user.role === 'admin' ? 'admin-dashboard.html' : 'student-dashboard.html';
+    }, 600);
+  } catch (err) {
+    showErr('loginError', err.message || 'Login failed. Check credentials.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Login →';
+  }
 }
 
-function doRegister() {
+async function doRegister() {
   document.getElementById('regError').classList.remove('show');
-  var name  = (document.getElementById('rName').value||'').trim();
-  var email = (document.getElementById('rEmail').value||'').trim();
-  var roll  = (document.getElementById('rRoll').value||'').trim();
-  var pass  = (document.getElementById('rPass').value||'');
-  var pass2 = (document.getElementById('rPass2').value||'');
+  var name  = (document.getElementById('rName').value  || '').trim();
+  var email = (document.getElementById('rEmail').value || '').trim();
+  var roll  = (document.getElementById('rRoll').value  || '').trim();
+  var pass  =  document.getElementById('rPass').value  || '';
+  var pass2 =  document.getElementById('rPass2').value || '';
 
-  if (!name)  { showErr('regError','Full name is required.'); return; }
-  if (!email) { showErr('regError','Email is required.'); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('regError','Enter a valid email.'); return; }
-  if (!pass)  { showErr('regError','Password is required.'); return; }
-  if (pass.length<6) { showErr('regError','Password must be at least 6 characters.'); return; }
-  if (pass!==pass2)  { showErr('regError','Passwords do not match.'); return; }
+  if (!name)  { showErr('regError', 'Full name is required.'); return; }
+  if (!email) { showErr('regError', 'Email is required.'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('regError', 'Enter a valid email.'); return; }
+  if (!pass)  { showErr('regError', 'Password is required.'); return; }
+  if (pass.length < 6) { showErr('regError', 'Password must be at least 6 characters.'); return; }
+  if (pass !== pass2)  { showErr('regError', 'Passwords do not match.'); return; }
 
-  var res = registerUser(name, email, pass, roll);
-  if (!res.ok) { showErr('regError', res.msg); return; }
+  var btn = document.getElementById('regBtn');
+  btn.disabled = true; btn.textContent = '⏳ Creating account…';
 
-  /* Auto-login after registration */
-  loginUser(email, pass);
-  showToast('Account created! Welcome, '+name+' 🎉','success');
-  setTimeout(function(){ window.location.href='student-dashboard.html'; }, 700);
+  try {
+    var online = await isBackendOnline();
+    var user;
+
+    if (online) {
+      /* ✅ Backend register */
+      var result = await http.post('/auth/register', { name: name, email: email, password: pass, rollNo: roll, role: 'student' });
+      user = result.data || result;
+      /* Auto-login after register */
+      var loginResult = await AdminAPI.login(email, pass);
+      user = loginResult.user || loginResult;
+      Auth.setSession({ id: user._id || user.id, name: user.name, email: user.email, role: user.role, rollNo: user.rollNo || '' });
+    } else {
+      /* Fallback: localStorage register */
+      var res = registerUser(name, email, pass, roll);
+      if (!res.ok) { showErr('regError', res.msg); return; }
+      loginUser(email, pass);
+      user = res.user;
+    }
+
+    showToast('Account created! Welcome, ' + name + ' 🎉', 'success');
+    setTimeout(function() { window.location.href = 'student-dashboard.html'; }, 700);
+  } catch (err) {
+    showErr('regError', err.message || 'Registration failed. Try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Account →';
+  }
 }
 
-/* Allow Enter key */
 document.addEventListener('keydown', function(e) {
-  if (e.key==='Enter') {
+  if (e.key === 'Enter') {
     if (document.getElementById('loginForm').classList.contains('active')) doLogin();
     else doRegister();
   }

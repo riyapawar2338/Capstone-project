@@ -29,6 +29,9 @@
 .applied-stamp{position:absolute;top:.85rem;right:.85rem;background:rgba(0,200,151,.2);border:1px solid rgba(0,200,151,.4);color:var(--success);padding:.2rem .6rem;border-radius:6px;font-size:.72rem;font-weight:600}
 .aibar{background:var(--glass-bg-2);border:1px solid var(--glass-border);border-radius:var(--radius);padding:.85rem 1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem}
 .login-prompt{background:rgba(255,170,0,.08);border:1px solid rgba(255,170,0,.25);border-radius:var(--radius);padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem}
+/* Spinner */
+.spin{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:.4rem}
+@keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:1024px){.rec-layout{grid-template-columns:1fr}.fp{position:static}}
 </style>
 </head>
@@ -47,6 +50,7 @@
   <div id="navUserPill" style="display:flex;align-items:center"></div>
   <button class="nav-toggle"><span></span><span></span><span></span></button>
 </nav>
+
 <div class="page-wrapper">
   <div class="page-hero">
     <div class="container">
@@ -55,9 +59,12 @@
       <p>Browse all opportunities. Login and fill your profile to see AI match scores.</p>
     </div>
   </div>
+
   <section>
     <div class="container">
       <div class="rec-layout">
+
+        <!-- FILTERS SIDEBAR -->
         <div class="fp">
           <div class="card">
             <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
@@ -81,13 +88,16 @@
             </div>
           </div>
         </div>
+
+        <!-- LISTINGS -->
         <div>
-          <!-- Login prompt for non-logged-in users -->
+          <!-- Login prompt -->
           <div class="login-prompt" id="loginPrompt" style="display:none">
             <span style="color:var(--warning)">⚠️ Login to see AI Match Scores and apply for internships.</span>
             <a href="login.html" class="btn btn-primary btn-sm">Login / Register</a>
           </div>
-          <!-- AI Student selector (shown when logged in as student with profile) -->
+
+          <!-- AI bar (shown when logged in) -->
           <div class="aibar" id="aiBar" style="display:none">
             <span style="font-size:1.5rem">🤖</span>
             <p style="flex:1;font-size:.875rem;color:var(--muted);min-width:160px">AI Match Scores active for your profile.</p>
@@ -95,8 +105,9 @@
               <option value="">— Select Profile —</option>
             </select>
           </div>
+
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem">
-            <div id="rCount" style="color:var(--muted);font-size:.875rem">Loading…</div>
+            <div id="rCount" style="color:var(--muted);font-size:.875rem"><span class="spin"></span> Loading…</div>
             <div style="display:flex;align-items:center;gap:.5rem">
               <span style="font-size:.8rem;color:var(--muted)">Sort:</span>
               <select class="form-control" id="sortSel" style="width:auto;padding:.4rem .8rem;font-size:.82rem" onchange="render()">
@@ -107,14 +118,17 @@
               </select>
             </div>
           </div>
+
           <div id="iGrid" style="display:flex;flex-direction:column;gap:1.25rem"></div>
         </div>
       </div>
     </div>
   </section>
+
   <footer><div class="container"><div class="footer-bottom"><p>© 2025 AI Internship Allocation &amp; Recommendation System</p></div></div></footer>
 </div>
 
+<!-- Apply modal -->
 <div class="modal-overlay" id="applyModal">
   <div class="modal-box" style="max-width:500px">
     <div class="modal-header"><h3>📋 Apply for Internship</h3><button class="modal-close" onclick="closeModal('applyModal')">✕</button></div>
@@ -127,126 +141,192 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('applyModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="doApply()">✅ Submit Application</button>
+      <button class="btn btn-primary" id="applySubmitBtn" onclick="doApply()">✅ Submit Application</button>
     </div>
   </div>
 </div>
 
 <div id="toastContainer" class="toast-container"></div>
+
+<!-- ✅ FIXED: script.js → api.js → page logic -->
 <script src="script.js"></script>
+<script src="api.js"></script>
 <script>
-var selStudent=null, pendingIid=null;
-var ICONS={'Artificial Intelligence':'🤖','Web Development':'🌐','Data Science':'📊','Mobile Development':'📱',
-           'Cybersecurity':'🔒','Cloud Computing':'☁️','UI/UX Design':'🎨','Internet of Things':'🔌',
-           'Embedded Systems':'🔧','DevOps':'⚙️'};
+'use strict';
 
-document.addEventListener('DOMContentLoaded',function(){
-  var session=Auth.getSession();
-  if(session && session.role==='admin') document.getElementById('navAdmin').classList.remove('hidden');
+var selStudent   = null;
+var pendingIid   = null;
+var allInternships = [];
+var allApplications = [];
 
-  if(!session){
-    document.getElementById('loginPrompt').style.display='flex';
+var ICONS = {
+  'Artificial Intelligence':'🤖','Web Development':'🌐','Data Science':'📊',
+  'Mobile Development':'📱','Cybersecurity':'🔒','Cloud Computing':'☁️',
+  'UI/UX Design':'🎨','Internet of Things':'🔌','Embedded Systems':'🔧','DevOps':'⚙️'
+};
+
+document.addEventListener('DOMContentLoaded', async function() {
+  var session = Auth.getSession();
+  if (session && session.role === 'admin') document.getElementById('navAdmin').classList.remove('hidden');
+
+  if (!session) {
+    document.getElementById('loginPrompt').style.display = 'flex';
   } else {
-    document.getElementById('aiBar').style.display='flex';
-    fillStudentSelector(session);
-    /* Auto-select student whose email matches session */
-    var students=Store.get(KEYS.STUDENTS);
-    var mine=students.find(function(s){ return s.email&&s.email.toLowerCase()===session.email.toLowerCase(); });
-    if(mine){
-      document.getElementById('stuSel').value=mine.id;
-      selStudent=mine;
-    }
+    document.getElementById('aiBar').style.display = 'flex';
+    await fillStudentSelector(session);
   }
+
+  /* Load internships and applications from backend/localStorage */
+  try {
+    var intRes = await DataService.getInternships();
+    allInternships = intRes.data || [];
+  } catch(e) {
+    allInternships = Store.get(KEYS.INTERNSHIPS);
+  }
+
+  try {
+    var appRes = await DataService.getApplications();
+    allApplications = appRes.data || [];
+  } catch(e) {
+    allApplications = Store.get(KEYS.APPLICATIONS);
+  }
+
   buildFilters();
   render();
 });
 
-function fillStudentSelector(session){
-  var sel=document.getElementById('stuSel');
-  while(sel.options.length>1) sel.remove(1);
-  var students=Store.get(KEYS.STUDENTS);
-  students.forEach(function(s){
-    /* Students can only see themselves; admins see all */
-    if(session.role==='admin'||(s.email&&s.email.toLowerCase()===session.email.toLowerCase())){
-      var o=document.createElement('option');
-      o.value=s.id; o.textContent=s.fullName+' ('+s.rollNo+')';
+/* Fill student selector dropdown */
+async function fillStudentSelector(session) {
+  var sel = document.getElementById('stuSel');
+  while (sel.options.length > 1) sel.remove(1);
+
+  var students = [];
+  try {
+    var res = await DataService.getStudents();
+    students = res.data || [];
+  } catch(e) {
+    students = Store.get(KEYS.STUDENTS);
+  }
+
+  students.forEach(function(s) {
+    /* Students only see themselves; admins see all */
+    var sEmail = (s.email || '').toLowerCase();
+    var sessEmail = (session.email || '').toLowerCase();
+    if (session.role === 'admin' || sEmail === sessEmail) {
+      var o = document.createElement('option');
+      o.value = s._id || s.id;
+      o.textContent = (s.fullName || s.name || '') + ' (' + (s.rollNo || '') + ')';
       sel.appendChild(o);
     }
   });
+
+  /* Auto-select the logged-in student's own profile */
+  var mine = students.find(function(s){
+    return s.email && s.email.toLowerCase() === (session.email || '').toLowerCase();
+  });
+  if (mine) {
+    sel.value   = mine._id || mine.id;
+    selStudent  = mine;
+  }
 }
 
-function onStuChange(){
-  var id=document.getElementById('stuSel').value;
-  selStudent=id?Store.getOne(KEYS.STUDENTS,id):null;
+async function onStuChange() {
+  var id = document.getElementById('stuSel').value;
+  if (!id) { selStudent = null; render(); return; }
+  try {
+    selStudent = await DataService.getStudent(id);
+  } catch(e) {
+    selStudent = Store.getOne ? Store.getOne(KEYS.STUDENTS, id) : null;
+  }
   render();
 }
 
-function buildFilters(){
-  var all=Store.get(KEYS.INTERNSHIPS);
-  function uniq(arr,key){var seen={};return arr.map(function(i){return i[key];}).filter(function(v){if(!v||seen[v])return false;seen[v]=true;return true;});}
-  function makeList(divId,items){
-    var div=document.getElementById(divId);if(!div)return;
-    div.innerHTML=items.map(function(item){
-      var sid='f_'+item.replace(/[^a-zA-Z0-9]/g,'_');
+/* Build filter checkboxes from loaded internships */
+function buildFilters() {
+  function uniq(arr, key) {
+    var seen = {};
+    return arr.map(function(i){ return i[key]; }).filter(function(v){ if (!v||seen[v]) return false; seen[v]=true; return true; });
+  }
+  function makeList(divId, items) {
+    var div = document.getElementById(divId); if (!div) return;
+    div.innerHTML = items.map(function(item){
+      var sid = 'f_' + item.replace(/[^a-zA-Z0-9]/g,'_');
       return '<div class="fcr"><input type="checkbox" id="'+sid+'" value="'+item+'" class="flt" onchange="render()"/><label for="'+sid+'">'+item+'</label></div>';
     }).join('');
   }
-  makeList('fDomain',uniq(all,'domain'));
-  makeList('fLocation',uniq(all,'location'));
-  makeList('fDuration',uniq(all,'duration'));
+  makeList('fDomain',   uniq(allInternships, 'domain'));
+  makeList('fLocation', uniq(allInternships, 'location'));
+  makeList('fDuration', uniq(allInternships, 'duration'));
 }
 
-function checked(cls){return Array.from(document.querySelectorAll('.'+cls+':checked')).map(function(el){return el.value;});}
-function clearFilters(){document.querySelectorAll('.flt,.sc').forEach(function(c){c.checked=false;});document.getElementById('iSearch').value='';render();}
-function stipNum(s){if(!s)return 0;var m=String(s).replace(/,/g,'').match(/\d+/);return m?parseInt(m[0]):0;}
+function clearFilters() {
+  document.querySelectorAll('.flt,.sc').forEach(function(c){ c.checked=false; });
+  document.getElementById('iSearch').value = '';
+  render();
+}
 
-function render(){
-  var q=(document.getElementById('iSearch').value||'').toLowerCase();
-  var selDoms=Array.from(document.querySelectorAll('#fDomain .flt:checked')).map(function(e){return e.value;});
-  var selLocs=Array.from(document.querySelectorAll('#fLocation .flt:checked')).map(function(e){return e.value;});
-  var selDurs=Array.from(document.querySelectorAll('#fDuration .flt:checked')).map(function(e){return e.value;});
-  var stipChk=Array.from(document.querySelectorAll('.sc:checked'));
-  var minStip=0; stipChk.forEach(function(c){var v=parseInt(c.value)||0;if(v>minStip)minStip=v;});
+function stipNum(s) { if (!s) return 0; var m=String(s).replace(/,/g,'').match(/\d+/); return m?parseInt(m[0]):0; }
 
-  var list=Store.get(KEYS.INTERNSHIPS).filter(function(i){
-    var sq=!q||(i.title||'').toLowerCase().indexOf(q)!==-1||(i.company||'').toLowerCase().indexOf(q)!==-1||(i.domain||'').toLowerCase().indexOf(q)!==-1;
-    var sd=!selDoms.length||selDoms.indexOf(i.domain)!==-1;
-    var sl=!selLocs.length||selLocs.indexOf(i.location)!==-1;
-    var du=!selDurs.length||selDurs.indexOf(i.duration)!==-1;
-    var st=!minStip||(i.stipendAmount||stipNum(i.stipend))>=minStip;
+function render() {
+  var q       = (document.getElementById('iSearch').value || '').toLowerCase();
+  var selDoms = Array.from(document.querySelectorAll('#fDomain .flt:checked')).map(function(e){ return e.value; });
+  var selLocs = Array.from(document.querySelectorAll('#fLocation .flt:checked')).map(function(e){ return e.value; });
+  var selDurs = Array.from(document.querySelectorAll('#fDuration .flt:checked')).map(function(e){ return e.value; });
+  var stipChk = Array.from(document.querySelectorAll('.sc:checked'));
+  var minStip = 0; stipChk.forEach(function(c){ var v=parseInt(c.value)||0; if(v>minStip)minStip=v; });
+
+  var list = allInternships.filter(function(i){
+    var sq = !q || (i.title||'').toLowerCase().indexOf(q)!==-1 || (i.company||'').toLowerCase().indexOf(q)!==-1 || (i.domain||'').toLowerCase().indexOf(q)!==-1;
+    var sd = !selDoms.length || selDoms.indexOf(i.domain)!==-1;
+    var sl = !selLocs.length || selLocs.indexOf(i.location)!==-1;
+    var du = !selDurs.length || selDurs.indexOf(i.duration)!==-1;
+    var st = !minStip || (i.stipendAmount||stipNum(i.stipend)) >= minStip;
     return sq&&sd&&sl&&du&&st;
   });
 
-  list=list.map(function(i){return Object.assign({},i,{score:selStudent?calcMatchScore(selStudent,i):null});});
+  /* Attach AI scores */
+  list = list.map(function(i){
+    return Object.assign({}, i, { score: selStudent ? calcMatchScore(selStudent, i) : null });
+  });
 
-  var by=document.getElementById('sortSel').value;
-  if(by==='match'&&selStudent) list.sort(function(a,b){return b.score-a.score;});
-  else if(by==='stipend') list.sort(function(a,b){return(b.stipendAmount||stipNum(b.stipend))-(a.stipendAmount||stipNum(a.stipend));});
-  else if(by==='deadline') list.sort(function(a,b){return new Date(a.deadline)-new Date(b.deadline);});
-  else if(by==='seats') list.sort(function(a,b){return(b.seats||0)-(a.seats||0);});
+  /* Sort */
+  var by = document.getElementById('sortSel').value;
+  if (by==='match' && selStudent) list.sort(function(a,b){ return b.score-a.score; });
+  else if (by==='stipend')  list.sort(function(a,b){ return (b.stipendAmount||stipNum(b.stipend))-(a.stipendAmount||stipNum(a.stipend)); });
+  else if (by==='deadline') list.sort(function(a,b){ return new Date(a.deadline)-new Date(b.deadline); });
+  else if (by==='seats')    list.sort(function(a,b){ return (b.seats||0)-(a.seats||0); });
 
-  document.getElementById('rCount').textContent=list.length+' internship'+(list.length!==1?'s':'')+' found';
+  document.getElementById('rCount').textContent = list.length + ' internship' + (list.length!==1?'s':'') + ' found';
 
-  var apps=Store.get(KEYS.APPLICATIONS);
-  var grid=document.getElementById('iGrid'); grid.innerHTML='';
-  var session=Auth.getSession();
+  var session = Auth.getSession();
+  var grid    = document.getElementById('iGrid'); grid.innerHTML = '';
 
-  if(!list.length){
-    grid.innerHTML='<div style="text-align:center;padding:4rem;color:var(--muted)"><div style="font-size:3rem;margin-bottom:1rem">🔍</div><p>No internships match your filters.</p><button class="btn btn-ghost" onclick="clearFilters()" style="margin-top:1rem">Clear Filters</button></div>';
+  if (!list.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:4rem;color:var(--muted)"><div style="font-size:3rem;margin-bottom:1rem">🔍</div><p>No internships match your filters.</p><button class="btn btn-ghost" onclick="clearFilters()" style="margin-top:1rem">Clear Filters</button></div>';
     return;
   }
 
-  list.forEach(function(i){
-    var sc=i.score, isRec=sc!==null&&sc>=60;
-    var isApp=selStudent&&apps.some(function(a){return a.internshipId===i.id&&a.studentId===selStudent.id;});
-    var col=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--danger)';
-    var R=22,circ=(2*Math.PI*R).toFixed(1),offset=sc!==null?(parseFloat(circ)-(sc/100)*parseFloat(circ)).toFixed(1):circ;
-    var skills=Array.isArray(i.requiredSkills)?i.requiredSkills:(i.requiredSkills||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
-    var tags=Array.isArray(i.tags)?i.tags:(i.tags||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+  list.forEach(function(i) {
+    var iid  = i._id || i.id;
+    var sc   = i.score;
+    var isRec= sc !== null && sc >= 60;
 
-    var scoreHtml='';
-    if(sc!==null){
-      scoreHtml='<div style="display:flex;align-items:center;gap:.75rem">'+
+    /* Check if already applied */
+    var isApp = selStudent && allApplications.some(function(a){
+      var appStu = a.studentId || a.student?._id || a.student;
+      var appInt = a.internshipId || a.internship?._id || a.internship;
+      return appInt === iid && appStu === (selStudent._id || selStudent.id);
+    });
+
+    var col   = sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--danger)';
+    var R     = 22, circ = (2*Math.PI*R).toFixed(1);
+    var offset= sc!==null ? (parseFloat(circ)-(sc/100)*parseFloat(circ)).toFixed(1) : circ;
+    var skills= Array.isArray(i.requiredSkills) ? i.requiredSkills : (i.requiredSkills||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+    var tags  = Array.isArray(i.tags) ? i.tags : (i.tags||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+
+    var scoreHtml = '';
+    if (sc !== null) {
+      scoreHtml = '<div style="display:flex;align-items:center;gap:.75rem">'+
         '<div class="mring"><svg width="56" height="56" viewBox="0 0 56 56">'+
         '<circle cx="28" cy="28" r="'+R+'" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="4"/>'+
         '<circle cx="28" cy="28" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="4" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" stroke-linecap="round"/>'+
@@ -255,22 +335,22 @@ function render(){
         '<div style="font-size:.72rem;color:var(--muted)">Match</div></div></div>';
     }
 
-    /* Apply button logic */
-    var applyHtml='';
-    if(!session){
-      applyHtml='<a href="login.html" class="btn btn-outline btn-sm">Login to Apply</a>';
-    } else if(isApp){
-      applyHtml='<span class="btn btn-success btn-sm" style="cursor:default;pointer-events:none">✅ Applied</span>';
-    } else if(!selStudent){
-      applyHtml='<a href="student-management.html" class="btn btn-outline btn-sm">Fill Profile First</a>';
+    /* Apply button */
+    var applyHtml = '';
+    if (!session) {
+      applyHtml = '<a href="login.html" class="btn btn-outline btn-sm">Login to Apply</a>';
+    } else if (isApp) {
+      applyHtml = '<span class="btn btn-success btn-sm" style="cursor:default;pointer-events:none">✅ Applied</span>';
+    } else if (!selStudent) {
+      applyHtml = '<a href="student-management.html" class="btn btn-outline btn-sm">Fill Profile First</a>';
     } else {
-      applyHtml='<button class="btn btn-primary btn-sm" onclick="openApply(\''+i.id+'\')">Apply Now →</button>';
+      applyHtml = '<button class="btn btn-primary btn-sm" onclick="openApply(\''+iid+'\')">Apply Now →</button>';
     }
 
-    var card=document.createElement('div');
-    card.className='ic'+(isRec?' rec':'');
-    card.innerHTML=
-      (isApp?'<span class="applied-stamp">✅ Applied</span>':'')+
+    var card = document.createElement('div');
+    card.className = 'ic' + (isRec ? ' rec' : '');
+    card.innerHTML =
+      (isApp ? '<span class="applied-stamp">✅ Applied</span>' : '') +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">'+
         '<div style="display:flex;gap:.75rem;align-items:center">'+
           '<div class="clogo">'+(ICONS[i.domain]||'🏢')+'</div>'+
@@ -284,49 +364,60 @@ function render(){
       '</div>'+
       '<p style="font-size:.875rem;color:var(--white-2);line-height:1.7;margin-bottom:1rem">'+i.description+'</p>'+
       '<div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:1rem">'+
-        skills.map(function(s){return '<span class="chip" style="font-size:.72rem">'+s+'</span>';}).join('')+
+        skills.map(function(s){ return '<span class="chip" style="font-size:.72rem">'+s+'</span>'; }).join('')+
       '</div>'+
       '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">'+
-        '<div style="display:flex;gap:.35rem;flex-wrap:wrap">'+tags.slice(0,3).map(function(t){return '<span class="badge badge-cyan">'+t+'</span>';}).join('')+'</div>'+
+        '<div style="display:flex;gap:.35rem;flex-wrap:wrap">'+tags.slice(0,3).map(function(t){ return '<span class="badge badge-cyan">'+t+'</span>'; }).join('')+'</div>'+
         '<div>'+applyHtml+'</div>'+
       '</div>';
     grid.appendChild(card);
   });
 }
 
-function openApply(iid){
-  if(!selStudent){showToast('Please select your student profile first.','warning');return;}
-  var i=Store.getOne(KEYS.INTERNSHIPS,iid); if(!i) return;
-  pendingIid=iid;
-  var sc=calcMatchScore(selStudent,i);
-  document.getElementById('applyInfo').innerHTML=
+function openApply(iid) {
+  if (!selStudent) { showToast('Please select your student profile first.','warning'); return; }
+  var i = allInternships.find(function(x){ return (x._id||x.id)===iid; });
+  if (!i) return;
+  pendingIid = iid;
+  var sc = calcMatchScore(selStudent, i);
+  document.getElementById('applyInfo').innerHTML =
     '<p style="color:var(--muted);margin-bottom:1rem">Applying for:</p>'+
     '<div class="card" style="padding:1rem;margin-bottom:.75rem">'+
       '<div style="font-weight:700">'+i.title+'</div>'+
       '<div style="font-size:.85rem;color:var(--muted)">'+i.company+' · '+i.location+'</div>'+
     '</div>'+
-    '<p style="color:var(--muted)">Student: <strong style="color:var(--white)">'+selStudent.fullName+'</strong> ('+selStudent.rollNo+')</p>'+
+    '<p style="color:var(--muted)">Student: <strong style="color:var(--white)">'+(selStudent.fullName||selStudent.name||'')+'</strong> ('+(selStudent.rollNo||'')+')</p>'+
     '<p style="color:var(--muted);margin-top:.5rem">AI Match Score: <strong style="color:var(--success)">'+sc+'%</strong></p>';
-  document.getElementById('cover').value='';
+  document.getElementById('cover').value = '';
   openModal('applyModal');
 }
 
-function doApply(){
-  if(!pendingIid||!selStudent) return;
-  var apps=Store.get(KEYS.APPLICATIONS);
-  if(apps.some(function(a){return a.internshipId===pendingIid&&a.studentId===selStudent.id;})){
-    showToast('Already applied for this internship.','warning');closeModal('applyModal');return;
+async function doApply() {
+  if (!pendingIid || !selStudent) return;
+
+  /* Check duplicate */
+  var studentId = selStudent._id || selStudent.id;
+  var alreadyApplied = allApplications.some(function(a){
+    var appStu = a.studentId || a.student?._id || a.student;
+    var appInt = a.internshipId || a.internship?._id || a.internship;
+    return appInt === pendingIid && appStu === studentId;
+  });
+  if (alreadyApplied) { showToast('Already applied for this internship.','warning'); closeModal('applyModal'); return; }
+
+  var btn = document.getElementById('applySubmitBtn');
+  btn.disabled = true; btn.textContent = '⏳ Submitting…';
+
+  try {
+    var newApp = await DataService.applyForInternship(studentId, pendingIid, document.getElementById('cover').value);
+    allApplications.push(newApp);
+    closeModal('applyModal');
+    showToast('🎉 Application submitted!','success');
+    render();
+  } catch(e) {
+    showToast('Apply failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '✅ Submit Application';
   }
-  var i=Store.getOne(KEYS.INTERNSHIPS,pendingIid);
-  apps.push({id:genId(),internshipId:pendingIid,studentId:selStudent.id,
-    studentName:selStudent.fullName,rollNo:selStudent.rollNo,
-    matchScore:calcMatchScore(selStudent,i),
-    coverLetter:document.getElementById('cover').value,
-    status:'Pending',appliedAt:new Date().toISOString(),createdAt:new Date().toISOString()});
-  Store.set(KEYS.APPLICATIONS,apps);
-  closeModal('applyModal');
-  showToast('🎉 Application submitted!','success');
-  render();
 }
 </script>
 </body>

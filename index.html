@@ -127,15 +127,12 @@ canvas#heroCanvas{position:absolute;inset:0;z-index:0;pointer-events:none}
   <!-- HOW IT WORKS -->
   <section style="background:var(--navy-2)">
     <div class="container">
-      <div class="text-center mb-4">
-        <div class="section-label">Process</div>
-        <h2 class="section-title">How It Works</h2>
-      </div>
+      <div class="text-center mb-4"><div class="section-label">Process</div><h2 class="section-title">How It Works</h2></div>
       <div class="steps-grid">
-        <div class="step-card fade-in-up delay-1"><div class="step-num">1</div><div style="font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:.4rem">Register & Login</div><p style="color:var(--muted);font-size:.83rem;line-height:1.6">Create your account on the Login page. Students get a personalized dashboard; admins get full system access.</p></div>
+        <div class="step-card fade-in-up delay-1"><div class="step-num">1</div><div style="font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:.4rem">Register &amp; Login</div><p style="color:var(--muted);font-size:.83rem;line-height:1.6">Create your account on the Login page. Students get a personalized dashboard; admins get full system access.</p></div>
         <div class="step-card fade-in-up delay-2"><div class="step-num">2</div><div style="font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:.4rem">Build Your Profile</div><p style="color:var(--muted);font-size:.83rem;line-height:1.6">Add your academic details, technical skills, certifications, projects and career interests to complete your profile.</p></div>
         <div class="step-card fade-in-up delay-3"><div class="step-num">3</div><div style="font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:.4rem">Get AI Matches</div><p style="color:var(--muted);font-size:.83rem;line-height:1.6">The AI engine instantly computes compatibility scores (0–100%) for every internship based on your profile.</p></div>
-        <div class="step-card fade-in-up delay-4"><div class="step-num">4</div><div style="font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:.4rem">Apply & Track</div><p style="color:var(--muted);font-size:.83rem;line-height:1.6">Apply directly with a cover letter and track your application status in real time from your dashboard.</p></div>
+        <div class="step-card fade-in-up delay-4"><div class="step-num">4</div><div style="font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:.4rem">Apply &amp; Track</div><p style="color:var(--muted);font-size:.83rem;line-height:1.6">Apply directly with a cover letter and track your application status in real time from your dashboard.</p></div>
       </div>
     </div>
   </section>
@@ -143,10 +140,7 @@ canvas#heroCanvas{position:absolute;inset:0;z-index:0;pointer-events:none}
   <!-- STATS -->
   <section class="stats-section">
     <div class="container">
-      <div class="text-center mb-4" style="position:relative;z-index:1">
-        <div class="section-label">Impact</div>
-        <h2 class="section-title">System Statistics</h2>
-      </div>
+      <div class="text-center mb-4" style="position:relative;z-index:1"><div class="section-label">Impact</div><h2 class="section-title">System Statistics</h2></div>
       <div class="stats-grid">
         <div class="stat-card fade-in-up delay-1"><div style="font-size:2rem;margin-bottom:.5rem">🎓</div><div class="stat-number" id="statStudents">0</div><div class="stat-label">Students Registered</div><div class="stat-change up">↑ Add more via Student Management</div></div>
         <div class="stat-card fade-in-up delay-2"><div style="font-size:2rem;margin-bottom:.5rem">🏢</div><div class="stat-number">10</div><div class="stat-label">Internship Listings</div><div class="stat-change up">↑ Across 10 domains</div></div>
@@ -186,7 +180,7 @@ canvas#heroCanvas{position:absolute;inset:0;z-index:0;pointer-events:none}
         </ul></div>
         <div class="footer-col"><h4>Technology</h4><ul>
           <li><a href="#">HTML5 / CSS3</a></li><li><a href="#">Vanilla JavaScript</a></li>
-          <li><a href="#">LocalStorage API</a></li><li><a href="#">AI Match Algorithm</a></li>
+          <li><a href="#">Node.js / MongoDB</a></li><li><a href="#">AI Match Algorithm</a></li>
         </ul></div>
       </div>
       <div style="border-top:1px solid var(--glass-border);padding-top:1.5rem;text-align:center;color:var(--muted);font-size:.8rem">
@@ -197,24 +191,19 @@ canvas#heroCanvas{position:absolute;inset:0;z-index:0;pointer-events:none}
 </div>
 
 <div id="toastContainer" class="toast-container"></div>
+<!-- ✅ FIXED: script.js → api.js → page logic -->
 <script src="script.js"></script>
+<script src="api.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
   var session = Auth.getSession();
-  var cnt = Store.get(KEYS.STUDENTS).length;
-  document.getElementById('hStudents').textContent = cnt;
-  document.getElementById('statStudents').textContent = cnt;
 
   /* Show admin link */
-  if (session && session.role === 'admin') {
-    document.getElementById('navAdmin').classList.remove('hidden');
-  }
+  if (session && session.role === 'admin') document.getElementById('navAdmin').classList.remove('hidden');
 
   /* Auth link in nav */
   var authLink = document.getElementById('navAuthLink');
-  if (!session) {
-    authLink.innerHTML = '<a href="login.html" class="nav-cta btn">Login / Register</a>';
-  }
+  if (authLink && !session) authLink.innerHTML = '<a href="login.html" class="nav-cta btn">Login / Register</a>';
 
   /* Hero CTA buttons */
   var heroCta = document.getElementById('heroCta');
@@ -230,26 +219,39 @@ document.addEventListener('DOMContentLoaded', function() {
     ctaBtns.innerHTML = '<a href="student-dashboard.html" class="btn btn-primary btn-lg">📊 View My Dashboard</a><a href="recommendations.html" class="btn btn-outline btn-lg">🔍 Browse Internships</a>';
   }
 
+  /* ✅ FIXED: Load student count from backend/localStorage via DataService */
+  try {
+    var res = await DataService.getStudents();
+    var cnt = (res.meta && res.meta.total) || (res.data || []).length;
+    document.getElementById('hStudents').textContent  = cnt;
+    document.getElementById('statStudents').textContent = cnt;
+  } catch(e) {
+    /* Fallback to localStorage count */
+    var cnt2 = Store.get(KEYS.STUDENTS).length;
+    document.getElementById('hStudents').textContent  = cnt2;
+    document.getElementById('statStudents').textContent = cnt2;
+  }
+
   /* Hero canvas particles */
   var canvas = document.getElementById('heroCanvas');
-  var ctx = canvas.getContext('2d');
+  var ctx    = canvas.getContext('2d');
   function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
   resize(); window.addEventListener('resize', resize);
   var particles = [];
   for (var i = 0; i < 55; i++) {
-    particles.push({ x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight,
-      r: Math.random()*1.5+.5, dx: (Math.random()-.5)*.4, dy: (Math.random()-.5)*.4, a: Math.random()*.5+.1 });
+    particles.push({ x:Math.random()*window.innerWidth, y:Math.random()*window.innerHeight,
+      r:Math.random()*1.5+.5, dx:(Math.random()-.5)*.4, dy:(Math.random()-.5)*.4, a:Math.random()*.5+.1 });
   }
   function draw() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
     particles.forEach(function(p){
       p.x+=p.dx; p.y+=p.dy;
-      if(p.x<0) p.x=canvas.width; if(p.x>canvas.width) p.x=0;
-      if(p.y<0) p.y=canvas.height; if(p.y>canvas.height) p.y=0;
+      if(p.x<0)p.x=canvas.width; if(p.x>canvas.width)p.x=0;
+      if(p.y<0)p.y=canvas.height; if(p.y>canvas.height)p.y=0;
       ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
       ctx.fillStyle='rgba(0,180,216,'+p.a+')'; ctx.fill();
     });
-    for(var i=0;i<particles.length;i++) for(var j=i+1;j<particles.length;j++){
+    for (var i=0;i<particles.length;i++) for (var j=i+1;j<particles.length;j++){
       var dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
       var dist=Math.sqrt(dx*dx+dy*dy);
       if(dist<100){ ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y);

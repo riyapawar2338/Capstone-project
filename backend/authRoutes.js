@@ -15,6 +15,6 @@ router.post('/logout', protect, logout);
 router.get('/me', protect, getMe);
 
 // POST /api/auth/register  (superadmin only)
-router.post('/register', protect, authorize('superadmin'), register);
+router.post('/register', register);
 
 module.exports = router;

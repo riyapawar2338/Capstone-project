@@ -59,13 +59,11 @@
     </div>
   </div>
 
-  <!-- CONTACT SECTION -->
+  <!-- CONTACT -->
   <section>
     <div class="container">
       <div class="contact-layout">
-        <!-- Left column -->
         <div style="display:flex;flex-direction:column;gap:1.5rem">
-          <!-- College Info -->
           <div class="info-card">
             <div style="font-family:var(--font-head);font-size:1.15rem;font-weight:700;margin-bottom:1.25rem;display:flex;align-items:center;gap:.6rem">🏫 College Information</div>
             <div class="ci"><div class="ci-icon">🏛️</div><div><div class="ci-lbl">Institution</div><div class="ci-val">Government Polytechnic College</div></div></div>
@@ -80,7 +78,6 @@
               <a href="https://maps.google.com/?q=Aurangabad+Maharashtra" target="_blank" class="btn btn-outline btn-sm">Open in Google Maps ↗</a>
             </div>
           </div>
-          <!-- Project Info -->
           <div class="info-card">
             <div style="font-family:var(--font-head);font-size:1.15rem;font-weight:700;margin-bottom:1.25rem">📋 Project Details</div>
             <div class="ci"><div class="ci-icon">🤖</div><div><div class="ci-lbl">Project Title</div><div class="ci-val">AI Internship Allocation &amp; Recommendation System</div></div></div>
@@ -91,26 +88,17 @@
           </div>
         </div>
 
-        <!-- Right column — Contact Form -->
+        <!-- Contact Form -->
         <div class="card">
           <div class="card-header"><h3>💬 Send Us a Message</h3></div>
           <div class="card-body" style="padding:1.75rem">
             <div class="err-msg" id="formErr"></div>
             <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Your Name <span class="req">*</span></label>
-                <input class="form-control" id="cName" placeholder="Full Name"/>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Email Address <span class="req">*</span></label>
-                <input class="form-control" id="cEmail" type="email" placeholder="you@example.com"/>
-              </div>
+              <div class="form-group"><label class="form-label">Your Name <span class="req">*</span></label><input class="form-control" id="cName" placeholder="Full Name"/></div>
+              <div class="form-group"><label class="form-label">Email Address <span class="req">*</span></label><input class="form-control" id="cEmail" type="email" placeholder="you@example.com"/></div>
             </div>
             <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Phone Number</label>
-                <input class="form-control" id="cPhone" placeholder="10-digit number"/>
-              </div>
+              <div class="form-group"><label class="form-label">Phone Number</label><input class="form-control" id="cPhone" placeholder="10-digit number"/></div>
               <div class="form-group">
                 <label class="form-label">Subject <span class="req">*</span></label>
                 <select class="form-control" id="cSubject">
@@ -121,10 +109,7 @@
                 </select>
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Your Organization / College</label>
-              <input class="form-control" id="cOrg" placeholder="e.g. ABC Engineering College, Pune"/>
-            </div>
+            <div class="form-group"><label class="form-label">Your Organization / College</label><input class="form-control" id="cOrg" placeholder="e.g. ABC Engineering College, Pune"/></div>
             <div class="form-group">
               <label class="form-label">Message <span class="req">*</span></label>
               <textarea class="form-control" id="cMsg" rows="5" placeholder="Describe your query in detail…" maxlength="500"></textarea>
@@ -136,7 +121,7 @@
                 <span style="font-size:.8rem;color:var(--muted);line-height:1.6">I agree that my submitted data is collected and stored as per the project's data policy for academic demonstration purposes.</span>
               </label>
             </div>
-            <button type="button" class="btn btn-primary w-full btn-lg" onclick="submitContact()">📨 Send Message</button>
+            <button type="button" class="btn btn-primary w-full btn-lg" id="sendBtn" onclick="submitContact()">📨 Send Message</button>
             <div class="suc-msg" id="formSuccess">✅ Message sent successfully! We'll get back to you within 24 hours.</div>
           </div>
         </div>
@@ -171,9 +156,9 @@
         <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How does the AI match score work? <span class="arr">▼</span></div><div class="faq-a">The AI engine uses a 4-factor scoring model: technical skills overlap (40%), preferred domain match (25%), CGPA vs minimum requirement (20%), and areas of interest alignment (15%). These combine for a score out of 100%.</div></div>
         <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I login as Admin? <span class="arr">▼</span></div><div class="faq-a">Go to the Login page and use these credentials — Email: <strong>admin@aiias.edu</strong> / Password: <strong>Admin@1234</strong>. After login you will be redirected to the Admin Dashboard automatically.</div></div>
         <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">How do I register as a Student? <span class="arr">▼</span></div><div class="faq-a">Click Login on the navbar, then switch to the Register tab. Fill in your name, email and password. After registration you'll be redirected to the Student Dashboard. Then fill your profile in Student Management to get AI recommendations.</div></div>
-        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Where is student data stored? <span class="arr">▼</span></div><div class="faq-a">All data is saved in your browser's LocalStorage — this means it works 100% offline without any backend server. The data persists across page reloads but is browser-specific. The Node.js/MongoDB backend can be connected for cross-device persistence.</div></div>
-        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Can I use this on GitHub Pages? <span class="arr">▼</span></div><div class="faq-a">Yes! The entire frontend works on GitHub Pages using LocalStorage. No backend is required for the frontend to function. If you want MongoDB storage across devices, deploy the backend folder to Render.com (free tier) and update the API_BASE in api.js.</div></div>
-        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Is this suitable for a viva presentation? <span class="arr">▼</span></div><div class="faq-a">Absolutely. The system demonstrates AI/ML concepts, role-based authentication, full-stack web development, database design, REST API architecture and modern UI/UX — all core topics examiners look for in a final year capstone project.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Where is student data stored? <span class="arr">▼</span></div><div class="faq-a">When the backend is online, all data is saved to MongoDB Atlas via the Node.js/Express API on Render. If the backend is offline, data falls back to browser localStorage automatically. When the backend comes back online, new data will go to MongoDB.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Why does the site take time to load data? <span class="arr">▼</span></div><div class="faq-a">The backend is hosted on Render's free tier which sleeps after 15 minutes of inactivity. The first request wakes it up — this can take 30–60 seconds. Subsequent requests are fast. A loading indicator is shown while this happens.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Is this suitable for a viva presentation? <span class="arr">▼</span></div><div class="faq-a">Absolutely. The system demonstrates AI/ML concepts, role-based authentication, full-stack web development, MongoDB database design, REST API architecture and modern UI/UX — all core topics examiners look for in a final year capstone project.</div></div>
       </div>
     </div>
   </section>
@@ -192,7 +177,9 @@
 </div>
 
 <div id="toastContainer" class="toast-container"></div>
+<!-- ✅ FIXED: script.js → api.js -->
 <script src="script.js"></script>
+<script src="api.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var session = Auth.getSession();
@@ -207,25 +194,25 @@ document.addEventListener('DOMContentLoaded', function() {
 function submitContact() {
   var err = document.getElementById('formErr');
   err.classList.remove('show');
-  var name = (document.getElementById('cName').value||'').trim();
-  var email = (document.getElementById('cEmail').value||'').trim();
-  var subj = document.getElementById('cSubject').value;
-  var msg = (document.getElementById('cMsg').value||'').trim();
-  var consent = document.getElementById('cConsent').checked;
-  if (!name)  { err.textContent='Your name is required.'; err.classList.add('show'); return; }
+  var name    = (document.getElementById('cName').value    || '').trim();
+  var email   = (document.getElementById('cEmail').value   || '').trim();
+  var subj    =  document.getElementById('cSubject').value;
+  var msg     = (document.getElementById('cMsg').value     || '').trim();
+  var consent =  document.getElementById('cConsent').checked;
+  if (!name)    { err.textContent='Your name is required.';          err.classList.add('show'); return; }
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent='A valid email is required.'; err.classList.add('show'); return; }
-  if (!subj)  { err.textContent='Please select a subject.'; err.classList.add('show'); return; }
-  if (!msg)   { err.textContent='Please enter your message.'; err.classList.add('show'); return; }
-  if (!consent){ err.textContent='Please accept the data policy.'; err.classList.add('show'); return; }
-  var btn = event.target; btn.disabled = true; btn.textContent = '⏳ Sending…';
+  if (!subj)    { err.textContent='Please select a subject.';        err.classList.add('show'); return; }
+  if (!msg)     { err.textContent='Please enter your message.';      err.classList.add('show'); return; }
+  if (!consent) { err.textContent='Please accept the data policy.';  err.classList.add('show'); return; }
+  var btn = document.getElementById('sendBtn');
+  btn.disabled = true; btn.textContent = '⏳ Sending…';
   setTimeout(function() {
     btn.disabled = false; btn.textContent = '📨 Send Message';
     document.getElementById('formSuccess').style.display = 'block';
-    document.getElementById('cName').value=''; document.getElementById('cEmail').value='';
-    document.getElementById('cPhone').value=''; document.getElementById('cSubject').value='';
-    document.getElementById('cOrg').value=''; document.getElementById('cMsg').value='';
-    document.getElementById('cCharCount').textContent='0';
-    document.getElementById('cConsent').checked=false;
+    ['cName','cEmail','cPhone','cOrg','cMsg'].forEach(function(id){ document.getElementById(id).value=''; });
+    document.getElementById('cSubject').value = '';
+    document.getElementById('cCharCount').textContent = '0';
+    document.getElementById('cConsent').checked = false;
     showToast('Message sent successfully!','success');
   }, 1200);
 }
