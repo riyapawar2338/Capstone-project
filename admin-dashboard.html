@@ -241,8 +241,9 @@
 
 <div id="toastContainer" class="toast-container"></div>
 <!-- ✅ FIXED: script.js → api.js → page logic -->
-<script src="script.js"></script>
 <script src="api.js"></script>
+<script src="script.js"></script>
+
 <script>
 'use strict';
 var pendingStatusId = null, rptHeaders = [], rptRows = [], rptType = '';
@@ -261,7 +262,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('adminLayout').style.display = 'grid';
 
   /* Check backend connection */
-  var online = await isBackendOnline();
+  var online = await window.isBackendOnline();
   var badge = document.getElementById('connBadge');
   badge.textContent = online ? '🟢 MongoDB Connected' : '🟡 Offline Mode';
   badge.style.color = online ? 'var(--success)' : 'var(--warning)';

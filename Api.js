@@ -6,9 +6,8 @@
    ============================================================ */
 'use strict';
 
-// ── Backend base URL ──────────────────────────────────────────
-// Change this to your deployed server URL in production
-const API_BASE = window.AIIAS_API_BASE || 'https://capstone-project-backend-m20u.onrender.com/api';
+window._backendOnline = null;
+window.API_BASE = window.API_BASE || 'https://capstone-project-backend-m20u.onrender.com/api';
 // ── Token management ──────────────────────────────────────────
 const TokenStore = {
   get()        { return localStorage.getItem('aiias_admin_token'); },
@@ -18,8 +17,6 @@ const TokenStore = {
 };
 
 // ── Connection state ──────────────────────────────────────────
-window._backendOnline = null;
-
 window.isBackendOnline = async function () {
   if (window._backendOnline !== null) return window._backendOnline;
 
@@ -27,9 +24,12 @@ window.isBackendOnline = async function () {
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), 2000);
 
-    const r = await fetch(`${API_BASE}/health`, { signal: ctrl.signal });
+    const r = await fetch(`${window.API_BASE}/health`, {
+      signal: ctrl.signal
+    });
+
     window._backendOnline = r.ok;
-  } catch {
+  } catch (e) {
     window._backendOnline = false;
   }
 
