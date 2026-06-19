@@ -18,45 +18,30 @@ const TokenStore = {
 };
 
 // ── Connection state ──────────────────────────────────────────
-let _backendOnline = null;
+window._backendOnline = null;
 
-async function isBackendOnline() {
-  if (_backendOnline !== null) return _backendOnline;
+window.isBackendOnline = async function () {
+  if (window._backendOnline !== null) return window._backendOnline;
 
   try {
     const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 2000);
+    setTimeout(() => ctrl.abort(), 2000);
 
-    const r = await fetch(`${API_BASE}/health`, {
-      signal: ctrl.signal
-    });
-
-    clearTimeout(timeout);
-
-    _backendOnline = r.ok;
-  } catch (err) {
-    _backendOnline = false;
+    const r = await fetch(`${API_BASE}/health`, { signal: ctrl.signal });
+    window._backendOnline = r.ok;
+  } catch {
+    window._backendOnline = false;
   }
 
   const badge = document.getElementById('connBadge');
   if (badge) {
-    badge.textContent = _backendOnline
+    badge.textContent = window._backendOnline
       ? '🟢 API Connected'
       : '🟡 Offline Mode';
-
-    badge.style.color = _backendOnline
-      ? 'var(--success)'
-      : 'var(--warning)';
   }
 
-  console.info(
-    _backendOnline
-      ? '✅ Backend API connected'
-      : '⚠️ Backend offline — using LocalStorage mode'
-  );
-
-  return _backendOnline;
-}
+  return window._backendOnline;
+};
 // ── Base HTTP helper ──────────────────────────────────────────
 async function apiRequest(method, path, body = null, isFormData = false) {
   const headers = {};

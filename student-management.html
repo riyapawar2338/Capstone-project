@@ -21,7 +21,7 @@
 .fe.show{display:block}
 @media(max-width:1100px){.mgmt-layout{grid-template-columns:1fr}.fp{position:static}}
 /* Connection badge */
-#connectionBadge{font-size:.78rem;font-weight:600;padding:.25rem .75rem;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid var(--glass-border)}
+#connBadge{font-size:.78rem;font-weight:600;padding:.25rem .75rem;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid var(--glass-border)}
 /* Loading overlay */
 #loadingOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:1rem}
 #loadingOverlay.show{display:flex}
@@ -49,7 +49,7 @@
     <a href="contact.html">Contact</a>
   </div>
   <div id="navUserPill" style="display:flex;align-items:center;gap:.75rem">
-    <span id="connectionBadge">🔄 Checking…</span>
+    <span id="connBadge">🔄 Checking…</span>
   </div>
   <button class="nav-toggle"><span></span><span></span><span></span></button>
 </nav>
@@ -277,7 +277,7 @@ async function retryConnection() {
   // Reset cache in api.js so it re-checks
   _backendOnline = null;
   _lastChecked = 0;
-  document.getElementById('connectionBadge').textContent = '🔄 Retrying…';
+  document.getElementById('connBadge').textContent = '🔄 Retrying…';
   document.getElementById('offlineBanner').classList.add('hidden');
   await renderList();
 }
