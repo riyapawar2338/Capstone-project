@@ -85,6 +85,9 @@ app.use('/api/students',     require('./studentRoutes'));
 app.use('/api/internships',  require('./internshipRoutes'));
 app.use('/api/applications', require('./applicationRoutes'));
 app.use('/api/admin',        require('./adminRoutes'));
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
 // ── Health Check ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

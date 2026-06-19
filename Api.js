@@ -18,29 +18,45 @@ const TokenStore = {
 };
 
 // ── Connection state ──────────────────────────────────────────
-let _backendOnline = null; // null = not yet checked
+let _backendOnline = null;
 
 async function isBackendOnline() {
   if (_backendOnline !== null) return _backendOnline;
+
   try {
     const ctrl = new AbortController();
-    setTimeout(() => ctrl.abort(), 2000);
-    const r = await fetch(`${API_BASE}/health`, { signal: ctrl.signal });
+    const timeout = setTimeout(() => ctrl.abort(), 2000);
+
+    const r = await fetch(`${API_BASE}/health`, {
+      signal: ctrl.signal
+    });
+
+    clearTimeout(timeout);
+
     _backendOnline = r.ok;
-  } catch {
+  } catch (err) {
     _backendOnline = false;
   }
-  const badge = document.getElementById('connectionBadge');
+
+  const badge = document.getElementById('connBadge');
   if (badge) {
-    badge.textContent    = _backendOnline ? '🟢 API Connected' : '🟡 Offline Mode';
-    badge.style.color    = _backendOnline ? 'var(--success)' : 'var(--warning)';
+    badge.textContent = _backendOnline
+      ? '🟢 API Connected'
+      : '🟡 Offline Mode';
+
+    badge.style.color = _backendOnline
+      ? 'var(--success)'
+      : 'var(--warning)';
   }
-  console.info(_backendOnline
-    ? '✅ Backend API connected — https://capstone-project-backend-m20u.onrender.com'
-    : '⚠️  Backend offline — using LocalStorage mode');
+
+  console.info(
+    _backendOnline
+      ? '✅ Backend API connected'
+      : '⚠️ Backend offline — using LocalStorage mode'
+  );
+
   return _backendOnline;
 }
-
 // ── Base HTTP helper ──────────────────────────────────────────
 async function apiRequest(method, path, body = null, isFormData = false) {
   const headers = {};
