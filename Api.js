@@ -262,25 +262,46 @@ const AdminAPI = {
 /* ============================================================
    LOCAL STORAGE STORE  (offline fallback)
    ============================================================ */
-const KEYS = {
+const API_KEYS = {
   STUDENTS:     'aiias_students',
   INTERNSHIPS:  'aiias_internships',
   APPLICATIONS: 'aiias_applications',
 };
+const APIStore = {
+  get(key) {
+    try {
+      return JSON.parse(localStorage.getItem(key)) || [];
+    } catch {
+      return [];
+    }
+  },
 
-const Store = {
-  get(key)        { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } },
-  set(key, val)   { localStorage.setItem(key, JSON.stringify(val)); },
-  getOne(key, id) { return this.get(key).find(i => (i._id || i.id) === id) || null; },
+  set(key, val) {
+    localStorage.setItem(key, JSON.stringify(val));
+  },
+
+  getOne(key, id) {
+    return this.get(key).find(i => (i._id || i.id) === id) || null;
+  },
+
   save(key, item) {
     const list = this.get(key);
-    const idx  = list.findIndex(i => (i._id || i.id) === (item._id || item.id));
+    const idx = list.findIndex(
+      i => (i._id || i.id) === (item._id || item.id)
+    );
+
     idx >= 0 ? list.splice(idx, 1, item) : list.push(item);
+
     this.set(key, list);
   },
-  remove(key, id) { this.set(key, this.get(key).filter(i => (i._id || i.id) !== id)); },
-};
 
+  remove(key, id) {
+    this.set(
+      key,
+      this.get(key).filter(i => (i._id || i.id) !== id)
+    );
+  }
+};
 /* ============================================================
    UNIFIED DataService
    Auto-selects API or LocalStorage based on backend availability
@@ -290,7 +311,7 @@ const DataService = {
   // ── Students ─────────────────────────────────────────────────
   async getStudents(params = {}) {
     if (await isBackendOnline()) return StudentsAPI.getAll(params);
-    let data = Store.get(KEYS.STUDENTS);
+    let data = APIStore.get(API_KEYS.STUDENTS);
     if (params.search) {
       const s = params.search.toLowerCase();
       data = data.filter(st =>
@@ -308,7 +329,7 @@ const DataService = {
 
   async getStudent(id) {
     if (await isBackendOnline()) return StudentsAPI.getById(id);
-    return Store.getOne(KEYS.STUDENTS, id);
+    return APIStore.getOne(API_KEYS.STUDENTS, id);
   },
 
   async createStudent(payload) {
@@ -325,32 +346,32 @@ const DataService = {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    Store.save(KEYS.STUDENTS, student);
+    APIStore.save(API_KEYS.STUDENTS, student);
     return student;
   },
 
   async updateStudent(id, payload) {
     if (await isBackendOnline()) return StudentsAPI.update(id, payload);
-    const existing = Store.getOne(KEYS.STUDENTS, id) || {};
+    const existing = APIStore.getOne(API_KEYS.STUDENTS, id) || {};
     const raw      = payload instanceof FormData ? Object.fromEntries(payload) : { ...payload };
     const normalise = v => v === undefined ? undefined : (Array.isArray(v) ? v : (v||'').split(',').map(s=>s.trim()).filter(Boolean));
     ['technicalSkills','softSkills','certifications','areasOfInterest'].forEach(f => {
       if (raw[f] !== undefined) raw[f] = normalise(raw[f]);
     });
     const updated = { ...existing, ...raw, updatedAt: new Date().toISOString() };
-    Store.save(KEYS.STUDENTS, updated);
+    APIStore.save(API_KEYS.STUDENTS, updated);
     return updated;
   },
 
   async deleteStudent(id) {
     if (await isBackendOnline()) return StudentsAPI.delete(id);
-    Store.remove(KEYS.STUDENTS, id);
+    APIStore.remove(API_KEYS.STUDENTS, id);
   },
 
   async getRecommendations(studentId, topN = 10) {
     if (await isBackendOnline()) return StudentsAPI.getRecommendations(studentId, topN);
-    const student     = Store.getOne(KEYS.STUDENTS, studentId);
-    const internships = Store.get(KEYS.INTERNSHIPS);
+    const student     = APIStore.getOne(API_KEYS.STUDENTS, studentId);
+    const internships = APIStore.get(API_KEYS.INTERNSHIPS);
     if (!student) return [];
     return internships
       .map(i => {
@@ -368,18 +389,18 @@ const DataService = {
 
   async getStudentApplications(studentId) {
     if (await isBackendOnline()) return StudentsAPI.getApplications(studentId);
-    return Store.get(KEYS.APPLICATIONS)
+    return APIStore.get(API_KEYS.APPLICATIONS)
       .filter(a => (a.studentId || a.student) === studentId)
       .map(a => ({
         ...a,
-        internship: Store.getOne(KEYS.INTERNSHIPS, a.internshipId || a.internship),
+        internship: APIStore.getOne(API_KEYS.INTERNSHIPS, a.internshipId || a.internship),
       }));
   },
 
   // ── Internships ───────────────────────────────────────────────
   async getInternships(params = {}) {
     if (await isBackendOnline()) return InternshipsAPI.getAll(params);
-    let data = Store.get(KEYS.INTERNSHIPS);
+    let data = APIStore.get(API_KEYS.INTERNSHIPS);
     if (params.search) {
       const s = params.search.toLowerCase();
       data = data.filter(i =>
@@ -397,12 +418,12 @@ const DataService = {
 
   async getInternship(id) {
     if (await isBackendOnline()) return InternshipsAPI.getById(id);
-    return Store.getOne(KEYS.INTERNSHIPS, id);
+    return APIStore.getOne(API_KEYS.INTERNSHIPS, id);
   },
 
   async getFilterMeta() {
     if (await isBackendOnline()) return InternshipsAPI.getFilterMeta();
-    const all = Store.get(KEYS.INTERNSHIPS);
+    const all = APIStore.get(API_KEYS.INTERNSHIPS);
     return {
       domains:   [...new Set(all.map(i=>i.domain  ).filter(Boolean))],
       locations: [...new Set(all.map(i=>i.location).filter(Boolean))],
@@ -413,12 +434,12 @@ const DataService = {
   // ── Applications ──────────────────────────────────────────────
   async applyForInternship(studentId, internshipId, coverLetter = '') {
     if (await isBackendOnline()) return ApplicationsAPI.create(studentId, internshipId, coverLetter);
-    const apps = Store.get(KEYS.APPLICATIONS);
+    const apps = APIStore.get(API_KEYS.APPLICATIONS);
     if (apps.some(a => (a.studentId||a.student)===studentId && (a.internshipId||a.internship)===internshipId)) {
       throw new Error('You have already applied for this internship');
     }
-    const student    = Store.getOne(KEYS.STUDENTS,    studentId);
-    const internship = Store.getOne(KEYS.INTERNSHIPS, internshipId);
+    const student    = APIStore.getOne(API_KEYS.STUDENTS,    studentId);
+    const internship = APIStore.getOne(API_KEYS.INTERNSHIPS, internshipId);
     const score      = calcMatchScore(student, internship);
     const app = {
       _id: genId(), id: genId(),
@@ -433,13 +454,13 @@ const DataService = {
       appliedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     };
-    Store.save(KEYS.APPLICATIONS, app);
+    APIStore.save(API_KEYS.APPLICATIONS, app);
     return app;
   },
 
   async getApplications(params = {}) {
     if (await isBackendOnline()) return ApplicationsAPI.getAll(params);
-    let data = Store.get(KEYS.APPLICATIONS);
+    let data = APIStore.get(API_KEYS.APPLICATIONS);
     if (params.status)       data = data.filter(a => a.status === params.status);
     if (params.studentId)    data = data.filter(a => (a.studentId||a.student?._id||a.student) === params.studentId);
     if (params.internshipId) data = data.filter(a => (a.internshipId||a.internship?._id||a.internship) === params.internshipId);
@@ -448,24 +469,24 @@ const DataService = {
 
   async updateApplicationStatus(id, status, notes = '') {
     if (await isBackendOnline()) return ApplicationsAPI.updateStatus(id, status, notes);
-    const apps = Store.get(KEYS.APPLICATIONS);
+    const apps = APIStore.get(API_KEYS.APPLICATIONS);
     const idx  = apps.findIndex(a => (a._id||a.id) === id);
     if (idx >= 0) { apps[idx].status = status; if (notes) apps[idx].adminNotes = notes; }
-    Store.set(KEYS.APPLICATIONS, apps);
+    APIStore.set(API_KEYS.APPLICATIONS, apps);
     return apps[idx];
   },
 
   async deleteApplication(id) {
     if (await isBackendOnline()) return ApplicationsAPI.delete(id);
-    Store.remove(KEYS.APPLICATIONS, id);
+    APIStore.remove(API_KEYS.APPLICATIONS, id);
   },
 
   // ── Admin Dashboard ───────────────────────────────────────────
   async getAdminDashboard() {
     if (await isBackendOnline()) return AdminAPI.getDashboard();
-    const students    = Store.get(KEYS.STUDENTS);
-    const internships = Store.get(KEYS.INTERNSHIPS);
-    const apps        = Store.get(KEYS.APPLICATIONS);
+    const students    = APIStore.get(API_KEYS.STUDENTS);
+    const internships = APIStore.get(API_KEYS.INTERNSHIPS);
+    const apps        = APIStore.get(API_KEYS.APPLICATIONS);
     const groupBy     = (arr, key) => arr.reduce((m,i)=>{ m[i[key]]=(m[i[key]]||0)+1; return m; }, {});
     return {
       stats: {
@@ -484,16 +505,16 @@ const DataService = {
       recentApplications: [...apps].sort((a,b)=>new Date(b.createdAt||b.appliedAt)-new Date(a.createdAt||a.appliedAt)).slice(0,5).map(a=>({
         ...a,
         student:    { fullName: a.studentName || a.student?.fullName, rollNo: a.rollNo || a.student?.rollNo },
-        internship: Store.getOne(KEYS.INTERNSHIPS, a.internshipId || a.internship),
+        internship: APIStore.getOne(API_KEYS.INTERNSHIPS, a.internshipId || a.internship),
       })),
     };
   },
 
   async getAllocationReport() {
     if (await isBackendOnline()) return AdminAPI.getAllocationReport();
-    const students    = Store.get(KEYS.STUDENTS);
-    const internships = Store.get(KEYS.INTERNSHIPS);
-    const apps        = Store.get(KEYS.APPLICATIONS);
+    const students = APIStore.get(API_KEYS.STUDENTS);
+    const internships = APIStore.get(API_KEYS.INTERNSHIPS);
+    const apps        = APIStore.get(API_KEYS.APPLICATIONS);
     return students.map(s => {
       const scored  = internships.map(i => ({ internship:i, matchScore: calcMatchScore(s,i) })).sort((a,b)=>b.matchScore-a.matchScore);
       const bestApp = apps.filter(a=>(a.studentId||a.student)===s._id||a.studentId===s.id).sort((a,b)=>b.matchScore-a.matchScore)[0];

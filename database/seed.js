@@ -4,9 +4,9 @@ require('dotenv').config({
   path: require('path').join(__dirname, '..', 'backend', '.env')
 });
 const mongoose    = require('mongoose');
-const connectDB   = require('../backend/config/db')
-const Admin       = require('../backend/models/Admin');
-const Internship  = require('../backend/models/Internship');
+const connectDB = require('../backend/db')
+const Admin       = require('../backend/Admin');
+const Internship  = require('../backend/Internship');
 
 const INTERNSHIPS = [
   {

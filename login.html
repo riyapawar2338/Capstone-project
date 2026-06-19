@@ -201,21 +201,44 @@ async function doRegister() {
     var online = await isBackendOnline();
     var user;
 
-    if (online) {
-      /* ✅ Backend register */
-      var result = await http.post('/auth/register', { name: name, email: email, password: pass, rollNo: roll, role: 'student' });
-      user = result.data || result;
-      /* Auto-login after register */
-      var loginResult = await AdminAPI.login(email, pass);
-      user = loginResult.user || loginResult;
-      Auth.setSession({ id: user._id || user.id, name: user.name, email: user.email, role: user.role, rollNo: user.rollNo || '' });
-    } else {
-      /* Fallback: localStorage register */
-      var res = registerUser(name, email, pass, roll);
-      if (!res.ok) { showErr('regError', res.msg); return; }
-      loginUser(email, pass);
-      user = res.user;
-    }
+   if (online) {
+
+  try {
+    var student = await DataService.createStudent({
+      fullName: name,
+      email: email,
+      rollNo: roll,
+
+      department: "Computer Engineering",
+      semester: "Semester 6",
+      cgpa: 7,
+
+      preferredDomain: "Artificial Intelligence",
+
+      // ❗ MUST NOT be empty (important fix)
+      technicalSkills: ["Not specified"],
+      softSkills: ["Not specified"],
+      certifications: ["None"],
+      areasOfInterest: ["General"]
+    });
+
+    user = student.data || student;
+
+    Auth.setSession({
+      id: user._id || user.id,
+      name: user.fullName,
+      email: user.email,
+      role: "student",
+      rollNo: user.rollNo
+    });
+
+  } catch (err) {
+    showErr('regError', err.message || "Student registration failed");
+    btn.disabled = false;
+    btn.textContent = "Create Account →";
+    return;
+  }
+}
 
     showToast('Account created! Welcome, ' + name + ' 🎉', 'success');
     setTimeout(function() { window.location.href = 'student-dashboard.html'; }, 700);
