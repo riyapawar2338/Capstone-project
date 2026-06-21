@@ -1,391 +1,261 @@
-/* ================================================================
-   AI INTERNSHIP ALLOCATION & RECOMMENDATION SYSTEM
-   script.js — FIXED VERSION
-   ================================================================ */
 'use strict';
 
-// ============================================================
-// AUTH EVENT SYSTEM
-// ============================================================
-window.AuthEvents = {
-  notify: function () {
-    window.dispatchEvent(new Event('auth-changed'));
-  }
-};
+/* ================================================================
+   AI INTERNSHIP ALLOCATION & RECOMMENDATION SYSTEM
+   script.js — shared UI helpers only.
 
-/* ── Storage keys ─────────────────────────────────────────────── */
-var KEYS = {
-  STUDENTS:     'aiias_students',
-  INTERNSHIPS:  'aiias_internships',
-  APPLICATIONS: 'aiias_applications',
-  USERS:        'aiias_users',
-  SESSION:      'aiias_session'
-};
+   IMPORTANT: this file must never redeclare `Auth` or `DataService`.
+   Those live exclusively in api.js. This file only consumes
+   window.Auth / window.DataService.
+   ================================================================ */
 
-/* ── LocalStorage Store ───────────────────────────────────────── */
-var Store = {
-  get: function (key) {
-    try { return JSON.parse(localStorage.getItem(key)) || []; }
-    catch (e) { return []; }
-  },
-  set: function (key, val) {
-    try { localStorage.setItem(key, JSON.stringify(val)); }
-    catch (e) {}
-  },
-  save: function (key, item) {
-    var list = this.get(key);
-    var idx = list.findIndex(function(i) { return i.id === item.id; });
-    if (idx >= 0) list[idx] = item;
-    else list.push(item);
-    this.set(key, list);
-  }
-};
-
-/* ── Auth System ──────────────────────────────────────────────── */
-var Auth = {
-  getSession: function () {
-    try { return JSON.parse(localStorage.getItem(KEYS.SESSION)); }
-    catch (e) { return null; }
-  },
-
-  setSession: function (user) {
-    localStorage.setItem(KEYS.SESSION, JSON.stringify(user));
-    window.AuthEvents.notify();
-  },
-
-  clearSession: function () {
-    localStorage.removeItem(KEYS.SESSION);
-    localStorage.removeItem('aiias_token');
-    window.AuthEvents.notify();
-  },
-
-  isLoggedIn: function () {
-    return !!this.getSession();
-  },
-
-  /* FIX: Added missing isAdmin() method */
-  isAdmin: function () {
-    var session = this.getSession();
-    return !!(session && session.role === 'admin');
-  },
-
-  logout: function () {
-    this.clearSession();
-    window.location.href = 'login.html';
-  }
-};
-
-/* ── Seed Default Admin ──────────────────────────────────────── */
-function seedDefaultAdmin() {
-  var users = Store.get(KEYS.USERS);
-  var hasAdmin = users.some(function(u) { return u.role === 'admin'; });
-
-  if (!hasAdmin) {
-    users.push({
-      id: 'admin_001',
-      name: 'Administrator',
-      email: 'admin@aiias.edu',
-      password: 'Admin@1234',
-      role: 'admin',
-      createdAt: new Date().toISOString()
-    });
-    Store.set(KEYS.USERS, users);
-  }
-}
-
-/* ── Register User ───────────────────────────────────────────── */
-/* FIX: Now accepts a single object so callers don't need to worry
-        about argument order. Still works if old positional style
-        is used by passing (name, email, password, rollNo). */
-function registerUser(nameOrObj, email, password, rollNo) {
-  var name, emailAddr, pass, roll;
-
-  if (nameOrObj && typeof nameOrObj === 'object') {
-    /* Called with an object: registerUser({ name, email, password, rollNo }) */
-    name      = nameOrObj.name      || nameOrObj.fullName || '';
-    emailAddr = nameOrObj.email     || '';
-    pass      = nameOrObj.password  || '';
-    roll      = nameOrObj.rollNo    || '';
-  } else {
-    /* Called with positional args: registerUser(name, email, password, rollNo) */
-    name      = nameOrObj || '';
-    emailAddr = email     || '';
-    pass      = password  || '';
-    roll      = rollNo    || '';
-  }
-
-  if (!name || !emailAddr || !pass) {
-    return { ok: false, msg: 'Name, email and password are required.' };
-  }
-
-  var users = Store.get(KEYS.USERS);
-
-  if (users.some(function(u) {
-    return u.email.toLowerCase() === emailAddr.toLowerCase();
-  })) {
-    return { ok: false, msg: 'Email already registered.' };
-  }
-
-  var user = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    name:      name.trim(),
-    email:     emailAddr.toLowerCase().trim(),
-    password:  pass,
-    role:      'student',
-    rollNo:    roll.trim(),
-    createdAt: new Date().toISOString()
-  };
-
-  users.push(user);
-  Store.set(KEYS.USERS, users);
-
-  return { ok: true, user: user };
-}
-
-/* ── Login ───────────────────────────────────────────────────── */
-function loginUser(email, password) {
-  if (!email || !password) {
-    return { ok: false, msg: 'Email and password are required.' };
-  }
-
-  var users = Store.get(KEYS.USERS);
-  var user  = users.find(function(u) {
-    return u.email.toLowerCase() === email.toLowerCase().trim() &&
-           u.password === password;
-  });
-
-  if (!user) return { ok: false, msg: 'Invalid email or password.' };
-
-  return {
-    ok: true,
-    user: {
-      id:     user.id,
-      name:   user.name,
-      email:  user.email,
-      role:   user.role,
-      rollNo: user.rollNo || ''
-    }
-  };
-}
-
-/* ── Navbar Controller ─────────────────────────────────────────── */
+/* ================================================================
+   NAVBAR
+================================================================ */
 function updateNavbarUI() {
-  var session   = Auth.getSession();
+  var session   = window.Auth ? window.Auth.getSession() : null;
   var authLink  = document.getElementById('navAuthLink');
   var adminLink = document.getElementById('navAdmin');
   var userPill  = document.getElementById('navUserPill');
 
-  if (adminLink) {
-    adminLink.style.display = (session && session.role === 'admin') ? 'block' : 'none';
-  }
+  if (adminLink) adminLink.style.display = (session && session.role === 'admin') ? '' : 'none';
 
   if (authLink) {
-    if (!session) {
-      authLink.innerHTML = '<a href="login.html" class="nav-cta btn">Login / Register</a>';
-    } else {
-      var dest = (session.role === 'admin') ? 'admin-dashboard.html' : 'student-dashboard.html';
-      authLink.innerHTML = '<a href="' + dest + '" class="nav-cta btn">Dashboard</a>';
-    }
+    authLink.innerHTML = !session
+      ? '<a href="login.html" class="btn btn-primary btn-sm">Login / Register</a>'
+      : '<a href="' + (session.role === 'admin' ? 'admin-dashboard.html' : 'student-dashboard.html') + '" class="btn btn-primary btn-sm">Dashboard</a>';
   }
 
   if (userPill) {
-    if (!session) {
-      userPill.innerHTML = '';
-    } else {
-      var label = (session.role === 'admin') ? '👑 Admin' : '🎓 ' + session.name;
-      userPill.innerHTML =
-        '<span style="color:white;font-weight:600">' + label + '</span>' +
-        '<button onclick="Auth.logout()" class="btn btn-sm" style="margin-left:.6rem">Logout</button>';
-    }
+    userPill.innerHTML = !session ? '' :
+      '<span class="badge ' + (session.role === 'admin' ? 'badge-violet' : 'badge-blue') + '">' +
+      (session.role === 'admin' ? '👑 Admin' : '🎓 ' + escapeHtml(session.name || 'Student')) + '</span>' +
+      '<button onclick="Auth.logout(); window.location.href=\'login.html\';" class="btn btn-ghost btn-sm" style="margin-left:.6rem">Logout</button>';
   }
 }
+window.addEventListener('auth-changed', updateNavbarUI);
 
-/* ── AI Match Score ───────────────────────────────────────────── */
-/* FIX: Deterministic scoring based on actual student/internship data */
-function calcMatchScore(student, internship) {
-  if (!student || !internship) return 0;
-
-  var score = 0;
-
-  /* Domain / interest match (40 pts) */
-  var interests = (student.areasOfInterest || student.interests || [])
-    .map(function(s) { return s.toLowerCase(); });
-  var domain = (internship.domain || '').toLowerCase();
-  if (interests.some(function(i) { return i.includes(domain) || domain.includes(i); })) {
-    score += 40;
-  } else {
-    score += 10; /* partial */
-  }
-
-  /* Skill overlap (40 pts) */
-  var skills = (student.technicalSkills || student.skills || [])
-    .map(function(s) { return s.toLowerCase(); });
-  var required = (internship.requiredSkills || [])
-    .map(function(s) { return s.toLowerCase(); });
-
-  if (required.length > 0) {
-    var matched = required.filter(function(r) {
-      return skills.some(function(sk) { return sk.includes(r) || r.includes(sk); });
-    }).length;
-    score += Math.round((matched / required.length) * 40);
-  } else {
-    score += 20; /* no required skills listed — give partial */
-  }
-
-  /* CGPA bonus (20 pts) */
-  var cgpa = parseFloat(student.cgpa) || 0;
-  if (cgpa >= 8.5)       score += 20;
-  else if (cgpa >= 7.5)  score += 15;
-  else if (cgpa >= 6.5)  score += 10;
-  else                   score += 5;
-
-  return Math.min(score, 100);
+function toggleNav() {
+  var links = document.querySelector('.nav-links');
+  if (links) links.classList.toggle('open');
 }
 
-/* ── Seed Internships ─────────────────────────────────────────── */
-function seedInternships() {
-  if (Store.get(KEYS.INTERNSHIPS).length) return;
-
-  Store.set(KEYS.INTERNSHIPS, [
-    {
-      id: 'int1',
-      title: 'AI/ML Intern',
-      company: 'TechCorp Solutions',
-      domain: 'Artificial Intelligence',
-      location: 'Pune',
-      stipend: '₹15,000/mo',
-      duration: '3 Months',
-      requiredSkills: ['Python', 'Machine Learning', 'TensorFlow'],
-      deadline: '2025-08-31'
-    },
-    {
-      id: 'int2',
-      title: 'Full Stack Web Developer Intern',
-      company: 'InnovateTech',
-      domain: 'Web Development',
-      location: 'Mumbai',
-      stipend: '₹12,000/mo',
-      duration: '6 Months',
-      requiredSkills: ['HTML', 'CSS', 'JavaScript', 'Node.js'],
-      deadline: '2025-09-15'
-    },
-    {
-      id: 'int3',
-      title: 'Data Science Intern',
-      company: 'DataMinds',
-      domain: 'Data Science',
-      location: 'Bangalore',
-      stipend: '₹18,000/mo',
-      duration: '3 Months',
-      requiredSkills: ['Python', 'Pandas', 'SQL', 'Data Visualization'],
-      deadline: '2025-08-20'
-    },
-    {
-      id: 'int4',
-      title: 'Cloud Engineering Intern',
-      company: 'CloudNest',
-      domain: 'Cloud Computing',
-      location: 'Hyderabad',
-      stipend: '₹14,000/mo',
-      duration: '4 Months',
-      requiredSkills: ['AWS', 'Linux', 'Docker'],
-      deadline: '2025-09-01'
-    },
-    {
-      id: 'int5',
-      title: 'Cybersecurity Analyst Intern',
-      company: 'SecureNet',
-      domain: 'Cybersecurity',
-      location: 'Pune',
-      stipend: '₹13,000/mo',
-      duration: '3 Months',
-      requiredSkills: ['Networking', 'Linux', 'Python'],
-      deadline: '2025-08-25'
-    },
-    {
-      id: 'int6',
-      title: 'Android App Developer Intern',
-      company: 'AppCraft',
-      domain: 'Mobile Development',
-      location: 'Mumbai',
-      stipend: '₹10,000/mo',
-      duration: '3 Months',
-      requiredSkills: ['Java', 'Android', 'XML'],
-      deadline: '2025-09-10'
-    },
-    {
-      id: 'int7',
-      title: 'UI/UX Design Intern',
-      company: 'DesignStudio',
-      domain: 'UI/UX Design',
-      location: 'Remote',
-      stipend: '₹8,000/mo',
-      duration: '2 Months',
-      requiredSkills: ['Figma', 'Adobe XD', 'Prototyping'],
-      deadline: '2025-08-15'
-    },
-    {
-      id: 'int8',
-      title: 'DevOps Intern',
-      company: 'PipelineWorks',
-      domain: 'DevOps',
-      location: 'Bangalore',
-      stipend: '₹16,000/mo',
-      duration: '4 Months',
-      requiredSkills: ['Docker', 'Kubernetes', 'CI/CD', 'Linux'],
-      deadline: '2025-09-20'
-    },
-    {
-      id: 'int9',
-      title: 'IoT Systems Intern',
-      company: 'SmartThings',
-      domain: 'IoT Systems',
-      location: 'Pune',
-      stipend: '₹11,000/mo',
-      duration: '3 Months',
-      requiredSkills: ['Arduino', 'C/C++', 'Raspberry Pi'],
-      deadline: '2025-08-30'
-    },
-    {
-      id: 'int10',
-      title: 'Business Intelligence Intern',
-      company: 'Analytics Hub',
-      domain: 'Data Science',
-      location: 'Remote',
-      stipend: '₹10,000/mo',
-      duration: '3 Months',
-      requiredSkills: ['SQL', 'Power BI', 'Excel'],
-      deadline: '2025-09-05'
-    }
-  ]);
+/* ================================================================
+   STRING / SAFETY HELPERS
+================================================================ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-/* ── INIT ─────────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', function () {
-  seedDefaultAdmin();
-  seedInternships();
-  updateNavbarUI();
+function debounce(fn, wait) {
+  var t;
+  return function () {
+    var args = arguments, ctx = this;
+    clearTimeout(t);
+    t = setTimeout(function () { fn.apply(ctx, args); }, wait || 250);
+  };
+}
 
-  /* Animated student counter on homepage */
-  var hStudents = document.getElementById('hStudents');
-  var statStudents = document.getElementById('statStudents');
-  var count = Store.get(KEYS.STUDENTS).length || Store.get(KEYS.USERS)
-    .filter(function(u) { return u.role === 'student'; }).length;
+function formatDate(d) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  catch (e) { return '—'; }
+}
 
-  function animateCount(el, target) {
-    if (!el) return;
-    var current = 0;
-    var step = Math.max(1, Math.ceil(target / 40));
-    var timer = setInterval(function () {
-      current = Math.min(current + step, target);
-      el.textContent = current;
-      if (current >= target) clearInterval(timer);
-    }, 40);
+/* ================================================================
+   TOASTS
+================================================================ */
+function showToast(message, type) {
+  var container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
   }
+  var icons = { success: '✅', error: '⚠️', warning: '⏳', info: 'ℹ️' };
+  var el = document.createElement('div');
+  el.className = 'toast ' + (type || 'info');
+  el.innerHTML = '<span>' + (icons[type] || icons.info) + '</span><span>' + escapeHtml(message) + '</span>';
+  container.appendChild(el);
+  setTimeout(function () {
+    el.style.transition = 'opacity .3s';
+    el.style.opacity = '0';
+    setTimeout(function () { el.remove(); }, 300);
+  }, 3800);
+}
 
-  animateCount(hStudents, count);
-  animateCount(statStudents, count);
+/* ================================================================
+   MODALS
+================================================================ */
+function openModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+function closeModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+document.addEventListener('click', function (e) {
+  if (e.target.classList && e.target.classList.contains('modal-backdrop')) {
+    e.target.classList.remove('open');
+  }
 });
 
-/* ── Auto-refresh navbar on auth change ─────────────────────── */
-window.addEventListener('auth-changed', updateNavbarUI);
+/* ================================================================
+   ANIMATED COUNTER
+================================================================ */
+function animateCount(el, target) {
+  if (!el) return;
+  target = parseInt(target) || 0;
+  var current = 0;
+  var step = Math.max(1, Math.ceil(target / 40));
+  var timer = setInterval(function () {
+    current = Math.min(current + step, target);
+    el.textContent = current;
+    if (current >= target) clearInterval(timer);
+  }, 35);
+}
+
+/* ================================================================
+   MATCH GAUGE (SVG ring) — signature visual used across pages
+================================================================ */
+function gaugeColor(score) {
+  if (score >= 80) return 'var(--success)';
+  if (score >= 60) return 'var(--cyan)';
+  if (score >= 40) return 'var(--warning)';
+  return 'var(--danger)';
+}
+function gaugeSVG(score, size, strokeWidth) {
+  size = size || 92; strokeWidth = strokeWidth || 8;
+  var r = (size - strokeWidth) / 2;
+  var c = 2 * Math.PI * r;
+  var offset = c - (Math.max(0, Math.min(100, score)) / 100) * c;
+  var color = gaugeColor(score);
+  return '' +
+    '<div class="gauge" style="width:' + size + 'px;height:' + size + 'px">' +
+      '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' +
+        '<circle class="gauge-track" cx="' + size/2 + '" cy="' + size/2 + '" r="' + r + '" stroke-width="' + strokeWidth + '"></circle>' +
+        '<circle class="gauge-fill" cx="' + size/2 + '" cy="' + size/2 + '" r="' + r + '" stroke-width="' + strokeWidth + '" stroke="' + color + '" stroke-dasharray="' + c + '" stroke-dashoffset="' + offset + '"></circle>' +
+      '</svg>' +
+      '<div class="gauge-label"><b>' + Math.round(score) + '%</b><span>match</span></div>' +
+    '</div>';
+}
+function matchLabel(score) {
+  if (score >= 80) return { text: 'Excellent Match', cls: 'badge-green' };
+  if (score >= 60) return { text: 'Good Match', cls: 'badge-blue' };
+  if (score >= 40) return { text: 'Fair Match', cls: 'badge-amber' };
+  return { text: 'Low Match', cls: 'badge-red' };
+}
+
+/* ================================================================
+   TAG INPUT WIDGET
+   Usage: var tags = initTagsInput('wrapId', ['existing','tags']);
+   tags.getValues() -> array, tags.setValues(arr)
+================================================================ */
+function initTagsInput(wrapId, initial) {
+  var wrap = document.getElementById(wrapId);
+  if (!wrap) return { getValues: function () { return []; }, setValues: function () {} };
+
+  var values = (initial || []).slice();
+
+  function render() {
+    wrap.innerHTML = '';
+    values.forEach(function (val, idx) {
+      var pill = document.createElement('span');
+      pill.className = 'pill';
+      pill.innerHTML = escapeHtml(val) + ' <button type="button" data-idx="' + idx + '">×</button>';
+      wrap.appendChild(pill);
+    });
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = values.length ? '' : 'Type and press Enter…';
+    wrap.appendChild(input);
+    input.focus();
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        var v = input.value.trim();
+        if (v && !values.includes(v)) { values.push(v); render(); }
+        else input.value = '';
+      } else if (e.key === 'Backspace' && !input.value && values.length) {
+        values.pop(); render();
+      }
+    });
+    input.addEventListener('blur', function () {
+      var v = input.value.trim();
+      if (v && !values.includes(v)) { values.push(v); render(); }
+    });
+
+    wrap.querySelectorAll('button[data-idx]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        values.splice(parseInt(btn.dataset.idx), 1);
+        render();
+      });
+    });
+  }
+  render();
+
+  return {
+    getValues: function () { return values.slice(); },
+    setValues: function (arr) { values = (arr || []).slice(); render(); }
+  };
+}
+
+/* ================================================================
+   CSV EXPORT
+================================================================ */
+function downloadCSV(filename, rows) {
+  if (!rows || !rows.length) { showToast('Nothing to export yet.', 'warning'); return; }
+  var headers = Object.keys(rows[0]);
+  var lines = [headers.join(',')];
+  rows.forEach(function (row) {
+    lines.push(headers.map(function (h) {
+      var val = row[h] === undefined || row[h] === null ? '' : String(row[h]);
+      if (val.indexOf(',') > -1 || val.indexOf('"') > -1 || val.indexOf('\n') > -1) {
+        val = '"' + val.replace(/"/g, '""') + '"';
+      }
+      return val;
+    }).join(','));
+  });
+  var blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ================================================================
+   GUARD HELPERS (page-level access control)
+================================================================ */
+function requireLogin(redirectTo) {
+  if (!window.Auth || !Auth.isLoggedIn()) {
+    window.location.href = 'login.html' + (redirectTo ? ('?next=' + encodeURIComponent(redirectTo)) : '');
+    return false;
+  }
+  return true;
+}
+function requireAdmin() {
+  if (!window.Auth || !Auth.isAdmin()) {
+    var el = document.getElementById('accessDenied');
+    var layout = document.getElementById('adminLayout');
+    if (el) el.classList.remove('hidden');
+    if (layout) layout.classList.add('hidden');
+    return false;
+  }
+  return true;
+}
+
+/* ================================================================
+   INIT — runs on every page that includes this script
+================================================================ */
+document.addEventListener('DOMContentLoaded', function () {
+  updateNavbarUI();
+  var toggle = document.querySelector('.nav-toggle');
+  if (toggle) toggle.addEventListener('click', toggleNav);
+});

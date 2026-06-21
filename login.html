@@ -6,135 +6,78 @@
 <title>Login — AI Internship System</title>
 <link rel="stylesheet" href="style.css"/>
 <style>
-body {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: var(--navy);
-}
-.auth-wrap  { width: 100%; max-width: 440px; padding: 1rem; }
-.auth-card  {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
-  padding: 2.5rem;
-  backdrop-filter: blur(20px);
-}
-.auth-logo  { text-align: center; margin-bottom: 2rem; }
-.auth-logo .icon {
-  width: 64px; height: 64px;
-  background: linear-gradient(135deg, var(--blue), var(--cyan));
-  border-radius: 18px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.8rem; margin: 0 auto .75rem;
-  box-shadow: var(--shadow-glow);
-}
-.auth-logo h1 { font-size: 1.3rem; margin: 0 0 .3rem; }
-.auth-logo p  { color: var(--muted); font-size: .85rem; margin: 0; }
-
-.tab-bar {
-  display: flex;
-  background: rgba(255,255,255,.05);
-  border-radius: 10px; padding: 4px; margin-bottom: 1.75rem;
-}
-.tab-btn {
-  flex: 1; padding: .55rem; border: none; background: transparent;
-  color: var(--muted); font-weight: 600; border-radius: 8px; cursor: pointer;
-  transition: all .2s;
-}
-.tab-btn.active {
-  background: linear-gradient(135deg, var(--blue), var(--cyan));
-  color: var(--navy);
-}
-
-.auth-form          { display: none; }
-.auth-form.active   { display: block; }
-
-.error-msg {
-  display: none;
-  background: rgba(255,77,109,.12);
-  border: 1px solid rgba(255,77,109,.3);
-  padding: .65rem 1rem;
-  border-radius: var(--radius);
-  color: var(--danger);
-  margin-bottom: 1rem;
-  font-size: .875rem;
-}
-.error-msg.show { display: block; }
-
-.success-msg {
-  display: none;
-  background: rgba(0,200,151,.12);
-  border: 1px solid rgba(0,200,151,.3);
-  padding: .65rem 1rem;
-  border-radius: var(--radius);
-  color: var(--success, #00c897);
-  margin-bottom: 1rem;
-  font-size: .875rem;
-}
-.success-msg.show { display: block; }
-
-#connBadge {
-  font-size: .72rem; padding: .45rem .8rem;
-  border-radius: 10px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid var(--glass-border);
-  margin-bottom: 1rem;
-  display: block; text-align: center;
-}
-
-.btn-loading { opacity: .7; pointer-events: none; }
+body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.auth-wrap { width: 100%; max-width: 460px; padding: 1.5rem; }
+.auth-logo { text-align: center; margin-bottom: 1.8rem; }
+.auth-logo .mark { width: 60px; height: 60px; font-size: 1.7rem; margin: 0 auto .8rem; }
+.auth-logo h1 { font-size: 1.25rem; margin-bottom: .25rem; }
+.tab-bar { display: flex; background: rgba(255,255,255,.05); border-radius: 10px; padding: 4px; margin-bottom: 1.7rem; }
+.tab-btn { flex: 1; padding: .6rem; border: none; background: transparent; color: var(--muted); font-weight: 600; font-size: .88rem; border-radius: 8px; cursor: pointer; transition: all .2s; }
+.tab-btn.active { background: linear-gradient(135deg, var(--blue), var(--cyan)); color: #04101f; }
+.auth-form { display: none; }
+.auth-form.active { display: block; }
+.alert { display: none; padding: .7rem 1rem; border-radius: var(--radius-sm); font-size: .85rem; margin-bottom: 1rem; }
+.alert.show { display: block; }
+.alert-error   { background: rgba(244,63,94,.12); border: 1px solid rgba(244,63,94,.3); color: #ff96a8; }
+.alert-success { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.3); color: #7ee2a0; }
+#connBadge { margin-bottom: 1.2rem; justify-content: center; width: 100%; }
+.back-home { display: inline-flex; align-items: center; gap: .4rem; color: var(--muted); font-size: .85rem; margin-bottom: 1.4rem; }
 </style>
 </head>
-
 <body>
 <div class="auth-wrap">
-  <div class="auth-card">
+  <a href="index.html" class="back-home">← Back to home</a>
+  <div class="card glass" style="padding:2.3rem">
 
     <div class="auth-logo">
-      <div class="icon">🤖</div>
+      <div class="mark" style="background:linear-gradient(135deg,var(--blue),var(--cyan));border-radius:18px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-glow)">🤖</div>
       <h1>AI Internship System</h1>
-      <p>Login or Register to continue</p>
+      <p class="text-muted" style="font-size:.85rem;margin:0">Login or register to continue</p>
     </div>
 
-    <span id="connBadge">🔄 Checking backend…</span>
+    <span id="connBadge" class="conn-badge">🔄 Checking backend…</span>
 
     <div class="tab-bar">
       <button class="tab-btn active" onclick="switchTab('login', this)">Login</button>
-      <button class="tab-btn"        onclick="switchTab('register', this)">Register</button>
+      <button class="tab-btn" onclick="switchTab('register', this)">Register</button>
     </div>
 
     <!-- ══════════════ LOGIN ══════════════ -->
     <div class="auth-form active" id="loginForm">
-      <div class="error-msg" id="loginError"></div>
+      <div class="alert alert-error" id="loginError"></div>
 
-      <input id="lEmail" type="email"    placeholder="Email"    class="form-control"/>
-      <input id="lPass"  type="password" placeholder="Password" class="form-control"/>
+      <label class="form-label">Email</label>
+      <input id="lEmail" type="email" placeholder="you@example.com" class="form-control" autocomplete="username"/>
+      <label class="form-label">Password</label>
+      <input id="lPass" type="password" placeholder="••••••••" class="form-control" autocomplete="current-password"/>
 
-      <button class="btn btn-primary w-full" id="loginBtn" onclick="doLogin()">
-        Login →
-      </button>
+      <button class="btn btn-primary w-full" id="loginBtn" onclick="doLogin()">Login →</button>
 
-      <p style="text-align:center;color:var(--muted);font-size:.8rem;margin-top:1rem">
-        Admin credentials: <code>admin@aiias.edu</code> / <code>Admin@1234</code>
+      <p style="text-align:center;color:var(--muted);font-size:.8rem;margin-top:1.1rem">
+        Admin demo: <code>admin@aiias.edu</code> / <code>Admin@1234</code>
       </p>
     </div>
 
     <!-- ══════════════ REGISTER ══════════════ -->
     <div class="auth-form" id="registerForm">
-      <div class="error-msg"    id="regError"></div>
-      <div class="success-msg"  id="regSuccess"></div>
+      <div class="alert alert-error"   id="regError"></div>
+      <div class="alert alert-success" id="regSuccess"></div>
 
-      <input id="rName"  type="text"     placeholder="Full Name"        class="form-control"/>
-      <input id="rEmail" type="email"    placeholder="Email"            class="form-control"/>
-      <input id="rRoll"  type="text"     placeholder="Roll No"          class="form-control"/>
-      <input id="rPass"  type="password" placeholder="Password"         class="form-control"/>
-      <input id="rPass2" type="password" placeholder="Confirm Password" class="form-control"/>
+      <label class="form-label">Full Name</label>
+      <input id="rName" type="text" placeholder="Riya Sharma" class="form-control"/>
+      <label class="form-label">Email</label>
+      <input id="rEmail" type="email" placeholder="you@example.com" class="form-control" autocomplete="username"/>
+      <label class="form-label">Roll Number</label>
+      <input id="rRoll" type="text" placeholder="e.g. CSE-2023-014" class="form-control"/>
+      <label class="form-label">Password</label>
+      <input id="rPass" type="password" placeholder="At least 6 characters" class="form-control" autocomplete="new-password"/>
+      <label class="form-label">Confirm Password</label>
+      <input id="rPass2" type="password" placeholder="Re-enter password" class="form-control" autocomplete="new-password"/>
 
-      <button class="btn btn-primary w-full" id="regBtn" onclick="doRegister()">
-        Create Account →
-      </button>
+      <button class="btn btn-primary w-full" id="regBtn" onclick="doRegister()">Create Account →</button>
+      <p style="text-align:center;color:var(--muted);font-size:.8rem;margin-top:1.1rem">
+        You can fill in skills, CGPA and the rest of your profile after registering.
+      </p>
     </div>
 
   </div>
@@ -142,222 +85,102 @@ body {
 
 <div id="toastContainer" class="toast-container"></div>
 
-<!-- Load api.js FIRST, then script.js -->
 <script src="api.js"></script>
 <script src="script.js"></script>
-
 <script>
 'use strict';
 
-/* ── Redirect if already logged in ─────────────────────────── */
 document.addEventListener('DOMContentLoaded', function () {
-  try {
-    if (window.Auth && Auth.isLoggedIn()) {
-      redirectByRole();
-    }
-  } catch(e) {}
-
+  if (Auth.isLoggedIn()) { redirectByRole(); return; }
   refreshConnectionBadge();
 });
 
-/* ── Redirect helper ─────────────────────────────────────────── */
 function redirectByRole() {
   var session = Auth.getSession();
   if (!session) return;
-  window.location.href = (session.role === 'admin')
-    ? 'admin-dashboard.html'
-    : 'student-dashboard.html';
+  var params = new URLSearchParams(window.location.search);
+  var next = params.get('next');
+  window.location.href = next || (session.role === 'admin' ? 'admin-dashboard.html' : 'student-dashboard.html');
 }
 
-/* ── Connection badge ────────────────────────────────────────── */
 async function refreshConnectionBadge() {
   var badge = document.getElementById('connBadge');
   try {
-    var online = await window.isBackendOnline(true);
-    badge.textContent = online ? '🟢 Backend Connected' : '🟡 Offline Mode (localStorage)';
-    badge.style.color = online ? 'var(--success, #00c897)' : 'var(--warning, #f5a623)';
+    var online = await isBackendOnline(true);
+    badge.innerHTML = online ? '🟢 Backend connected' : '🟡 Offline mode — using this browser\'s storage';
+    badge.style.color = online ? 'var(--success)' : 'var(--warning)';
   } catch (e) {
-    badge.textContent = '🟡 Offline Mode (localStorage)';
+    badge.innerHTML = '🟡 Offline mode — using this browser\'s storage';
   }
 }
 
-/* ── Tab switch ──────────────────────────────────────────────── */
 function switchTab(tab, btn) {
-  document.querySelectorAll('.tab-btn').forEach(function(b)  { b.classList.remove('active'); });
-  document.querySelectorAll('.auth-form').forEach(function(f) { f.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+  document.querySelectorAll('.auth-form').forEach(function (f) { f.classList.remove('active'); });
   btn.classList.add('active');
   document.getElementById(tab + 'Form').classList.add('active');
-  /* Clear errors when switching */
-  hideError('loginError');
-  hideError('regError');
-  hideMsg('regSuccess');
+  hideAlert('loginError'); hideAlert('regError'); hideAlert('regSuccess');
 }
 
-/* ── Error / success helpers ─────────────────────────────────── */
-function showError(id, msg) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = msg;
-  el.classList.add('show');
-}
-function hideError(id) {
-  var el = document.getElementById(id);
-  if (el) el.classList.remove('show');
-}
-function showMsg(id, msg) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = msg;
-  el.classList.add('show');
-}
-function hideMsg(id) {
-  var el = document.getElementById(id);
-  if (el) el.classList.remove('show');
-}
+function showAlert(id, msg) { var el = document.getElementById(id); if (!el) return; el.textContent = msg; el.classList.add('show'); }
+function hideAlert(id)      { var el = document.getElementById(id); if (el) el.classList.remove('show'); }
 function setLoading(btnId, loading) {
   var btn = document.getElementById(btnId);
   if (!btn) return;
   btn.classList.toggle('btn-loading', loading);
   btn.disabled = loading;
+  btn.textContent = loading ? 'Please wait…' : (btnId === 'loginBtn' ? 'Login →' : 'Create Account →');
 }
 
-/* ══════════════════════════════════════════════════════════════
-   LOGIN
-══════════════════════════════════════════════════════════════ */
 async function doLogin() {
-  hideError('loginError');
-
+  hideAlert('loginError');
   var email = document.getElementById('lEmail').value.trim();
   var pass  = document.getElementById('lPass').value;
 
-  if (!email || !pass) {
-    showError('loginError', 'Please enter your email and password.');
-    return;
-  }
+  if (!email || !pass) { showAlert('loginError', 'Please enter your email and password.'); return; }
 
   setLoading('loginBtn', true);
-
   try {
-    /* ── Try online backend first ── */
-    var online = await window.isBackendOnline(true);
-
-    if (online) {
-      try {
-        var result = await AuthAPI.login(email, pass);
-        /* result.user is normalised by api.js */
-        Auth.setSession(result.user);
-        redirectByRole();
-        return;
-      } catch (apiErr) {
-        /* Backend returned an error — try offline fallback */
-        console.warn('[login] Backend login failed, trying offline:', apiErr.message);
-      }
-    }
-
-    /* ── Offline / localStorage fallback ── */
-    var res = loginUser(email, pass);
-    if (!res.ok) {
-      showError('loginError', res.msg);
-      return;
-    }
-
-    Auth.setSession(res.user);
+    await Auth.login(email, pass);
+    showToast('Welcome back!', 'success');
     redirectByRole();
-
   } catch (e) {
-    showError('loginError', 'Login failed: ' + (e.message || 'Unknown error'));
+    showAlert('loginError', e.message || 'Login failed. Please try again.');
   } finally {
     setLoading('loginBtn', false);
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   REGISTER
-══════════════════════════════════════════════════════════════ */
 async function doRegister() {
-  hideError('regError');
-  hideMsg('regSuccess');
-
+  hideAlert('regError'); hideAlert('regSuccess');
   var name  = document.getElementById('rName').value.trim();
   var email = document.getElementById('rEmail').value.trim();
   var roll  = document.getElementById('rRoll').value.trim();
   var pass  = document.getElementById('rPass').value;
   var pass2 = document.getElementById('rPass2').value;
 
-  /* ── Client-side validation ── */
-  if (!name || !email || !pass) {
-    showError('regError', 'Full name, email and password are required.');
-    return;
-  }
-  if (pass !== pass2) {
-    showError('regError', 'Passwords do not match.');
-    return;
-  }
-  if (pass.length < 6) {
-    showError('regError', 'Password must be at least 6 characters.');
-    return;
-  }
+  if (!name || !email || !pass) { showAlert('regError', 'Full name, email and password are required.'); return; }
+  if (pass !== pass2)           { showAlert('regError', 'Passwords do not match.'); return; }
+  if (pass.length < 6)          { showAlert('regError', 'Password must be at least 6 characters.'); return; }
 
   setLoading('regBtn', true);
-
   try {
-    var online = await window.isBackendOnline(true);
-
-    if (online) {
-      try {
-        /* FIX: Use StudentsAPI.register → hits /students/register (public route) */
-        await StudentsAPI.register({
-          fullName: name,
-          email:    email,
-          rollNo:   roll,
-          password: pass
-        });
-        showMsg('regSuccess', '✅ Account created! Redirecting to login…');
-        setTimeout(function() {
-          switchTab('login', document.querySelectorAll('.tab-btn')[0]);
-        }, 1500);
-        return;
-      } catch (apiErr) {
-        /* Backend error — try offline */
-        console.warn('[register] Backend register failed, trying offline:', apiErr.message);
-        /* If email-already-exists from backend, show that error */
-        if (apiErr.message && apiErr.message.toLowerCase().includes('email')) {
-          showError('regError', apiErr.message);
-          return;
-        }
-      }
-    }
-
-    /* ── Offline / localStorage fallback ── */
-    /* FIX: Pass object — registerUser() now accepts both styles */
-    var res = registerUser({ name: name, email: email, password: pass, rollNo: roll });
-    if (!res.ok) {
-      showError('regError', res.msg);
-      return;
-    }
-
-    showMsg('regSuccess', '✅ Account created! You can now log in.');
-    /* Clear fields */
-    ['rName','rEmail','rRoll','rPass','rPass2'].forEach(function(id) {
-      document.getElementById(id).value = '';
-    });
-    setTimeout(function() {
-      switchTab('login', document.querySelectorAll('.tab-btn')[0]);
-    }, 1500);
-
+    await Auth.register({ fullName: name, email: email, rollNo: roll, password: pass });
+    showAlert('regSuccess', '✅ Account created! You can log in now.');
+    ['rName','rEmail','rRoll','rPass','rPass2'].forEach(function (id) { document.getElementById(id).value = ''; });
+    setTimeout(function () { switchTab('login', document.querySelectorAll('.tab-btn')[0]); }, 1300);
   } catch (e) {
-    showError('regError', 'Registration failed: ' + (e.message || 'Unknown error'));
+    showAlert('regError', e.message || 'Registration failed. Please try again.');
   } finally {
     setLoading('regBtn', false);
   }
 }
 
-/* ── Allow Enter key to submit ───────────────────────────────── */
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
   if (e.key !== 'Enter') return;
   var activeForm = document.querySelector('.auth-form.active');
   if (!activeForm) return;
-  if (activeForm.id === 'loginForm')    doLogin();
+  if (activeForm.id === 'loginForm') doLogin();
   if (activeForm.id === 'registerForm') doRegister();
 });
 </script>
