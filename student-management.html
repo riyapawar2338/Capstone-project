@@ -1,495 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Student Management — AI Internship System</title>
+<link rel="stylesheet" href="style.css"/>
+<style>
+.mgmt-layout{display:grid;grid-template-columns:375px 1fr;gap:2rem;align-items:start}
+.fp{position:sticky;top:80px}
+.fp .card-header{background:linear-gradient(135deg,rgba(21,101,192,.3),rgba(0,180,216,.1))}
+.sc{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius);padding:1.25rem;transition:var(--transition)}
+.sc:hover{border-color:rgba(0,180,216,.4);box-shadow:var(--shadow-glow)}
+.sc-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem}
+.sc-av{width:44px;height:44px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:800;font-size:1.1rem;color:var(--navy)}
+.sc-mt{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.85rem}
+.sc-mt .l{font-size:.7rem;color:var(--muted)}.sc-mt .v{font-size:.82rem;color:var(--white-2);font-weight:500}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(282px,1fr));gap:1.25rem}
+.empty{text-align:center;padding:4rem 2rem;color:var(--muted)}
+.fe{font-size:.78rem;color:var(--danger);margin-top:.3rem;display:none}
+.fe.show{display:block}
+@media(max-width:1100px){.mgmt-layout{grid-template-columns:1fr}.fp{position:static}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<nav class="navbar">
+  <a href="index.html" class="nav-brand"><div class="brand-icon">🤖</div><span>AI Internship System</span></a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="student-dashboard.html">Dashboard</a>
+    <a href="student-management.html">Students</a>
+    <a href="recommendations.html">Internships</a>
+    <a href="admin-dashboard.html" id="navAdmin" class="hidden">Admin Panel</a>
+    <a href="contact.html">Contact</a>
+  </div>
+  <div id="navUserPill" style="display:flex;align-items:center"></div>
+  <button class="nav-toggle"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page-wrapper">
+  <div class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html">Home</a><span class="sep">›</span><span>Student Management</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+        <div><h1>Student Management</h1><p>Add, edit, and delete student profiles.</p></div>
+        <span class="badge badge-cyan" id="totalBadge">0 Students</span>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <div class="container">
+      <!-- Not logged in banner -->
+      <div id="loginBanner" class="hidden" style="background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.3);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+        <span style="color:var(--warning)">⚠️ You are not logged in. Data saves to browser only. <a href="login.html" style="color:var(--cyan)">Login →</a></span>
+      </div>
+
+      <div class="mgmt-layout">
+        <!-- FORM -->
+        <div class="fp">
+          <div class="card">
+            <div class="card-header"><h3 id="formTitle">➕ Add New Student</h3></div>
+            <div class="card-body">
+              <input type="hidden" id="sid"/>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Full Name <span class="req">*</span></label>
+                  <input class="form-control" id="sName" placeholder="e.g. Riya Sharma"/>
+                  <div class="fe" id="e-sName"></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Roll Number <span class="req">*</span></label>
+                  <input class="form-control" id="sRoll" placeholder="e.g. CSE2024001"/>
+                  <div class="fe" id="e-sRoll"></div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Department <span class="req">*</span></label>
+                  <select class="form-control" id="sDept">
+                    <option value="">Select Branch</option>
+                    <option>Computer Engineering</option><option>Information Technology</option>
+                    <option>Electronics &amp; Telecom</option><option>Electrical Engineering</option>
+                    <option>Mechanical Engineering</option><option>Civil Engineering</option>
+                    <option>AI &amp; Data Science</option>
+                  </select>
+                  <div class="fe" id="e-sDept"></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Semester <span class="req">*</span></label>
+                  <select class="form-control" id="sSem">
+                    <option value="">Select Sem</option>
+                    <option>Semester 1</option><option>Semester 2</option><option>Semester 3</option>
+                    <option>Semester 4</option><option>Semester 5</option><option>Semester 6</option>
+                  </select>
+                  <div class="fe" id="e-sSem"></div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">CGPA (0–10) <span class="req">*</span></label>
+                  <input class="form-control" id="sCgpa" type="number" step="0.01" min="0" max="10" placeholder="e.g. 8.5"/>
+                  <div class="fe" id="e-sCgpa"></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Percentage (%)</label>
+                  <input class="form-control" id="sPct" type="number" step="0.1" min="0" max="100" placeholder="e.g. 85.5"/>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Technical Skills <span class="req">*</span></label>
+                <div class="tags-input-wrapper" id="wTech"><input class="tags-input" placeholder="Type skill + Enter…"/></div>
+                <input type="hidden" id="sTech"/>
+                <div class="form-hint">e.g. Python, React, SQL — press Enter after each</div>
+                <div class="fe" id="e-sTech"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Soft Skills</label>
+                <div class="tags-input-wrapper" id="wSoft"><input class="tags-input" placeholder="e.g. Communication…"/></div>
+                <input type="hidden" id="sSoft"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Certifications</label>
+                <div class="tags-input-wrapper" id="wCert"><input class="tags-input" placeholder="e.g. AWS Practitioner…"/></div>
+                <input type="hidden" id="sCert"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Projects</label>
+                <textarea class="form-control" id="sProj" rows="3" placeholder="One per line&#10;e.g. E-Commerce App - React, Node.js"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Areas of Interest</label>
+                <div class="tags-input-wrapper" id="wInt"><input class="tags-input" placeholder="e.g. AI, Web Dev…"/></div>
+                <input type="hidden" id="sInt"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Preferred Domain <span class="req">*</span></label>
+                <select class="form-control" id="sDom">
+                  <option value="">Select Domain</option>
+                  <option>Artificial Intelligence</option><option>Web Development</option>
+                  <option>Data Science</option><option>Mobile Development</option>
+                  <option>Cybersecurity</option><option>Cloud Computing</option>
+                  <option>UI/UX Design</option><option>Internet of Things</option>
+                  <option>Embedded Systems</option><option>DevOps</option>
+                </select>
+                <div class="fe" id="e-sDom"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Resume Upload</label>
+                <div class="file-upload-area" id="resumeArea">
+                  <input type="file" id="resumeFile" accept=".pdf,.doc,.docx"/>
+                  <div class="file-upload-icon">📄</div>
+                  <div class="file-upload-text">Drag &amp; drop or <span>click to browse</span></div>
+                  <div class="file-upload-text" style="font-size:.7rem;margin-top:.2rem">PDF, DOC, DOCX</div>
+                  <div class="file-name" id="resumeName"></div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email Address <span class="req">*</span></label>
+                <input class="form-control" id="sEmail" type="email" placeholder="student@example.com"/>
+                <div class="fe" id="e-sEmail"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Phone Number</label>
+                  <input class="form-control" id="sPhone" type="tel" placeholder="10-digit number"/>
+                  <div class="fe" id="e-sPhone"></div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">City</label>
+                  <input class="form-control" id="sCity" placeholder="e.g. Pune"/>
+                </div>
+              </div>
+              <div style="display:flex;gap:.75rem;margin-top:.75rem">
+                <button type="button" id="saveBtn" class="btn btn-primary w-full" onclick="saveStudent()">💾 Save Profile</button>
+                <button type="button" class="btn btn-ghost" onclick="resetForm()" title="Reset">↺</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIST -->
+        <div>
+          <div style="display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center">
+            <div class="search-bar" style="flex:1;min-width:200px">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="sQ" placeholder="Search name, roll, department…" oninput="renderList()"/>
+            </div>
+            <div class="filter-bar">
+              <select id="fDept" onchange="renderList()">
+                <option value="">All Departments</option>
+                <option>Computer Engineering</option><option>Information Technology</option>
+                <option>Electronics &amp; Telecom</option><option>AI &amp; Data Science</option>
+                <option>Mechanical Engineering</option>
+              </select>
+              <select id="fSem" onchange="renderList()">
+                <option value="">All Semesters</option>
+                <option>Semester 1</option><option>Semester 2</option><option>Semester 3</option>
+                <option>Semester 4</option><option>Semester 5</option><option>Semester 6</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div id="rCnt" style="color:var(--muted);font-size:.85rem"></div>
+            <div style="display:flex;gap:.5rem">
+              <button class="btn btn-ghost btn-sm vb active" onclick="setView('grid',this)">⊞ Grid</button>
+              <button class="btn btn-ghost btn-sm vb" onclick="setView('table',this)">☰ Table</button>
+            </div>
+          </div>
+          <div id="gView">
+            <div class="sg" id="sGrid"></div>
+            <div class="empty hidden" id="emptyMsg">
+              <div style="font-size:3.5rem;margin-bottom:1rem;opacity:.4">🎓</div>
+              <h3>No Students Yet</h3>
+              <p style="margin-top:.5rem">Fill the form on the left to add your first student.</p>
+            </div>
+          </div>
+          <div id="tView" class="hidden">
+            <div class="card"><div class="table-wrapper">
+              <table>
+                <thead><tr><th>#</th><th>Name</th><th>Roll No.</th><th>Department</th><th>Sem</th><th>CGPA</th><th>Domain</th><th>Actions</th></tr></thead>
+                <tbody id="sTbl"></tbody>
+              </table>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <footer><div class="container"><div class="footer-bottom"><p>© 2025 AI Internship Allocation &amp; Recommendation System</p></div></div></footer>
+</div>
+
+<div class="modal-overlay" id="delModal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header"><h3>🗑️ Delete Student</h3><button class="modal-close" onclick="closeModal('delModal')">✕</button></div>
+    <div class="modal-body"><p style="color:var(--muted)">Delete <strong id="delName" style="color:var(--white)"></strong>? Cannot be undone.</p></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('delModal')">Cancel</button>
+      <button class="btn btn-danger" id="delOk">🗑️ Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+<script src="script.js"></script>
 <script>
-'use strict';
+var tTech,tSoft,tCert,tInt, pendingDel=null;
 
-/* ── Safe references to api.js internals via wrapper ───────── */
-function retryConnection() {
-  // Use the public API reset if available, else reload
-  if (typeof DataService !== 'undefined' && typeof DataService.resetCache === 'function') {
-    DataService.resetCache();
-  }
-  var badge = document.getElementById('connBadge');
-  if (badge) badge.textContent = '🔄 Retrying…';
-  var ob = document.getElementById('offlineBanner');
-  if (ob) ob.classList.add('hidden');
-  renderList();
-}
-
-/* ── Tag input references (safe init) ──────────────────────── */
-var tTech = null, tSoft = null, tCert = null, tInt = null;
-var pendingDel = null;
-
-/* ── DOMContentLoaded ──────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', async function () {
-
-  // Guard: ensure required globals exist
-  if (typeof Auth === 'undefined' || typeof DataService === 'undefined') {
-    console.error('api.js not loaded correctly.');
-    showToastSafe('Backend scripts failed to load. Please refresh.', 'error');
-    return;
-  }
-  if (typeof initTagsInput === 'undefined') {
-    console.error('script.js not loaded correctly.');
-    return;
-  }
-
-  // Show/hide login banner
+document.addEventListener('DOMContentLoaded', function() {
   var session = Auth.getSession();
-  var loginBanner = document.getElementById('loginBanner');
   if (!session) {
-    if (loginBanner) { loginBanner.classList.remove('hidden'); loginBanner.style.display = 'flex'; }
+    document.getElementById('loginBanner').classList.remove('hidden');
+    document.getElementById('loginBanner').style.display='flex';
   } else {
-    if (loginBanner) loginBanner.classList.add('hidden');
-    if (session.role === 'admin') {
-      var navAdmin = document.getElementById('navAdmin');
-      if (navAdmin) navAdmin.classList.remove('hidden');
-    }
+    document.getElementById('loginBanner').classList.add('hidden');
+    if (session.role==='admin') document.getElementById('navAdmin').classList.remove('hidden');
   }
 
-  // Init tags & file upload (with null guards)
-  try {
-    tTech = initTagsInput('wTech', 'sTech');
-    tSoft = initTagsInput('wSoft', 'sSoft');
-    tCert = initTagsInput('wCert', 'sCert');
-    tInt  = initTagsInput('wInt',  'sInt');
-  } catch (e) {
-    console.error('Tags init failed:', e);
-  }
+  tTech=initTagsInput('wTech','sTech');
+  tSoft=initTagsInput('wSoft','sSoft');
+  tCert=initTagsInput('wCert','sCert');
+  tInt =initTagsInput('wInt', 'sInt');
+  initFileUpload('resumeArea');
+  renderList();
 
-  if (typeof initFileUpload === 'function') {
-    initFileUpload('resumeArea');
-  }
+  document.getElementById('delOk').addEventListener('click', function(){
+    if(!pendingDel) return;
+    Store.remove(KEYS.STUDENTS, pendingDel);
+    pendingDel=null; closeModal('delModal');
+    showToast('Student deleted.','info'); renderList();
+  });
 
-  // Show loading while checking backend
-  var overlay = document.getElementById('loadingOverlay');
-  if (overlay) overlay.classList.add('show');
+  var editId=sessionStorage.getItem('editStudentId');
+  if(editId){ sessionStorage.removeItem('editStudentId'); loadEdit(editId); }
 
-  await renderList();
-
-  if (overlay) overlay.classList.remove('show');
-
-  // Show offline banner — use public flag if api.js exposes it
-  var isOnline = (typeof DataService.isOnline === 'function')
-    ? DataService.isOnline()
-    : true; // assume online if unknown
-
-  var ob = document.getElementById('offlineBanner');
-  if (!isOnline && ob) {
-    ob.classList.remove('hidden');
-    ob.style.display = 'block';
-  }
-
-  // Delete confirmation button
-  var delOk = document.getElementById('delOk');
-  if (delOk) {
-    delOk.addEventListener('click', async function () {
-      if (!pendingDel) return;
-      try {
-        await DataService.deleteStudent(pendingDel);
-        pendingDel = null;
-        if (typeof closeModal === 'function') closeModal('delModal');
-        showToastSafe('Student deleted.', 'info');
-        await renderList();
-      } catch (err) {
-        showToastSafe('Delete failed: ' + err.message, 'error');
-      }
-    });
-  }
-
-  // Auto-fill if editing
-  var editId = sessionStorage.getItem('editStudentId');
-  if (editId) {
-    sessionStorage.removeItem('editStudentId');
-    await loadEdit(editId);
-  }
-
-  // Auto-fill from session for student role
-  var sess2 = Auth.getSession();
-  var sidVal = document.getElementById('sid');
-  if (sess2 && sess2.role === 'student' && sidVal && !sidVal.value) {
-    var emailEl = document.getElementById('sEmail');
-    var nameEl  = document.getElementById('sName');
-    var rollEl  = document.getElementById('sRoll');
-    if (emailEl) emailEl.value = sess2.email  || '';
-    if (nameEl  && sess2.name)   nameEl.value  = sess2.name;
-    if (rollEl  && sess2.rollNo) rollEl.value  = sess2.rollNo;
+  /* Auto-fill email from session for new student profile */
+  var session2=Auth.getSession();
+  if(session2 && session2.role==='student' && !document.getElementById('sid').value) {
+    document.getElementById('sEmail').value=session2.email||'';
+    if(session2.name) document.getElementById('sName').value=session2.name;
+    if(session2.rollNo) document.getElementById('sRoll').value=session2.rollNo;
   }
 });
 
-/* ── Safe toast wrapper (guard if showToast not yet loaded) ── */
-function showToastSafe(msg, type) {
-  if (typeof showToast === 'function') showToast(msg, type);
-  else console.warn('Toast:', type, msg);
-}
+function fe(id,msg){ var el=document.getElementById('e-'+id); if(!el) return; el.textContent=msg||''; if(msg){el.classList.add('show');var inp=document.getElementById(id);if(inp)inp.classList.add('error');}else{el.classList.remove('show');var inp2=document.getElementById(id);if(inp2)inp2.classList.remove('error');} }
+function clearErr(){ ['sName','sRoll','sDept','sSem','sCgpa','sEmail','sDom','sTech','sPhone'].forEach(function(id){fe(id,'');}); }
 
-/* ── Validation error helpers ──────────────────────────────── */
-function fe(id, msg) {
-  var el = document.getElementById('e-' + id);
-  if (!el) return;
-  el.textContent = msg || '';
-  var inp = document.getElementById(id);
-  if (msg) {
-    el.classList.add('show');
-    if (inp) inp.classList.add('error');
-  } else {
-    el.classList.remove('show');
-    if (inp) inp.classList.remove('error');
-  }
-}
-
-function clearErr() {
-  ['sName','sRoll','sDept','sSem','sCgpa','sEmail','sDom','sTech','sPhone']
-    .forEach(function(id) { fe(id, ''); });
-}
-
-/* ── Save student ───────────────────────────────────────────── */
-async function saveStudent() {
-  // Guard: DataService must be ready
-  if (typeof DataService === 'undefined') {
-    showToastSafe('System not ready. Please refresh the page.', 'error');
-    return;
-  }
-
-  // Guard: tag inputs must be initialised
-  if (!tTech || !tSoft || !tCert || !tInt) {
-    showToastSafe('Form not ready yet. Please wait a moment and try again.', 'error');
-    return;
-  }
-
+function saveStudent() {
   clearErr();
+  var fn=(document.getElementById('sName').value||'').trim();
+  var rn=(document.getElementById('sRoll').value||'').trim();
+  var dp=document.getElementById('sDept').value;
+  var sm=document.getElementById('sSem').value;
+  var cg=document.getElementById('sCgpa').value;
+  var em=(document.getElementById('sEmail').value||'').trim();
+  var dm=document.getElementById('sDom').value;
+  var ph=(document.getElementById('sPhone').value||'').trim();
+  var skills=tTech.getTags();
+  var ok=true;
 
-  var fn  = (document.getElementById('sName').value  || '').trim();
-  var rn  = (document.getElementById('sRoll').value  || '').trim();
-  var dp  = document.getElementById('sDept').value;
-  var sm  = document.getElementById('sSem').value;
-  var cg  = document.getElementById('sCgpa').value;
-  var em  = (document.getElementById('sEmail').value || '').trim();
-  var dm  = document.getElementById('sDom').value;
-  var ph  = (document.getElementById('sPhone').value || '').trim();
-  var pct = document.getElementById('sPct').value;
+  if(!fn){fe('sName','Full name is required.');ok=false;}
+  if(!rn){fe('sRoll','Roll number is required.');ok=false;}
+  if(!dp){fe('sDept','Select a department.');ok=false;}
+  if(!sm){fe('sSem','Select a semester.');ok=false;}
+  if(!cg){fe('sCgpa','CGPA is required.');ok=false;}
+  else if(isNaN(parseFloat(cg))||parseFloat(cg)<0||parseFloat(cg)>10){fe('sCgpa','CGPA must be 0–10.');ok=false;}
+  if(!em){fe('sEmail','Email is required.');ok=false;}
+  else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){fe('sEmail','Enter a valid email.');ok=false;}
+  if(!dm){fe('sDom','Select a preferred domain.');ok=false;}
+  if(!skills.length){fe('sTech','Add at least one technical skill.');ok=false;}
+  if(ph&&!/^[0-9]{10}$/.test(ph.replace(/\s/g,''))){fe('sPhone','Enter valid 10-digit number.');ok=false;}
+  if(!ok){showToast('Please fix the highlighted errors.','error');return;}
 
-  var skills = tTech.getTags();
-  var ok = true;
+  var existId=document.getElementById('sid').value;
+  if(!existId){
+    var dup=Store.get(KEYS.STUDENTS).find(function(s){return s.rollNo.toUpperCase()===rn.toUpperCase();});
+    if(dup){fe('sRoll','Roll number already registered.');showToast('Roll number already exists.','error');return;}
+  }
 
-  if (!fn)     { fe('sName', 'Full name is required.');       ok = false; }
-  if (!rn)     { fe('sRoll', 'Roll number is required.');     ok = false; }
-  if (!dp)     { fe('sDept', 'Select a department.');         ok = false; }
-  if (!sm)     { fe('sSem',  'Select a semester.');           ok = false; }
-  if (!cg)     { fe('sCgpa', 'CGPA is required.');            ok = false; }
-  else if (isNaN(parseFloat(cg)) || parseFloat(cg) < 0 || parseFloat(cg) > 10)
-               { fe('sCgpa', 'CGPA must be 0–10.');           ok = false; }
-  if (!em)     { fe('sEmail', 'Email is required.');          ok = false; }
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))
-               { fe('sEmail', 'Enter a valid email.');         ok = false; }
-  if (!dm)     { fe('sDom',  'Select a preferred domain.');   ok = false; }
-  if (!skills.length) { fe('sTech', 'Add at least one technical skill.'); ok = false; }
-  if (ph && !/^[0-9]{10}$/.test(ph.replace(/\s/g, '')))
-               { fe('sPhone', 'Enter valid 10-digit number.'); ok = false; }
-
-  if (!ok) { showToastSafe('Please fix the highlighted errors.', 'error'); return; }
-
-  var existId = (document.getElementById('sid').value || '').trim();
-
-  // Build JSON payload
-  var payload = {
-    fullName:        fn,
-    rollNo:          rn.toUpperCase(),
-    department:      dp,
-    semester:        sm,
-    cgpa:            parseFloat(cg),
-    percentage:      pct ? parseFloat(pct) : null,
-    technicalSkills: tTech.getTags(),   // keep as arrays — let DataService serialise
-    softSkills:      tSoft.getTags(),
-    certifications:  tCert.getTags(),
-    areasOfInterest: tInt.getTags(),
-    projects:        (document.getElementById('sProj').value || '').trim(),
-    preferredDomain: dm,
-    email:           em,
-    phone:           ph || null,
-    city:            (document.getElementById('sCity').value || '').trim() || null,
+  var rFile=document.getElementById('resumeArea').dataset.fileName||'';
+  var s={
+    id:existId||genId(),
+    fullName:fn, rollNo:rn.toUpperCase(), department:dp, semester:sm,
+    cgpa:parseFloat(cg), percentage:document.getElementById('sPct').value?parseFloat(document.getElementById('sPct').value):null,
+    technicalSkills:skills, softSkills:tSoft.getTags(), certifications:tCert.getTags(),
+    areasOfInterest:tInt.getTags(), projects:(document.getElementById('sProj').value||'').trim(),
+    preferredDomain:dm, resumeFile:rFile, email:em, phone:ph,
+    city:(document.getElementById('sCity').value||'').trim(),
+    createdAt:existId?(Store.getOne(KEYS.STUDENTS,existId)||{}).createdAt||new Date().toISOString():new Date().toISOString(),
+    updatedAt:new Date().toISOString()
   };
-
-  // Use FormData only when a file is actually selected
-  var resumeInput = document.getElementById('resumeFile');
-  var hasFile = resumeInput && resumeInput.files && resumeInput.files.length > 0;
-
-  if (hasFile) {
-    var fd = new FormData();
-    Object.entries(payload).forEach(function(pair) {
-      var key = pair[0];
-      var val = pair[1];
-      if (Array.isArray(val)) {
-        // Append each array item separately so the server sees key[]=a&key[]=b
-        val.forEach(function(item) { fd.append(key + '[]', item); });
-      } else {
-        fd.append(key, val == null ? '' : val);
-      }
-    });
-    fd.append('resume', resumeInput.files[0]);
-    payload = fd;
-  }
-
-  // Disable save button while saving
-  var saveBtn = document.getElementById('saveBtn');
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Saving…'; }
-
-  try {
-    if (existId) {
-      await DataService.updateStudent(existId, payload);
-      showToastSafe('✅ ' + fn + ' updated!', 'success');
-    } else {
-      await DataService.createStudent(payload);
-      showToastSafe('✅ ' + fn + ' added!', 'success');
-    }
-    resetForm();
-    await renderList();
-  } catch (err) {
-    showToastSafe('❌ Save failed: ' + err.message, 'error');
-    console.error('saveStudent error:', err);
-  } finally {
-    if (saveBtn) {
-      saveBtn.disabled = false;
-      saveBtn.textContent = existId ? '💾 Update Profile' : '💾 Save Profile';
-    }
-  }
+  Store.save(KEYS.STUDENTS,s);
+  showToast('✅ '+s.fullName+(existId?' updated':' added')+'!','success');
+  resetForm(); renderList();
 }
 
-/* ── Load student into form for editing ────────────────────── */
-async function loadEdit(id) {
-  if (typeof DataService === 'undefined') return;
-  try {
-    var s = await DataService.getStudent(id);
-    if (!s) { showToastSafe('Student not found.', 'error'); return; }
-
-    var set = function(elId, val) {
-      var el = document.getElementById(elId);
-      if (el) el.value = val || '';
-    };
-
-    document.getElementById('sid').value = s._id || s.id;
-    set('sName',  s.fullName);
-    set('sRoll',  s.rollNo);
-    set('sDept',  s.department);
-    set('sSem',   s.semester);
-    set('sCgpa',  s.cgpa);
-    set('sPct',   s.percentage);
-    set('sProj',  s.projects);
-    set('sDom',   s.preferredDomain);
-    set('sEmail', s.email);
-    set('sPhone', s.phone);
-    set('sCity',  s.city);
-
-    var toArr = function(v) {
-      if (Array.isArray(v)) return v;
-      return (v || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean);
-    };
-
-    if (tTech) tTech.setTags(toArr(s.technicalSkills));
-    if (tSoft) tSoft.setTags(toArr(s.softSkills));
-    if (tCert) tCert.setTags(toArr(s.certifications));
-    if (tInt)  tInt.setTags(toArr(s.areasOfInterest));
-
-    var rn = document.getElementById('resumeName');
-    if (rn && s.resumeFile) rn.textContent = '📎 ' + s.resumeFile;
-
-    var ft = document.getElementById('formTitle');
-    var sb = document.getElementById('saveBtn');
-    if (ft) ft.textContent = '✏️ Edit Profile';
-    if (sb) sb.textContent = '💾 Update Profile';
-
-    var fp = document.querySelector('.fp');
-    if (fp) fp.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  } catch (err) {
-    showToastSafe('Could not load student: ' + err.message, 'error');
-    console.error('loadEdit error:', err);
-  }
+function loadEdit(id){
+  var s=Store.getOne(KEYS.STUDENTS,id); if(!s) return;
+  document.getElementById('sid').value=s.id;
+  document.getElementById('sName').value=s.fullName||'';
+  document.getElementById('sRoll').value=s.rollNo||'';
+  document.getElementById('sDept').value=s.department||'';
+  document.getElementById('sSem').value=s.semester||'';
+  document.getElementById('sCgpa').value=s.cgpa||'';
+  document.getElementById('sPct').value=s.percentage||'';
+  document.getElementById('sProj').value=s.projects||'';
+  document.getElementById('sDom').value=s.preferredDomain||'';
+  document.getElementById('sEmail').value=s.email||'';
+  document.getElementById('sPhone').value=s.phone||'';
+  document.getElementById('sCity').value=s.city||'';
+  var ta=function(v){return Array.isArray(v)?v:(v||'').split(',').map(function(t){return t.trim();}).filter(Boolean);};
+  tTech.setTags(ta(s.technicalSkills)); tSoft.setTags(ta(s.softSkills));
+  tCert.setTags(ta(s.certifications)); tInt.setTags(ta(s.areasOfInterest));
+  if(s.resumeFile) document.getElementById('resumeName').textContent='📎 '+s.resumeFile;
+  document.getElementById('formTitle').textContent='✏️ Edit Profile';
+  document.getElementById('saveBtn').textContent='💾 Update Profile';
+  document.querySelector('.fp').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-/* ── Reset form ─────────────────────────────────────────────── */
-function resetForm() {
-  ['sName','sRoll','sCgpa','sPct','sProj','sEmail','sPhone','sCity']
-    .forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) el.value = '';
-    });
-  ['sDept','sSem','sDom'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  var sidEl = document.getElementById('sid');
-  if (sidEl) sidEl.value = '';
-
-  var rn = document.getElementById('resumeName');
-  if (rn) rn.textContent = '';
-  var ra = document.getElementById('resumeArea');
-  if (ra) ra.dataset.fileName = '';
-
-  var rf = document.getElementById('resumeFile');
-  if (rf) rf.value = ''; // clear file input
-
-  if (tTech) tTech.setTags([]);
-  if (tSoft) tSoft.setTags([]);
-  if (tCert) tCert.setTags([]);
-  if (tInt)  tInt.setTags([]);
-
-  var ft = document.getElementById('formTitle');
-  var sb = document.getElementById('saveBtn');
-  if (ft) ft.textContent = '➕ Add New Student';
-  if (sb) sb.textContent = '💾 Save Profile';
-
+function resetForm(){
+  ['sName','sRoll','sCgpa','sPct','sProj','sEmail','sPhone','sCity'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('sDept').value=''; document.getElementById('sSem').value=''; document.getElementById('sDom').value='';
+  document.getElementById('sid').value=''; document.getElementById('resumeName').textContent='';
+  document.getElementById('resumeArea').dataset.fileName='';
+  tTech.setTags([]); tSoft.setTags([]); tCert.setTags([]); tInt.setTags([]);
+  document.getElementById('formTitle').textContent='➕ Add New Student';
+  document.getElementById('saveBtn').textContent='💾 Save Profile';
   clearErr();
 }
 
-/* ── Delete prompt ──────────────────────────────────────────── */
-async function delPrompt(id) {
-  if (typeof DataService === 'undefined') return;
-  try {
-    var s = await DataService.getStudent(id);
-    if (!s) return;
-    pendingDel = s._id || s.id;
-    var dn = document.getElementById('delName');
-    if (dn) dn.textContent = s.fullName;
-    if (typeof openModal === 'function') openModal('delModal');
-  } catch (e) {
-    showToastSafe('Could not find student.', 'error');
-  }
-}
+function delPrompt(id){ var s=Store.getOne(KEYS.STUDENTS,id);if(!s)return; pendingDel=id; document.getElementById('delName').textContent=s.fullName; openModal('delModal'); }
+function goDash(id){ sessionStorage.setItem('viewStudentId',id); window.location.href='student-dashboard.html'; }
+function inits(n){ return (n||'??').split(' ').map(function(x){return x[0]||'';}).join('').toUpperCase().slice(0,2)||'??'; }
+function setView(v,btn){ document.querySelectorAll('.vb').forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); document.getElementById('gView').classList.toggle('hidden',v!=='grid'); document.getElementById('tView').classList.toggle('hidden',v!=='table'); }
 
-/* ── View toggle ─────────────────────────────────────────────── */
-function goDash(id) {
-  sessionStorage.setItem('viewStudentId', id);
-  window.location.href = 'student-dashboard.html';
-}
-function inits(n) {
-  return (n || '??').split(' ')
-    .map(function(x) { return x[0] || ''; })
-    .join('').toUpperCase().slice(0, 2) || '??';
-}
-function setView(v, btn) {
-  document.querySelectorAll('.vb').forEach(function(b) { b.classList.remove('active'); });
-  btn.classList.add('active');
-  var gv = document.getElementById('gView');
-  var tv = document.getElementById('tView');
-  if (gv) gv.classList.toggle('hidden', v !== 'grid');
-  if (tv) tv.classList.toggle('hidden', v !== 'table');
-}
+function renderList(){
+  var q=(document.getElementById('sQ').value||'').toLowerCase();
+  var dept=document.getElementById('fDept').value, sem=document.getElementById('fSem').value;
+  var all=Store.get(KEYS.STUDENTS);
+  var list=all.filter(function(s){
+    var sk=Array.isArray(s.technicalSkills)?s.technicalSkills.join(' '):(s.technicalSkills||'');
+    var mq=!q||(s.fullName||'').toLowerCase().indexOf(q)!==-1||(s.rollNo||'').toLowerCase().indexOf(q)!==-1||(s.department||'').toLowerCase().indexOf(q)!==-1||sk.toLowerCase().indexOf(q)!==-1;
+    return mq&&(!dept||s.department===dept)&&(!sem||s.semester===sem);
+  });
+  document.getElementById('totalBadge').textContent=all.length+' Student'+(all.length!==1?'s':'');
+  document.getElementById('rCnt').textContent='Showing '+list.length+' of '+all.length+' students';
 
-/* ── Render student list ─────────────────────────────────────── */
-async function renderList() {
-  if (typeof DataService === 'undefined') return;
-
-  var q    = (document.getElementById('sQ')    ? document.getElementById('sQ').value    : '');
-  var dept = (document.getElementById('fDept') ? document.getElementById('fDept').value : '');
-  var sem  = (document.getElementById('fSem')  ? document.getElementById('fSem').value  : '');
-
-  var params = {};
-  if (q)    params.search     = q;
-  if (dept) params.department = dept;
-  if (sem)  params.semester   = sem;
-
-  // Update connection badge
-  var badge = document.getElementById('connBadge');
-
-  var result;
-  try {
-    result = await DataService.getStudents(params);
-    if (badge) badge.textContent = '🟢 Connected';
-  } catch (e) {
-    showToastSafe('Could not load students: ' + e.message, 'error');
-    if (badge) badge.textContent = '🔴 Offline';
-    result = { data: [], meta: { total: 0 } };
-  }
-
-  var list  = result.data  || [];
-  var total = (result.meta && result.meta.total) || list.length;
-
-  var tb = document.getElementById('totalBadge');
-  var rc = document.getElementById('rCnt');
-  if (tb) tb.textContent = total + ' Student' + (total !== 1 ? 's' : '');
-  if (rc) rc.textContent = 'Showing ' + list.length + ' of ' + total + ' students';
-
-  /* Grid view */
-  var grid  = document.getElementById('sGrid');
-  var empty = document.getElementById('emptyMsg');
-  if (grid) grid.innerHTML = '';
-
-  if (!list.length) {
-    if (empty) empty.classList.remove('hidden');
-  } else {
-    if (empty) empty.classList.add('hidden');
-    list.forEach(function(s) {
-      var id     = s._id || s.id;
-      var skills = Array.isArray(s.technicalSkills)
-        ? s.technicalSkills
-        : (s.technicalSkills || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean);
-      var shown  = skills.slice(0, 4);
-      var extra  = skills.length - shown.length;
-      var cgpa   = parseFloat(s.cgpa) || 0;
-      var col    = cgpa >= 8 ? 'var(--success)' : cgpa >= 6 ? 'var(--warning)' : 'var(--danger)';
-
-      var d = document.createElement('div');
-      d.className = 'sc';
-      d.innerHTML =
-        '<div class="sc-hd"><div style="display:flex;gap:.75rem;align-items:center">'
-        + '<div class="sc-av">' + inits(s.fullName) + '</div>'
-        + '<div><div style="font-weight:700;font-size:.95rem">' + escHtml(s.fullName || '') + '</div>'
-        + '<div style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted)">' + escHtml(s.rollNo || '') + '</div></div></div>'
-        + '<div style="display:flex;gap:.35rem">'
-        + '<button class="btn btn-ghost btn-icon btn-sm" title="View Dashboard" onclick="goDash(\'' + id + '\')">👁️</button>'
-        + '<button class="btn btn-ghost btn-icon btn-sm" title="Edit" onclick="loadEdit(\'' + id + '\')">✏️</button>'
-        + '<button class="btn btn-danger btn-icon btn-sm" title="Delete" onclick="delPrompt(\'' + id + '\')">🗑️</button>'
-        + '</div></div>'
-        + '<div class="sc-mt">'
-        + '<div><div class="l">Department</div><div class="v">' + escHtml(s.department || '—') + '</div></div>'
-        + '<div><div class="l">Semester</div><div class="v">'   + escHtml(s.semester   || '—') + '</div></div>'
-        + '<div><div class="l">CGPA</div><div class="v" style="color:' + col + '">' + cgpa + '</div></div>'
-        + '<div><div class="l">Domain</div><div class="v">'     + escHtml(s.preferredDomain || '—') + '</div></div>'
-        + '</div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:.35rem">'
-        + shown.map(function(sk) { return '<span class="chip">' + escHtml(sk) + '</span>'; }).join('')
-        + (extra > 0 ? '<span class="chip" style="background:rgba(255,255,255,.05);color:var(--muted)">+' + extra + '</span>' : '')
-        + '</div>';
-      if (grid) grid.appendChild(d);
+  var grid=document.getElementById('sGrid'); grid.innerHTML='';
+  var empty=document.getElementById('emptyMsg');
+  if(!list.length){ empty.classList.remove('hidden'); }
+  else {
+    empty.classList.add('hidden');
+    list.forEach(function(s){
+      var skills=Array.isArray(s.technicalSkills)?s.technicalSkills:(s.technicalSkills||'').split(',').map(function(t){return t.trim();}).filter(Boolean);
+      var shown=skills.slice(0,4), extra=skills.length-shown.length;
+      var cgpa=parseFloat(s.cgpa)||0, col=cgpa>=8?'var(--success)':cgpa>=6?'var(--warning)':'var(--danger)';
+      var d=document.createElement('div'); d.className='sc';
+      d.innerHTML='<div class="sc-hd"><div style="display:flex;gap:.75rem;align-items:center"><div class="sc-av">'+inits(s.fullName)+'</div><div><div style="font-weight:700;font-size:.95rem">'+s.fullName+'</div><div style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted)">'+s.rollNo+'</div></div></div>'+
+        '<div style="display:flex;gap:.35rem">'+
+        '<button class="btn btn-ghost btn-icon btn-sm" title="View Dashboard" onclick="goDash(\''+s.id+'\')">👁️</button>'+
+        '<button class="btn btn-ghost btn-icon btn-sm" title="Edit" onclick="loadEdit(\''+s.id+'\')">✏️</button>'+
+        '<button class="btn btn-danger btn-icon btn-sm" title="Delete" onclick="delPrompt(\''+s.id+'\')">🗑️</button>'+
+        '</div></div>'+
+        '<div class="sc-mt">'+
+        '<div><div class="l">Department</div><div class="v">'+(s.department||'—')+'</div></div>'+
+        '<div><div class="l">Semester</div><div class="v">'+(s.semester||'—')+'</div></div>'+
+        '<div><div class="l">CGPA</div><div class="v" style="color:'+col+'">'+cgpa+'</div></div>'+
+        '<div><div class="l">Domain</div><div class="v">'+(s.preferredDomain||'—')+'</div></div>'+
+        '</div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:.35rem">'+shown.map(function(sk){return '<span class="chip">'+sk+'</span>';}).join('')+(extra>0?'<span class="chip" style="background:rgba(255,255,255,.05);color:var(--muted)">+'+extra+'</span>':'')+
+        '</div>';
+      grid.appendChild(d);
     });
   }
 
-  /* Table view */
-  var tbody = document.getElementById('sTbl');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-
-  if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">No students found.</td></tr>';
-  } else {
-    list.forEach(function(s, i) {
-      var id   = s._id || s.id;
-      var cgpa = parseFloat(s.cgpa) || 0;
-      var col  = cgpa >= 8 ? 'var(--success)' : cgpa >= 6 ? 'var(--warning)' : 'var(--danger)';
-      var tr   = document.createElement('tr');
-      tr.innerHTML =
-        '<td style="color:var(--muted);font-size:.78rem">' + (i + 1) + '</td>'
-        + '<td><strong>' + escHtml(s.fullName || '') + '</strong></td>'
-        + '<td><span style="font-family:var(--font-mono);font-size:.78rem">' + escHtml(s.rollNo || '') + '</span></td>'
-        + '<td>' + escHtml(s.department || '—') + '</td>'
-        + '<td>' + escHtml(s.semester   || '—') + '</td>'
-        + '<td style="color:' + col + '"><strong>' + cgpa + '</strong></td>'
-        + '<td>' + escHtml(s.preferredDomain || '—') + '</td>'
-        + '<td><div style="display:flex;gap:.35rem">'
-        + '<button class="btn btn-ghost btn-icon btn-sm" onclick="goDash(\'' + id + '\')" title="View">👁️</button>'
-        + '<button class="btn btn-ghost btn-icon btn-sm" onclick="loadEdit(\'' + id + '\')" title="Edit">✏️</button>'
-        + '<button class="btn btn-danger btn-icon btn-sm" onclick="delPrompt(\'' + id + '\')" title="Delete">🗑️</button>'
-        + '</div></td>';
+  var tbody=document.getElementById('sTbl'); tbody.innerHTML='';
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">No students found.</td></tr>'; }
+  else {
+    list.forEach(function(s,i){
+      var cgpa=parseFloat(s.cgpa)||0, col=cgpa>=8?'var(--success)':cgpa>=6?'var(--warning)':'var(--danger)';
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td style="color:var(--muted);font-size:.78rem">'+(i+1)+'</td><td><strong>'+s.fullName+'</strong></td>'+
+        '<td><span style="font-family:var(--font-mono);font-size:.78rem">'+s.rollNo+'</span></td>'+
+        '<td>'+(s.department||'—')+'</td><td>'+(s.semester||'—')+'</td>'+
+        '<td style="color:'+col+'"><strong>'+cgpa+'</strong></td><td>'+(s.preferredDomain||'—')+'</td>'+
+        '<td><div style="display:flex;gap:.35rem">'+
+        '<button class="btn btn-ghost btn-icon btn-sm" onclick="goDash(\''+s.id+'\')" title="View">👁️</button>'+
+        '<button class="btn btn-ghost btn-icon btn-sm" onclick="loadEdit(\''+s.id+'\')" title="Edit">✏️</button>'+
+        '<button class="btn btn-danger btn-icon btn-sm" onclick="delPrompt(\''+s.id+'\')" title="Delete">🗑️</button>'+
+        '</div></td>';
       tbody.appendChild(tr);
     });
   }
 }
-
-/* ── XSS protection helper ───────────────────────────────────── */
-function escHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 </script>
+</body>
+</html>

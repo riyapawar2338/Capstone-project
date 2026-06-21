@@ -3,35 +3,23 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Admin Dashboard — AI Internship System</title>
+<title>Student Dashboard — AI Internship System</title>
 <link rel="stylesheet" href="style.css"/>
 <style>
-.admin-layout{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 64px)}
-.aside{background:var(--navy-2);border-right:1px solid var(--glass-border);padding:1.5rem 0;position:sticky;top:64px;height:calc(100vh - 64px);overflow-y:auto;display:flex;flex-direction:column}
-.sl-label{font-family:var(--font-mono);font-size:.65rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;padding:.5rem 1.5rem}
-.sl{display:flex;align-items:center;gap:.75rem;padding:.65rem 1.5rem;color:var(--white-2);font-size:.875rem;cursor:pointer;transition:var(--transition);border:none;background:none;width:100%;text-align:left}
-.sl:hover{color:var(--white);background:var(--glass-bg-2)}
-.sl.active{color:var(--cyan);background:rgba(0,180,216,.1);border-right:2px solid var(--cyan)}
-.sl .sb{margin-left:auto;font-family:var(--font-mono);font-size:.7rem;background:rgba(0,180,216,.2);color:var(--cyan);padding:.1rem .45rem;border-radius:8px}
-.amain{padding:2rem;overflow-x:hidden}
-.apage{display:none}.apage.active{display:block;animation:fadeIn .25s ease}
-.atop{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem}
-.atop h2{font-family:var(--font-head);font-size:1.6rem;font-weight:800}
-.srow{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-bottom:2rem}
-.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem}
-.cbox{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:1.5rem}
-.ctitle{font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between}
-.bch{display:flex;align-items:flex-end;gap:.75rem;height:150px}
-.bc{display:flex;flex-direction:column;align-items:center;gap:.4rem;flex:1}
-.bf{width:100%;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--cyan),var(--blue));min-height:4px}
-.bl{font-size:.65rem;color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
-.act-item{display:flex;gap:.9rem;align-items:flex-start;padding:.6rem 0;border-bottom:1px solid var(--glass-border)}
-.act-item:last-child{border-bottom:none}
-.ai-ic{width:34px;height:34px;border-radius:10px;background:var(--glass-bg-2);border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
-.rc{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:1.5rem;text-align:center;cursor:pointer;transition:var(--transition)}
-.rc:hover{transform:translateY(-4px);box-shadow:var(--shadow-glow);border-color:rgba(0,180,216,.4)}
-.access-denied{text-align:center;padding:5rem 2rem}
-@media(max-width:1024px){.admin-layout{grid-template-columns:1fr}.aside{display:none}.srow{grid-template-columns:repeat(2,1fr)}.cgrid{grid-template-columns:1fr}}
+.dash-layout{display:grid;grid-template-columns:290px 1fr;gap:2rem;align-items:start}
+.pcard{text-align:center;padding:2rem 1.5rem}
+.pav{width:80px;height:80px;border-radius:20px;margin:0 auto 1rem;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:800;font-size:2rem;color:var(--navy);box-shadow:var(--shadow-glow)}
+.pm-row{display:flex;justify-content:space-between;font-size:.82rem;padding:.5rem 0;border-bottom:1px solid var(--glass-border)}
+.pm-row:last-child{border-bottom:none}
+.dg2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem}
+.mcard{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius);padding:1rem;display:flex;gap:.85rem;align-items:center;transition:var(--transition);cursor:pointer}
+.mcard:hover{border-color:rgba(0,180,216,.4);transform:translateY(-2px)}
+.mring{position:relative;width:54px;height:54px;flex-shrink:0}
+.mring svg{transform:rotate(-90deg)}
+.mpct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:800;font-size:.78rem}
+.no-profile{text-align:center;padding:4rem 2rem}
+@media(max-width:1024px){.dash-layout{grid-template-columns:1fr}}
+@media(max-width:640px){.dg2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -40,8 +28,8 @@
   <a href="index.html" class="nav-brand"><div class="brand-icon">🤖</div><span>AI Internship System</span></a>
   <div class="nav-links">
     <a href="index.html">Home</a>
-    <a href="student-dashboard.html">Dashboard</a>
-    <a href="student-management.html">Students</a>
+    <a href="student-dashboard.html">My Dashboard</a>
+    <a href="student-management.html" id="navManage" class="hidden">Manage Students</a>
     <a href="recommendations.html">Internships</a>
     <a href="admin-dashboard.html" id="navAdmin" class="hidden">Admin Panel</a>
     <a href="contact.html">Contact</a>
@@ -49,515 +37,286 @@
   <div id="navUserPill" style="display:flex;align-items:center"></div>
   <button class="nav-toggle"><span></span><span></span><span></span></button>
 </nav>
-<div class="page-wrapper" style="padding-top:64px">
 
-  <!-- ACCESS DENIED -->
-  <div id="accessDenied" class="hidden" style="padding:5rem 2rem;text-align:center">
-    <div style="font-size:4rem;margin-bottom:1rem">🔒</div>
-    <h2>Admin Access Only</h2>
-    <p style="color:var(--muted);margin:.75rem 0 1.5rem">You need to login with admin credentials to access this panel.</p>
-    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
-      <a href="login.html" class="btn btn-primary btn-lg">Login as Admin</a>
-      <a href="student-dashboard.html" class="btn btn-outline btn-lg">Go to My Dashboard</a>
-    </div>
-    <div style="margin-top:2rem;background:rgba(0,180,216,.07);border:1px solid rgba(0,180,216,.2);border-radius:var(--radius);padding:1rem;display:inline-block">
-      <div style="font-family:var(--font-mono);font-size:.8rem;color:var(--cyan)">Admin Credentials</div>
-      <div style="font-size:.85rem;color:var(--muted);margin-top:.3rem">Email: <strong style="color:var(--white)">admin@aiias.edu</strong></div>
-      <div style="font-size:.85rem;color:var(--muted)">Password: <strong style="color:var(--white)">Admin@1234</strong></div>
+<div class="page-wrapper">
+  <div class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html">Home</a><span class="sep">›</span><span>Student Dashboard</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+        <div><h1 id="dashHeading">My Dashboard</h1><p id="dashSubtitle">Your profile, skills, and AI recommendations.</p></div>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap" id="dashActions"></div>
+      </div>
     </div>
   </div>
 
-  <!-- ADMIN LAYOUT -->
-  <div class="admin-layout" id="adminLayout" style="display:none">
-    <aside class="aside">
-      <div>
-        <div class="sl-label">Overview</div>
-        <button class="sl active" onclick="switchPage('overview',this)"><span>📊</span> Overview</button>
+  <section>
+    <div class="container">
+      <!-- Not logged in -->
+      <div id="notLoggedIn" class="hidden" style="text-align:center;padding:5rem 2rem">
+        <div style="font-size:4rem;margin-bottom:1rem">🔒</div>
+        <h2>Please Login First</h2>
+        <p style="color:var(--muted);margin:.75rem 0 1.5rem">You need to log in to view your dashboard.</p>
+        <a href="login.html" class="btn btn-primary btn-lg">Login / Register</a>
       </div>
-      <div>
-        <div class="sl-label">Management</div>
-        <button class="sl" onclick="switchPage('students',this)"><span>🎓</span> Students <span class="sb" id="sbS">0</span></button>
-        <button class="sl" onclick="switchPage('internships',this)"><span>🏢</span> Internships <span class="sb" id="sbI">0</span></button>
-        <button class="sl" onclick="switchPage('applications',this)"><span>📋</span> Applications <span class="sb" id="sbA">0</span></button>
-      </div>
-      <div>
-        <div class="sl-label">Analytics</div>
-        <button class="sl" onclick="switchPage('allocation',this)"><span>🗂️</span> Allocation</button>
-        <button class="sl" onclick="switchPage('reports',this)"><span>📈</span> Reports</button>
-      </div>
-      <div style="margin-top:auto;padding-top:1rem">
-        <div class="sl-label">Quick Links</div>
-        <a class="sl" href="student-management.html"><span>➕</span> Add Student</a>
-        <a class="sl" href="recommendations.html"><span>🔍</span> Internships</a>
-        <button class="sl" onclick="Auth.logout()" style="color:var(--danger)"><span>🚪</span> Logout</button>
-      </div>
-    </aside>
 
-    <main class="amain">
-      <!-- OVERVIEW -->
-      <div class="apage active" id="page-overview">
-        <div class="atop">
-          <div><h2>📊 Overview</h2><p style="color:var(--muted);font-size:.875rem">Live system statistics and recent activity.</p></div>
-          <div style="display:flex;gap:.5rem;align-items:center">
-            <span style="font-family:var(--font-mono);font-size:.72rem;color:var(--success)">👑 Admin Mode</span>
-            <button class="btn btn-outline btn-sm" onclick="renderOverview()">🔄 Refresh</button>
-          </div>
-        </div>
-        <div class="srow" id="ovStats"></div>
-        <div class="cgrid">
-          <div class="cbox"><div class="ctitle">🏫 Students by Department <span class="badge badge-cyan" style="font-size:.7rem">Live</span></div><div class="bch" id="deptChart"></div></div>
-          <div class="cbox">
-            <div class="ctitle">🎯 Preferred Domains</div>
-            <div style="display:flex;align-items:center;gap:1.5rem">
-              <svg id="donutSvg" width="130" height="130" viewBox="0 0 130 130"></svg>
-              <div id="donutLegend" style="flex:1"></div>
+      <!-- No profile yet (student) -->
+      <div id="noProfile" class="hidden no-profile">
+        <div style="font-size:4rem;margin-bottom:1rem;opacity:.4">📋</div>
+        <h2>Complete Your Profile</h2>
+        <p style="color:var(--muted);margin:.75rem 0 1.5rem">You haven't filled your student profile yet.<br>Add your details to get AI internship recommendations.</p>
+        <a href="student-management.html" class="btn btn-primary btn-lg">➕ Fill My Profile</a>
+      </div>
+
+      <!-- Dashboard content -->
+      <div id="dashContent" class="hidden">
+        <div class="dash-layout">
+          <!-- Sidebar -->
+          <div>
+            <div class="card pcard" style="margin-bottom:1.25rem">
+              <div class="pav" id="pAv">??</div>
+              <div style="font-family:var(--font-head);font-size:1.25rem;font-weight:800" id="pName">—</div>
+              <div style="font-family:var(--font-mono);font-size:.73rem;color:var(--muted);margin-top:.2rem" id="pRoll">—</div>
+              <div style="color:var(--cyan);font-size:.85rem;margin-top:.4rem" id="pDept">—</div>
+              <div style="margin-top:1rem">
+                <div style="font-size:.73rem;color:var(--muted);margin-bottom:.35rem">Profile Completeness</div>
+                <div class="progress-bar"><div class="progress-fill" id="pBar" style="width:0%"></div></div>
+                <div style="font-size:.72rem;color:var(--cyan);margin-top:.3rem;text-align:right" id="pPct">0%</div>
+              </div>
+              <div id="pMeta" style="margin-top:1rem"></div>
+              <div style="display:flex;gap:.5rem;margin-top:1.25rem">
+                <a href="student-management.html" class="btn btn-ghost btn-sm w-full" id="editProfileBtn">✏️ Edit Profile</a>
+                <a href="recommendations.html" class="btn btn-primary btn-sm w-full">🎯 Apply</a>
+              </div>
+            </div>
+            <div class="card" style="padding:1.25rem;margin-bottom:1.25rem">
+              <div style="font-size:.72rem;font-family:var(--font-mono);color:var(--cyan);letter-spacing:.08em;margin-bottom:.75rem">CERTIFICATIONS</div>
+              <div id="pCerts"></div>
+            </div>
+            <div class="card" style="padding:1.25rem">
+              <div style="font-size:.72rem;font-family:var(--font-mono);color:var(--cyan);letter-spacing:.08em;margin-bottom:.75rem">MY APPLICATIONS</div>
+              <div id="pApps"></div>
             </div>
           </div>
-          <div class="cbox"><div class="ctitle">📈 CGPA Distribution</div><div id="cgpaChart" style="display:flex;flex-direction:column;gap:.7rem"></div></div>
-          <div class="cbox"><div class="ctitle">📋 Application Status</div><div id="statusChart" style="display:flex;flex-direction:column;gap:.7rem"></div></div>
-        </div>
-        <div class="cbox"><div class="ctitle">⚡ Recent Activity</div><div id="actFeed"></div></div>
-      </div>
-
-      <!-- STUDENTS -->
-      <div class="apage" id="page-students">
-        <div class="atop">
-          <div><h2>🎓 Student Management</h2><p style="color:var(--muted);font-size:.875rem">All registered student profiles.</p></div>
-          <a href="student-management.html" class="btn btn-primary btn-sm">➕ Add Student</a>
-        </div>
-        <div class="card">
-          <div class="card-header" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center">
-            <div class="search-bar" style="flex:1;min-width:200px"><span class="search-icon">🔍</span><input type="text" id="stuSearch" placeholder="Search students…" oninput="renderStudents()"/></div>
-            <select class="form-control" id="stuDeptF" style="width:auto" onchange="renderStudents()">
-              <option value="">All Departments</option>
-              <option>Computer Engineering</option><option>Information Technology</option>
-              <option>Electronics &amp; Telecom</option><option>AI &amp; Data Science</option>
-              <option>Mechanical Engineering</option>
-            </select>
-          </div>
-          <div class="table-wrapper"><table>
-            <thead><tr><th>#</th><th>Name</th><th>Roll No.</th><th>Department</th><th>Sem</th><th>CGPA</th><th>Domain</th><th>Email</th><th>Actions</th></tr></thead>
-            <tbody id="stuTbl"></tbody>
-          </table></div>
-        </div>
-      </div>
-
-      <!-- INTERNSHIPS -->
-      <div class="apage" id="page-internships">
-        <div class="atop">
-          <div><h2>🏢 Internship Management</h2><p style="color:var(--muted);font-size:.875rem">All listings with application counts.</p></div>
-          <span class="badge badge-cyan" id="intBadge">0 listings</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:1.25rem" id="intGrid"></div>
-      </div>
-
-      <!-- APPLICATIONS -->
-      <div class="apage" id="page-applications">
-        <div class="atop">
-          <div><h2>📋 Applications</h2><p style="color:var(--muted);font-size:.875rem">Track and update all applications.</p></div>
-          <select class="form-control" id="appStatusF" style="width:auto" onchange="renderApplications()">
-            <option value="">All Status</option>
-            <option>Pending</option><option>Shortlisted</option><option>Accepted</option><option>Rejected</option>
-          </select>
-        </div>
-        <div class="card"><div class="table-wrapper"><table>
-          <thead><tr><th>#</th><th>Student</th><th>Roll No.</th><th>Internship</th><th>Company</th><th>Match</th><th>Applied</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody id="appTbl"></tbody>
-        </table></div></div>
-      </div>
-
-      <!-- ALLOCATION -->
-      <div class="apage" id="page-allocation">
-        <div class="atop"><div><h2>🗂️ Allocation Tracking</h2><p style="color:var(--muted);font-size:.875rem">Best match per student.</p></div></div>
-        <div class="srow" id="allocStats"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:2rem">
-          <div class="cbox"><div class="ctitle">🏆 Top Matched Students</div><div id="topMatchList" style="display:flex;flex-direction:column;gap:.85rem"></div></div>
-          <div class="cbox"><div class="ctitle">📌 Applications by Domain</div><div id="domainAllocChart" style="display:flex;flex-direction:column;gap:.75rem"></div></div>
-        </div>
-        <div class="card" style="margin-top:1.5rem">
-          <div class="card-header"><h3>📋 Full Allocation Table</h3></div>
-          <div class="table-wrapper"><table>
-            <thead><tr><th>#</th><th>Student</th><th>Department</th><th>CGPA</th><th>Preferred Domain</th><th>Best Match</th><th>Score</th><th>App Status</th></tr></thead>
-            <tbody id="allocTbl"></tbody>
-          </table></div>
-        </div>
-      </div>
-
-      <!-- REPORTS -->
-      <div class="apage" id="page-reports">
-        <div class="atop"><div><h2>📈 Reports &amp; Analytics</h2><p style="color:var(--muted);font-size:.875rem">Generate and download CSV reports.</p></div></div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1.25rem;margin-bottom:2rem">
-          <div class="rc" onclick="genReport('students')"><div style="font-size:2.2rem;margin-bottom:.75rem">🎓</div><div style="font-family:var(--font-head);font-weight:700;margin-bottom:.35rem">Student Report</div><div style="color:var(--muted);font-size:.8rem">All students with skills &amp; CGPA</div></div>
-          <div class="rc" onclick="genReport('applications')"><div style="font-size:2.2rem;margin-bottom:.75rem">📋</div><div style="font-family:var(--font-head);font-weight:700;margin-bottom:.35rem">Applications</div><div style="color:var(--muted);font-size:.8rem">All applications with match scores</div></div>
-          <div class="rc" onclick="genReport('recommendations')"><div style="font-size:2.2rem;margin-bottom:.75rem">🤖</div><div style="font-family:var(--font-head);font-weight:700;margin-bottom:.35rem">AI Recommendations</div><div style="color:var(--muted);font-size:.8rem">Best matches per student</div></div>
-          <div class="rc" onclick="genReport('allocation')"><div style="font-size:2.2rem;margin-bottom:.75rem">🗂️</div><div style="font-family:var(--font-head);font-weight:700;margin-bottom:.35rem">Allocation Report</div><div style="color:var(--muted);font-size:.8rem">Full placement status</div></div>
-        </div>
-        <div class="cbox" style="margin-bottom:1.5rem">
-          <div class="ctitle">🤖 AI Recommendation Statistics</div>
-          <div id="recStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem"></div>
-        </div>
-        <div class="card" id="reportCard" style="display:none">
-          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-            <h3 id="reportTitle">Report</h3>
-            <div style="display:flex;gap:.5rem">
-              <button class="btn btn-success btn-sm" onclick="downloadCSV()">⬇️ Download CSV</button>
-              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('reportCard').style.display='none'">✕</button>
+          <!-- Main -->
+          <div>
+            <div class="dg2">
+              <div class="stat-card"><div style="font-size:1.5rem;margin-bottom:.4rem">🎯</div><div class="stat-number" id="dCgpa">—</div><div class="stat-label">CGPA</div></div>
+              <div class="stat-card"><div style="font-size:1.5rem;margin-bottom:.4rem">⚡</div><div class="stat-number" id="dSkills">0</div><div class="stat-label">Technical Skills</div></div>
+              <div class="stat-card"><div style="font-size:1.5rem;margin-bottom:.4rem">📜</div><div class="stat-number" id="dCerts">0</div><div class="stat-label">Certifications</div></div>
+              <div class="stat-card"><div style="font-size:1.5rem;margin-bottom:.4rem">💼</div><div class="stat-number" id="dBest">—</div><div class="stat-label">Best AI Match</div></div>
+            </div>
+            <div class="card" style="margin-bottom:1.5rem">
+              <div class="card-header"><div style="display:flex;justify-content:space-between;align-items:center"><h3>⚡ Technical Skills</h3><span class="badge badge-cyan" id="skillBadge">0</span></div></div>
+              <div class="card-body">
+                <div id="skillChips" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem"></div>
+                <div id="skillBars"></div>
+              </div>
+            </div>
+            <div class="dg2" style="margin-bottom:1.5rem">
+              <div class="card" style="padding:1.25rem"><div style="font-size:.72rem;font-family:var(--font-mono);color:var(--cyan);letter-spacing:.08em;margin-bottom:.75rem">SOFT SKILLS</div><div id="softChips" style="display:flex;flex-wrap:wrap;gap:.4rem"></div></div>
+              <div class="card" style="padding:1.25rem"><div style="font-size:.72rem;font-family:var(--font-mono);color:var(--cyan);letter-spacing:.08em;margin-bottom:.75rem">INTERESTS</div><div id="intChips" style="display:flex;flex-wrap:wrap;gap:.4rem"></div></div>
+            </div>
+            <div class="card" style="margin-bottom:1.5rem">
+              <div class="card-header"><h3>🚀 Projects</h3></div>
+              <div class="card-body" id="pProjects" style="color:var(--muted);font-size:.9rem;line-height:1.8"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem"><h3>🤖 AI Internship Recommendations</h3><span class="badge badge-purple">AI-Powered</span></div></div>
+              <div class="card-body">
+                <div id="aiSummary" style="background:rgba(124,77,255,.08);border:1px solid rgba(124,77,255,.2);border-radius:var(--radius);padding:1rem;margin-bottom:1.25rem;font-size:.85rem;color:var(--white-2);line-height:1.6"></div>
+                <div id="recCards" style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem"></div>
+                <div style="margin-top:1.25rem;text-align:center"><a href="recommendations.html" class="btn btn-primary">🔍 Browse All & Apply</a></div>
+              </div>
             </div>
           </div>
-          <div class="table-wrapper"><table id="reportTbl"><thead id="reportHead"></thead><tbody id="reportBody"></tbody></table></div>
         </div>
       </div>
-    </main>
-  </div>
-</div>
-
-<!-- Status update modal -->
-<div class="modal-overlay" id="statusModal">
-  <div class="modal-box" style="max-width:420px">
-    <div class="modal-header"><h3>✏️ Update Status</h3><button class="modal-close" onclick="closeModal('statusModal')">✕</button></div>
-    <div class="modal-body">
-      <p style="color:var(--muted);margin-bottom:1rem">Application: <strong id="statusLabel" style="color:var(--white)"></strong></p>
-      <div class="form-group">
-        <label class="form-label">New Status</label>
-        <select class="form-control" id="newStatus"><option>Pending</option><option>Shortlisted</option><option>Accepted</option><option>Rejected</option></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Notes (optional)</label>
-        <textarea class="form-control" id="statusNotes" rows="2" placeholder="Add notes…"></textarea>
-      </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('statusModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="confirmStatus()">Update</button>
-    </div>
-  </div>
+  </section>
+  <footer><div class="container"><div class="footer-bottom"><p>© 2025 AI Internship Allocation &amp; Recommendation System</p></div></div></footer>
 </div>
-
 <div id="toastContainer" class="toast-container"></div>
-<script src="api.js"></script>
 <script src="script.js"></script>
-
 <script>
-var pendingStatusId=null, rptHeaders=[], rptRows=[], rptType='';
-var DC=['#00b4d8','#7c4dff','#00c897','#ffaa00','#ff4d6d','#48cae4'];
+document.addEventListener('DOMContentLoaded', function() {
+  var session = Auth.getSession();
 
-document.addEventListener('DOMContentLoaded',function(){
-  var session=Auth.getSession();
-  document.getElementById('navAdmin').classList.remove('hidden');
-
-  if(!session||session.role!=='admin'){
-    document.getElementById('accessDenied').classList.remove('hidden');
-    document.getElementById('adminLayout').style.display='none';
+  if (!session) {
+    document.getElementById('notLoggedIn').classList.remove('hidden');
     return;
   }
 
-  document.getElementById('adminLayout').style.display='grid';
-  updateBadges();
-  renderOverview();
+  /* Show/hide nav links based on role */
+  if (session.role==='admin') {
+    document.getElementById('navAdmin').classList.remove('hidden');
+    document.getElementById('navManage').classList.remove('hidden');
+    document.getElementById('dashHeading').textContent='Admin — Student Overview';
+    document.getElementById('dashSubtitle').textContent='Viewing student profiles as admin.';
+  }
+
+  /* Find student profile linked to this user */
+  var student = null;
+  var students = Store.get(KEYS.STUDENTS);
+
+  if (session.role==='student') {
+    /* Match by roll number or email */
+    student = students.find(function(s){
+      return s.email && s.email.toLowerCase()===session.email.toLowerCase();
+    });
+    if (!student && session.rollNo) {
+      student = students.find(function(s){
+        return s.rollNo && s.rollNo.toLowerCase()===session.rollNo.toLowerCase();
+      });
+    }
+  } else if (session.role==='admin') {
+    /* Admin sees first student or picks — show selector */
+    showAdminStudentView(students);
+    return;
+  }
+
+  if (!student) {
+    document.getElementById('noProfile').classList.remove('hidden');
+    document.getElementById('dashActions').innerHTML =
+      '<a href="student-management.html" class="btn btn-primary">➕ Fill My Profile</a>';
+    return;
+  }
+
+  document.getElementById('dashActions').innerHTML =
+    '<a href="student-management.html" class="btn btn-outline btn-sm">✏️ Edit Profile</a>'+
+    '<a href="recommendations.html" class="btn btn-primary btn-sm">🎯 Find Internships</a>';
+
+  loadStudentDash(student);
 });
 
-function switchPage(id,btn){
-  document.querySelectorAll('.apage').forEach(function(p){p.classList.remove('active');});
-  document.querySelectorAll('.sl').forEach(function(b){b.classList.remove('active');});
-  document.getElementById('page-'+id).classList.add('active');
-  if(btn) btn.classList.add('active');
-  var map={overview:renderOverview,students:renderStudents,internships:renderInternships,applications:renderApplications,allocation:renderAllocation,reports:renderReports};
-  if(map[id]) map[id]();
+function showAdminStudentView(students) {
+  document.getElementById('noProfile').classList.remove('hidden');
+  document.getElementById('noProfile').innerHTML =
+    '<div style="font-size:3rem;margin-bottom:1rem">👑</div>'+
+    '<h2>Admin View</h2>'+
+    '<p style="color:var(--muted);margin:.75rem 0 1.5rem">You are logged in as Admin.<br>Select a student below to view their dashboard.</p>'+
+    '<select id="adminStuSel" class="form-control" style="max-width:320px;margin:0 auto" onchange="adminViewStudent(this.value)">'+
+      '<option value="">— Select a Student —</option>'+
+      students.map(function(s){ return '<option value="'+s.id+'">'+s.fullName+' ('+s.rollNo+')</option>'; }).join('')+
+    '</select>'+
+    '<div style="margin-top:1.5rem"><a href="admin-dashboard.html" class="btn btn-primary">📊 Go to Admin Dashboard</a></div>';
 }
 
-function updateBadges(){
-  document.getElementById('sbS').textContent=Store.get(KEYS.STUDENTS).length;
-  document.getElementById('sbI').textContent=Store.get(KEYS.INTERNSHIPS).length;
-  document.getElementById('sbA').textContent=Store.get(KEYS.APPLICATIONS).length;
+function adminViewStudent(id) {
+  if (!id) return;
+  var s = Store.getOne(KEYS.STUDENTS, id);
+  if (!s) return;
+  document.getElementById('noProfile').classList.add('hidden');
+  loadStudentDash(s);
 }
 
-function renderOverview(){
-  updateBadges();
-  var students=Store.get(KEYS.STUDENTS), ints=Store.get(KEYS.INTERNSHIPS), apps=Store.get(KEYS.APPLICATIONS);
-  var acc=apps.filter(function(a){return a.status==='Accepted';}).length;
-  var pend=apps.filter(function(a){return a.status==='Pending';}).length;
+function loadStudentDash(s) {
+  document.getElementById('dashContent').classList.remove('hidden');
+  document.getElementById('noProfile').classList.add('hidden');
 
-  document.getElementById('ovStats').innerHTML=[
-    {icon:'🎓',n:students.length,l:'Total Students'},
-    {icon:'🏢',n:ints.length,l:'Internship Listings'},
-    {icon:'📋',n:apps.length,l:'Applications'},
-    {icon:'✅',n:acc,l:'Accepted'}
-  ].map(function(s){
-    return '<div class="stat-card"><div style="font-size:1.5rem;margin-bottom:.4rem">'+s.icon+'</div><div class="stat-number">'+s.n+'</div><div class="stat-label">'+s.l+'</div></div>';
-  }).join('');
+  var toArr = function(v){ return Array.isArray(v)?v:(v||'').split(',').map(function(t){return t.trim();}).filter(Boolean); };
+  var skills = toArr(s.technicalSkills);
+  var certs  = toArr(s.certifications);
+  var soft   = toArr(s.softSkills);
+  var ints   = toArr(s.areasOfInterest);
+  var init   = (s.fullName||'??').split(' ').map(function(n){return n[0]||'';}).join('').toUpperCase().slice(0,2)||'??';
 
-  /* Dept bar chart */
-  var dmap={}; students.forEach(function(s){dmap[s.department]=(dmap[s.department]||0)+1;});
-  var dents=Object.entries(dmap).sort(function(a,b){return b[1]-a[1];});
-  var maxD=Math.max.apply(null,dents.map(function(d){return d[1];}),1);
-  var short=function(n){return (n||'').replace('Engineering','Eng.').replace('Information Technology','IT').replace('Electronics & Telecom','E&TC').replace('AI & Data Science','AI/DS');};
-  document.getElementById('deptChart').innerHTML=dents.length
-    ? dents.map(function(d){
-        return '<div class="bc"><div style="font-family:var(--font-mono);font-size:.68rem;color:var(--cyan)">'+d[1]+'</div>'+
-          '<div class="bf" style="height:'+Math.max(8,d[1]/maxD*120)+'px"></div>'+
-          '<div class="bl">'+short(d[0])+'</div></div>';
+  document.getElementById('pAv').textContent   = init;
+  document.getElementById('pName').textContent = s.fullName;
+  document.getElementById('pRoll').textContent = s.rollNo;
+  document.getElementById('pDept').textContent = (s.department||'—')+' · '+(s.semester||'—');
+
+  var fields=[s.fullName,s.rollNo,s.department,s.semester,s.cgpa,s.email,s.preferredDomain,skills.length,certs.length,s.projects,s.resumeFile];
+  var pct=Math.round(fields.filter(Boolean).length/fields.length*100);
+  document.getElementById('pBar').style.width=pct+'%';
+  document.getElementById('pPct').textContent=pct+'%';
+
+  document.getElementById('pMeta').innerHTML=[
+    ['CGPA',s.cgpa||'—'],['Percentage',s.percentage?s.percentage+'%':'—'],
+    ['Domain',s.preferredDomain||'—'],['Email',s.email||'—'],
+    ['Added',fmtDate(s.createdAt)]
+  ].map(function(r){return '<div class="pm-row"><span style="color:var(--muted)">'+r[0]+'</span><span style="color:var(--white-2);font-weight:500;text-align:right">'+r[1]+'</span></div>';}).join('');
+
+  document.getElementById('pCerts').innerHTML = certs.length
+    ? certs.map(function(c){return '<div style="font-size:.82rem;color:var(--white-2);display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem"><span style="color:var(--success)">✓</span>'+c+'</div>';}).join('')
+    : '<div style="color:var(--muted);font-size:.82rem">No certifications added.</div>';
+
+  /* My applications */
+  var apps = Store.get(KEYS.APPLICATIONS).filter(function(a){ return a.studentId===s.id; });
+  var sBadge={Pending:'badge-yellow',Shortlisted:'badge-cyan',Accepted:'badge-green',Rejected:'badge-red'};
+  document.getElementById('pApps').innerHTML = apps.length
+    ? apps.slice(0,4).map(function(a){
+        var i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--glass-border);font-size:.8rem">'+
+          '<span style="color:var(--white-2)">'+(i?i.title:'—')+'</span>'+
+          '<span class="badge '+(sBadge[a.status]||'badge-cyan')+'">'+a.status+'</span>'+
+        '</div>';
       }).join('')
-    : '<div style="color:var(--muted);font-size:.85rem;margin:auto">No students yet.</div>';
+    : '<div style="color:var(--muted);font-size:.82rem">No applications yet.<br><a href="recommendations.html" style="color:var(--cyan)">Browse internships →</a></div>';
 
-  /* Donut chart */
-  var dmapD={}; students.forEach(function(s){if(s.preferredDomain) dmapD[s.preferredDomain]=(dmapD[s.preferredDomain]||0)+1;});
-  var doms=Object.entries(dmapD).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
-  var tot=doms.reduce(function(s,d){return s+d[1];},0)||1;
-  var cx=65,cy=65,R=50,r=32,angle=-Math.PI/2,paths='';
-  doms.forEach(function(d,i){
-    var slice=(d[1]/tot)*2*Math.PI;
-    var x1=cx+R*Math.cos(angle),y1=cy+R*Math.sin(angle); angle+=slice;
-    var x2=cx+R*Math.cos(angle),y2=cy+R*Math.sin(angle);
-    var ix1=cx+r*Math.cos(angle-slice),iy1=cy+r*Math.sin(angle-slice);
-    var ix2=cx+r*Math.cos(angle),iy2=cy+r*Math.sin(angle);
-    var lg=slice>Math.PI?1:0;
-    paths+='<path d="M'+x1+','+y1+' A'+R+','+R+' 0 '+lg+' 1 '+x2+','+y2+' L'+ix2+','+iy2+' A'+r+','+r+' 0 '+lg+' 0 '+ix1+','+iy1+' Z" fill="'+DC[i]+'" opacity=".85"/>';
-  });
-  document.getElementById('donutSvg').innerHTML=paths+'<circle cx="'+cx+'" cy="'+cy+'" r="20" fill="var(--navy-2)"/>';
-  document.getElementById('donutLegend').innerHTML=doms.map(function(d,i){
-    return '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;font-size:.8rem">'+
-      '<div style="width:10px;height:10px;border-radius:50%;background:'+DC[i]+';flex-shrink:0"></div>'+
-      '<span style="color:var(--white-2);flex:1">'+d[0]+'</span>'+
-      '<span style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted)">'+d[1]+'</span></div>';
-  }).join('')||'<div style="color:var(--muted);font-size:.82rem">No data yet.</div>';
+  document.getElementById('dCgpa').textContent   = s.cgpa||'—';
+  document.getElementById('dSkills').textContent = skills.length;
+  document.getElementById('dCerts').textContent  = certs.length;
 
-  /* CGPA brackets */
-  var brackets=[{l:'9–10',mn:9,mx:10},{l:'8–9',mn:8,mx:9},{l:'7–8',mn:7,mx:8},{l:'6–7',mn:6,mx:7},{l:'<6',mn:0,mx:6}];
-  var maxCgpa=1;
-  var counts=brackets.map(function(b){
-    var cnt=students.filter(function(s){var c=parseFloat(s.cgpa)||0;return c>=b.mn&&c<(b.mx===10?10.01:b.mx);}).length;
-    if(cnt>maxCgpa) maxCgpa=cnt; return cnt;
-  });
-  document.getElementById('cgpaChart').innerHTML=brackets.map(function(b,i){
-    return '<div style="display:flex;align-items:center;gap:.75rem">'+
-      '<div style="width:50px;font-size:.73rem;color:var(--muted);flex-shrink:0">'+b.l+'</div>'+
-      '<div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="width:'+Math.round(counts[i]/maxCgpa*100)+'%;background:linear-gradient(90deg,var(--accent-2),var(--cyan))"></div></div></div>'+
-      '<div style="font-family:var(--font-mono);font-size:.72rem;color:var(--cyan);width:16px">'+counts[i]+'</div></div>';
+  document.getElementById('skillBadge').textContent = skills.length+' skills';
+  document.getElementById('skillChips').innerHTML  = skills.map(function(sk){return '<span class="chip">'+sk+'</span>';}).join('');
+
+  var prof=[92,85,78,88,72,65,80,70];
+  document.getElementById('skillBars').innerHTML = skills.slice(0,6).map(function(sk,i){
+    var p=prof[i%prof.length];
+    return '<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">'+
+      '<div style="width:130px;font-size:.82rem;color:var(--white-2);flex-shrink:0">'+sk+'</div>'+
+      '<div style="flex:1"><div class="progress-bar"><div class="progress-fill" data-t="'+p+'" style="width:0%"></div></div></div>'+
+      '<div style="font-family:var(--font-mono);font-size:.75rem;color:var(--cyan);width:30px;text-align:right">'+p+'%</div>'+
+    '</div>';
   }).join('');
+  setTimeout(function(){ document.querySelectorAll('#skillBars .progress-fill').forEach(function(el){ el.style.width=el.dataset.t+'%'; }); },120);
 
-  /* Status chart */
-  var smap={Pending:pend,Shortlisted:apps.filter(function(a){return a.status==='Shortlisted';}).length,Accepted:acc,Rejected:apps.filter(function(a){return a.status==='Rejected';}).length};
-  var scols={Pending:'var(--warning)',Shortlisted:'var(--cyan)',Accepted:'var(--success)',Rejected:'var(--danger)'};
-  var maxSt=Math.max.apply(null,Object.values(smap).concat([1]));
-  document.getElementById('statusChart').innerHTML=Object.entries(smap).map(function(e){
-    return '<div style="display:flex;align-items:center;gap:.75rem">'+
-      '<div style="width:80px;font-size:.73rem;color:var(--muted);flex-shrink:0">'+e[0]+'</div>'+
-      '<div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="width:'+Math.round(e[1]/maxSt*100)+'%;background:'+scols[e[0]]+'"></div></div></div>'+
-      '<div style="font-family:var(--font-mono);font-size:.72rem;color:'+scols[e[0]]+';width:16px">'+e[1]+'</div></div>';
-  }).join('');
+  document.getElementById('softChips').innerHTML = soft.length
+    ? soft.map(function(sk){return '<span class="chip" style="background:rgba(124,77,255,.12);border-color:rgba(124,77,255,.25);color:var(--accent-2)">'+sk+'</span>';}).join('')
+    : '<span style="color:var(--muted);font-size:.85rem">Not specified</span>';
 
-  /* Activity feed */
-  var acts=[].concat(
-    students.slice(-4).reverse().map(function(s){return {icon:'🎓',title:'<strong>'+s.fullName+'</strong> profile added ('+s.department+')',time:fmtDate(s.createdAt)};}),
-    apps.slice(-3).reverse().map(function(a){
-      var i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);
-      return {icon:'📋',title:'<strong>'+(a.studentName||'Student')+'</strong> applied to '+(i?i.title:'an internship'),time:fmtDate(a.appliedAt||a.createdAt)};
-    })
-  ).slice(0,7);
-  document.getElementById('actFeed').innerHTML=acts.length
-    ? acts.map(function(a){
-        return '<div class="act-item"><div class="ai-ic">'+a.icon+'</div><div><div style="font-size:.85rem;color:var(--white-2)">'+a.title+'</div><div style="font-size:.72rem;color:var(--muted);margin-top:.15rem">'+a.time+'</div></div></div>';
-      }).join('')
-    : '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">No recent activity. Start by adding students.</div>';
-}
+  document.getElementById('intChips').innerHTML = ints.length
+    ? ints.map(function(i){return '<span class="chip" style="background:rgba(0,200,151,.1);border-color:rgba(0,200,151,.25);color:var(--success)">'+i+'</span>';}).join('')
+    : '<span style="color:var(--muted);font-size:.85rem">Not specified</span>';
 
-function renderStudents(){
-  var q=(document.getElementById('stuSearch').value||'').toLowerCase();
-  var dept=document.getElementById('stuDeptF').value;
-  var list=Store.get(KEYS.STUDENTS).filter(function(s){
-    var mq=!q||(s.fullName||'').toLowerCase().indexOf(q)!==-1||(s.rollNo||'').toLowerCase().indexOf(q)!==-1||(s.department||'').toLowerCase().indexOf(q)!==-1;
-    return mq&&(!dept||s.department===dept);
-  });
-  var tb=document.getElementById('stuTbl'); tb.innerHTML='';
-  if(!list.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem">No students found. <a href="student-management.html" style="color:var(--cyan)">Add students →</a></td></tr>';return;}
-  list.forEach(function(s,i){
-    var cgpa=parseFloat(s.cgpa)||0, col=cgpa>=8?'var(--success)':cgpa>=6?'var(--warning)':'var(--danger)';
-    var skills=(Array.isArray(s.technicalSkills)?s.technicalSkills:(s.technicalSkills||'').split(',')).map(function(t){return t.trim();}).filter(Boolean).slice(0,3);
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td style="color:var(--muted);font-size:.78rem">'+(i+1)+'</td><td><strong>'+s.fullName+'</strong></td>'+
-      '<td><span style="font-family:var(--font-mono);font-size:.78rem">'+s.rollNo+'</span></td>'+
-      '<td>'+s.department+'</td><td>'+(s.semester||'—')+'</td>'+
-      '<td style="color:'+col+'"><strong>'+cgpa+'</strong></td>'+
-      '<td>'+(s.preferredDomain||'—')+'</td>'+
-      '<td style="font-size:.78rem">'+(s.email||'—')+'</td>'+
-      '<td><div style="display:flex;gap:.35rem">'+
-        '<a href="student-management.html" class="btn btn-ghost btn-icon btn-sm" title="Edit">✏️</a>'+
-        '<button class="btn btn-danger btn-icon btn-sm" onclick="delStudent(\''+s.id+'\',\''+s.fullName+'\')" title="Delete">🗑️</button>'+
-      '</div></td>';
-    tb.appendChild(tr);
-  });
-}
+  document.getElementById('pProjects').innerHTML = (s.projects||'').trim()
+    ? s.projects.split('\n').filter(Boolean).map(function(p){return '<div style="display:flex;gap:.5rem;margin-bottom:.4rem"><span style="color:var(--cyan)">▸</span><span>'+p+'</span></div>';}).join('')
+    : '<span style="color:var(--muted)">No projects listed.</span>';
 
-function delStudent(id,name){
-  if(!confirm('Delete '+name+'? Cannot be undone.')) return;
-  Store.remove(KEYS.STUDENTS,id);
-  showToast(name+' deleted.','info');
-  renderStudents(); updateBadges();
-}
+  /* AI Recommendations */
+  var internships = Store.get(KEYS.INTERNSHIPS);
+  var recs = internships.map(function(i){ return {i:i,sc:calcMatchScore(s,i)}; }).sort(function(a,b){return b.sc-a.sc;}).slice(0,6);
+  var top = recs.length ? recs[0].sc : 0;
+  document.getElementById('dBest').textContent = top+'%';
 
-function renderInternships(){
-  var ints=Store.get(KEYS.INTERNSHIPS), apps=Store.get(KEYS.APPLICATIONS);
-  var ICONS={'Artificial Intelligence':'🤖','Web Development':'🌐','Data Science':'📊','Mobile Development':'📱','Cybersecurity':'🔒','Cloud Computing':'☁️','UI/UX Design':'🎨','Internet of Things':'🔌','Embedded Systems':'🔧','DevOps':'⚙️'};
-  document.getElementById('intBadge').textContent=ints.length+' listings';
-  document.getElementById('intGrid').innerHTML=ints.map(function(i){
-    var ac=apps.filter(function(a){return a.internshipId===i.id;}).length;
-    var pct=Math.min(100,Math.round(ac/(i.seats||1)*100));
-    return '<div style="background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius);padding:1.1rem;display:flex;align-items:center;gap:1rem">'+
-      '<div style="width:42px;height:42px;border-radius:10px;background:var(--glass-bg-2);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">'+(ICONS[i.domain]||'🏢')+'</div>'+
+  document.getElementById('aiSummary').innerHTML =
+    '🤖 <strong>AI Analysis for '+s.fullName+':</strong> Based on skills in <em>'+(skills.slice(0,2).join(', ')||'your profile')+'</em>, '
+    +'CGPA of <strong>'+s.cgpa+'</strong> and preference for <strong>'+s.preferredDomain+'</strong>, '
+    +'our AI found <strong>'+recs.filter(function(r){return r.sc>=60;}).length+'</strong> matches ≥60%. '
+    +'Best match: <strong>'+(recs[0]?recs[0].i.title:'—')+'</strong> at <strong>'+(recs[0]?recs[0].i.company:'—')+'</strong> '
+    +'with <strong style="color:var(--success)">'+top+'%</strong> compatibility.';
+
+  var rc = document.getElementById('recCards'); rc.innerHTML='';
+  recs.forEach(function(r){
+    var i=r.i,sc=r.sc,col=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--danger)';
+    var R=22,circ=(2*Math.PI*R).toFixed(1),offset=(parseFloat(circ)-(sc/100)*parseFloat(circ)).toFixed(1);
+    var d=document.createElement('div'); d.className='mcard';
+    d.onclick=function(){ window.location.href='recommendations.html'; };
+    d.innerHTML=
+      '<div class="mring">'+
+        '<svg width="54" height="54" viewBox="0 0 54 54">'+
+          '<circle cx="27" cy="27" r="'+R+'" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="4"/>'+
+          '<circle cx="27" cy="27" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="4" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" stroke-linecap="round"/>'+
+        '</svg>'+
+        '<div class="mpct" style="color:'+col+'">'+sc+'%</div>'+
+      '</div>'+
       '<div style="flex:1;min-width:0">'+
-        '<div style="font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+i.title+'</div>'+
-        '<div style="font-size:.75rem;color:var(--muted)">'+i.company+' · '+i.location+' · '+i.stipend+'</div>'+
-        '<div style="display:flex;align-items:center;gap:.5rem;margin-top:.4rem">'+
-          '<div class="progress-bar" style="flex:1;height:4px"><div class="progress-fill" style="width:'+pct+'%"></div></div>'+
-          '<span style="font-size:.72rem;color:var(--muted)">'+ac+'/'+i.seats+'</span>'+
-        '</div>'+
-        '<div style="display:flex;gap:.35rem;margin-top:.4rem;flex-wrap:wrap">'+
-          '<span class="badge badge-cyan" style="font-size:.68rem">'+i.domain+'</span>'+
-          '<span class="badge badge-yellow" style="font-size:.68rem">Min '+i.minCgpa+' CGPA</span>'+
-          (ac>0?'<span class="badge badge-green" style="font-size:.68rem">'+ac+' Applied</span>':'')+
-        '</div>'+
-      '</div></div>';
-  }).join('');
-}
-
-function renderApplications(){
-  var sf=document.getElementById('appStatusF').value;
-  var list=Store.get(KEYS.APPLICATIONS).filter(function(a){return !sf||a.status===sf;});
-  var sb={Pending:'badge-yellow',Shortlisted:'badge-cyan',Accepted:'badge-green',Rejected:'badge-red'};
-  var tb=document.getElementById('appTbl'); tb.innerHTML='';
-  if(!list.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem">No applications found.</td></tr>';return;}
-  list.forEach(function(a,i){
-    var int=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);
-    var sc=a.matchScore||0, col=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--danger)';
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td style="color:var(--muted);font-size:.78rem">'+(i+1)+'</td>'+
-      '<td><strong>'+(a.studentName||'—')+'</strong></td>'+
-      '<td><span style="font-family:var(--font-mono);font-size:.78rem">'+(a.rollNo||'—')+'</span></td>'+
-      '<td>'+(int?int.title:'—')+'</td><td>'+(int?int.company:'—')+'</td>'+
-      '<td style="color:'+col+'"><strong>'+sc+'%</strong></td>'+
-      '<td style="font-size:.78rem">'+fmtDate(a.appliedAt||a.createdAt)+'</td>'+
-      '<td><span class="badge '+(sb[a.status]||'badge-cyan')+'">'+a.status+'</span></td>'+
-      '<td><button class="btn btn-ghost btn-sm" onclick="openStatusModal(\''+a.id+'\',\''+a.studentName+'\',\''+a.status+'\')">✏️</button></td>';
-    tb.appendChild(tr);
+        '<div style="font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+i.title+'</div>'+
+        '<div style="font-size:.75rem;color:var(--muted)">'+i.company+' · '+i.location+'</div>'+
+        '<div style="margin-top:.3rem"><span class="badge badge-cyan" style="font-size:.67rem">'+(sc>=80?'Excellent':sc>=60?'Good':sc>=40?'Fair':'Low')+' Match</span></div>'+
+      '</div>';
+    rc.appendChild(d);
   });
-}
-
-function openStatusModal(id,name,cur){
-  pendingStatusId=id;
-  document.getElementById('statusLabel').textContent=name;
-  document.getElementById('newStatus').value=cur||'Pending';
-  document.getElementById('statusNotes').value='';
-  openModal('statusModal');
-}
-function confirmStatus(){
-  if(!pendingStatusId) return;
-  var apps=Store.get(KEYS.APPLICATIONS), idx=apps.findIndex(function(a){return a.id===pendingStatusId;});
-  if(idx>=0){apps[idx].status=document.getElementById('newStatus').value; apps[idx].adminNotes=document.getElementById('statusNotes').value;}
-  Store.set(KEYS.APPLICATIONS,apps);
-  closeModal('statusModal'); showToast('Status updated!','success'); renderApplications();
-}
-
-function renderAllocation(){
-  var students=Store.get(KEYS.STUDENTS), ints=Store.get(KEYS.INTERNSHIPS), apps=Store.get(KEYS.APPLICATIONS);
-  var acc=apps.filter(function(a){return a.status==='Accepted';}).length;
-  document.getElementById('allocStats').innerHTML=[
-    {icon:'📋',n:apps.length,l:'Total Applications'},
-    {icon:'✅',n:acc,l:'Accepted'},
-    {icon:'⏳',n:apps.filter(function(a){return a.status==='Pending';}).length,l:'Pending'},
-    {icon:'🔖',n:apps.filter(function(a){return a.status==='Shortlisted';}).length,l:'Shortlisted'}
-  ].map(function(s){return '<div class="stat-card"><div style="font-size:1.5rem;margin-bottom:.4rem">'+s.icon+'</div><div class="stat-number">'+s.n+'</div><div class="stat-label">'+s.l+'</div></div>';}).join('');
-
-  var alloc=students.map(function(s){
-    var scored=ints.map(function(i){return {i:i,sc:calcMatchScore(s,i)};}).sort(function(a,b){return b.sc-a.sc;});
-    var bestApp=apps.filter(function(a){return a.studentId===s.id;}).sort(function(a,b){return b.matchScore-a.matchScore;})[0];
-    return {s:s,best:scored[0],appStatus:bestApp?bestApp.status:'Not Applied'};
-  }).sort(function(a,b){return(b.best?b.best.sc:0)-(a.best?a.best.sc:0);});
-
-  document.getElementById('topMatchList').innerHTML=alloc.slice(0,6).map(function(m,i){
-    var sc=m.best?m.best.sc:0, col=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--muted)';
-    return '<div style="display:flex;align-items:center;gap:.75rem">'+
-      '<div style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted);width:20px;text-align:center">'+(i+1)+'</div>'+
-      '<div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;color:var(--navy);flex-shrink:0">'+(m.s.fullName||'?').charAt(0)+'</div>'+
-      '<div style="flex:1;min-width:0"><div style="font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+m.s.fullName+'</div><div style="font-size:.72rem;color:var(--muted)">'+(m.best?m.best.i.title:'—')+'</div></div>'+
-      '<div style="font-family:var(--font-head);font-weight:800;color:'+col+'">'+sc+'%</div></div>';
-  }).join('')||'<div style="color:var(--muted)">No students yet.</div>';
-
-  var domMap={}; apps.forEach(function(a){var i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);if(i&&i.domain) domMap[i.domain]=(domMap[i.domain]||0)+1;});
-  var maxDA=Math.max.apply(null,Object.values(domMap).concat([1]));
-  document.getElementById('domainAllocChart').innerHTML=Object.entries(domMap).sort(function(a,b){return b[1]-a[1];}).map(function(e){
-    return '<div><div style="display:flex;justify-content:space-between;margin-bottom:.3rem"><span style="font-size:.8rem;color:var(--white-2)">'+e[0]+'</span><span style="font-size:.78rem;color:var(--cyan)">'+e[1]+'</span></div>'+
-      '<div class="progress-bar"><div class="progress-fill" style="width:'+Math.round(e[1]/maxDA*100)+'%"></div></div></div>';
-  }).join('')||'<div style="color:var(--muted);font-size:.85rem">No applications yet.</div>';
-
-  var sb={Pending:'badge-yellow',Shortlisted:'badge-cyan',Accepted:'badge-green',Rejected:'badge-red','Not Applied':'badge-cyan'};
-  var tb=document.getElementById('allocTbl'); tb.innerHTML='';
-  if(!alloc.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">No students yet.</td></tr>';return;}
-  alloc.forEach(function(m,i){
-    var sc=m.best?m.best.sc:0, cgpa=parseFloat(m.s.cgpa)||0;
-    var scCol=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--muted)';
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td style="color:var(--muted);font-size:.78rem">'+(i+1)+'</td>'+
-      '<td><strong>'+m.s.fullName+'</strong></td><td>'+m.s.department+'</td>'+
-      '<td style="color:'+(cgpa>=8?'var(--success)':cgpa>=6?'var(--warning)':'var(--danger)')+'">'+cgpa+'</td>'+
-      '<td>'+(m.s.preferredDomain||'—')+'</td>'+
-      '<td style="font-size:.82rem;color:var(--white-2)">'+(m.best?m.best.i.title:'—')+'</td>'+
-      '<td style="color:'+scCol+';font-weight:700">'+sc+'%</td>'+
-      '<td><span class="badge '+(sb[m.appStatus]||'badge-cyan')+'">'+m.appStatus+'</span></td>';
-    tb.appendChild(tr);
-  });
-}
-
-function renderReports(){
-  var students=Store.get(KEYS.STUDENTS), ints=Store.get(KEYS.INTERNSHIPS), apps=Store.get(KEYS.APPLICATIONS);
-  var total=0,cnt=0,exc=0,good=0,low=0;
-  students.forEach(function(s){ints.forEach(function(i){var sc=calcMatchScore(s,i);total+=sc;cnt++;if(sc>=80)exc++;else if(sc>=60)good++;else low++;});});
-  var avg=cnt?Math.round(total/cnt):0;
-  document.getElementById('recStats').innerHTML=[
-    {icon:'🎯',n:avg+'%',l:'Avg Match Score',s:'Across all pairs'},
-    {icon:'✅',n:exc,l:'Excellent Matches',s:'Score ≥80%'},
-    {icon:'⚡',n:good,l:'Good Matches',s:'Score 60–79%'},
-    {icon:'📋',n:apps.length,l:'Total Applications',s:'Submitted'},
-    {icon:'🏆',n:apps.filter(function(a){return a.status==='Accepted';}).length,l:'Accepted',s:'Final allocations'},
-    {icon:'🎓',n:students.length,l:'Students Profiled',s:'In system'}
-  ].map(function(s){return '<div class="stat-card" style="text-align:center"><div style="font-size:1.5rem;margin-bottom:.4rem">'+s.icon+'</div><div class="stat-number">'+s.n+'</div><div class="stat-label">'+s.l+'</div><div class="stat-change up">'+s.s+'</div></div>';}).join('');
-}
-
-function genReport(type){
-  var students=Store.get(KEYS.STUDENTS), apps=Store.get(KEYS.APPLICATIONS), ints=Store.get(KEYS.INTERNSHIPS);
-  var headers=[],rows=[],title='';
-  rptType=type;
-  if(type==='students'){
-    title='Student Report'; headers=['Name','Roll No.','Department','Semester','CGPA','Domain','Email','Skills'];
-    rows=students.map(function(s){return[s.fullName,s.rollNo,s.department,s.semester,s.cgpa,s.preferredDomain,s.email||'—',(Array.isArray(s.technicalSkills)?s.technicalSkills:(s.technicalSkills||'').split(',')).filter(Boolean).length];});
-  } else if(type==='applications'){
-    title='Applications Report'; headers=['Student','Roll No.','Internship','Company','Match Score','Status','Applied On'];
-    rows=apps.map(function(a){var i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);return[a.studentName||'—',a.rollNo||'—',i?i.title:'—',i?i.company:'—',(a.matchScore||0)+'%',a.status,fmtDate(a.appliedAt||a.createdAt)];});
-  } else if(type==='recommendations'){
-    title='AI Recommendations'; headers=['Student','Department','CGPA','Best Match','Company','Score'];
-    rows=students.map(function(s){var best=ints.map(function(i){return{i:i,sc:calcMatchScore(s,i)};}).sort(function(a,b){return b.sc-a.sc;})[0]; return[s.fullName,s.department,s.cgpa,best?best.i.title:'—',best?best.i.company:'—',(best?best.sc:0)+'%'];});
-  } else if(type==='allocation'){
-    title='Allocation Report'; headers=['Student','Department','CGPA','Best Match','Score','App Status'];
-    rows=students.map(function(s){
-      var best=ints.map(function(i){return{i:i,sc:calcMatchScore(s,i)};}).sort(function(a,b){return b.sc-a.sc;})[0];
-      var bestApp=apps.filter(function(a){return a.studentId===s.id;}).sort(function(a,b){return b.matchScore-a.matchScore;})[0];
-      return[s.fullName,s.department,s.cgpa,best?best.i.title:'—',(best?best.sc:0)+'%',bestApp?bestApp.status:'Not Applied'];
-    });
-  }
-  rptHeaders=headers; rptRows=rows;
-  document.getElementById('reportTitle').textContent=title;
-  document.getElementById('reportHead').innerHTML='<tr>'+headers.map(function(h){return'<th>'+h+'</th>';}).join('')+'</tr>';
-  document.getElementById('reportBody').innerHTML=rows.length?rows.map(function(r){return'<tr>'+r.map(function(c){return'<td>'+(c||'—')+'</td>';}).join('')+'</tr>';}).join(''):'<tr><td colspan="'+headers.length+'" style="text-align:center;color:var(--muted);padding:2rem">No data available.</td></tr>';
-  document.getElementById('reportCard').style.display='block';
-  document.getElementById('reportCard').scrollIntoView({behavior:'smooth'});
-  showToast('📊 '+title+' generated!','success');
-}
-
-function downloadCSV(){
-  if(!rptRows.length){showToast('No data to download.','warning');return;}
-  var csv=[rptHeaders].concat(rptRows).map(function(r){return r.map(function(v){return'"'+String(v||'').replace(/"/g,'""')+'"';}).join(',');}).join('\n');
-  var a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download=rptType+'_report_'+Date.now()+'.csv'; a.click();
-  showToast('📥 CSV downloaded!','success');
 }
 </script>
 </body>

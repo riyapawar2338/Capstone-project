@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>About — AI Internship System</title>
 <link rel="stylesheet" href="style.css"/>
 <style>
@@ -84,7 +83,7 @@
         <div class="obj-item"><div class="obj-num">OBJ — 03</div><div style="font-size:.9rem;color:var(--white-2);line-height:1.6">Create a comprehensive Student Management System with full CRUD operations including skills, certifications and projects.</div></div>
         <div class="obj-item"><div class="obj-num">OBJ — 04</div><div style="font-size:.9rem;color:var(--white-2);line-height:1.6">Build an Admin Dashboard with live analytics, allocation tracking, status management and downloadable CSV reports.</div></div>
         <div class="obj-item"><div class="obj-num">OBJ — 05</div><div style="font-size:.9rem;color:var(--white-2);line-height:1.6">Implement a scoring algorithm that considers CGPA, technical skills, domain preferences and interests for match calculation.</div></div>
-        <div class="obj-item"><div class="obj-num">OBJ — 06</div><div style="font-size:.9rem;color:var(--white-2);line-height:1.6">Enable persistent data storage using MongoDB Atlas via the Node.js/Express backend deployed on Render for cross-device data access.</div></div>
+        <div class="obj-item"><div class="obj-num">OBJ — 06</div><div style="font-size:.9rem;color:var(--white-2);line-height:1.6">Enable persistent data storage using browser LocalStorage for seamless student profile management without backend server requirements.</div></div>
       </div>
     </div>
   </section>
@@ -92,15 +91,18 @@
   <!-- TECHNOLOGIES -->
   <section>
     <div class="container">
-      <div class="text-center mb-4"><div class="section-label">Stack</div><h2 class="section-title">Technologies Used</h2></div>
+      <div class="text-center mb-4">
+        <div class="section-label">Stack</div>
+        <h2 class="section-title">Technologies Used</h2>
+      </div>
       <div class="tech-stack">
         <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🌐</div><div style="font-weight:600;font-size:.9rem">HTML5</div><div style="color:var(--muted);font-size:.75rem">Semantic Markup</div></div>
         <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🎨</div><div style="font-weight:600;font-size:.9rem">CSS3</div><div style="color:var(--muted);font-size:.75rem">Variables, Grid, Animations</div></div>
-        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">⚡</div><div style="font-weight:600;font-size:.9rem">JavaScript</div><div style="color:var(--muted);font-size:.75rem">DOM, Auth, API Client</div></div>
-        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🟢</div><div style="font-weight:600;font-size:.9rem">Node.js / Express</div><div style="color:var(--muted);font-size:.75rem">REST API Backend</div></div>
-        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🍃</div><div style="font-weight:600;font-size:.9rem">MongoDB Atlas</div><div style="color:var(--muted);font-size:.75rem">Cloud Database</div></div>
+        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">⚡</div><div style="font-weight:600;font-size:.9rem">JavaScript</div><div style="color:var(--muted);font-size:.75rem">DOM, Auth, LocalStorage</div></div>
+        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">💾</div><div style="font-weight:600;font-size:.9rem">LocalStorage API</div><div style="color:var(--muted);font-size:.75rem">Client-side Persistence</div></div>
         <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🤖</div><div style="font-weight:600;font-size:.9rem">AI Algorithm</div><div style="color:var(--muted);font-size:.75rem">Custom Match Scoring</div></div>
-        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🔐</div><div style="font-weight:600;font-size:.9rem">JWT Auth</div><div style="color:var(--muted);font-size:.75rem">Secure Role-Based Access</div></div>
+        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🔐</div><div style="font-weight:600;font-size:.9rem">Role-Based Auth</div><div style="color:var(--muted);font-size:.75rem">Admin vs Student Access</div></div>
+        <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">📐</div><div style="font-weight:600;font-size:.9rem">CSS Grid/Flexbox</div><div style="color:var(--muted);font-size:.75rem">Responsive Layouts</div></div>
         <div class="tech-item"><div style="font-size:2rem;margin-bottom:.6rem">🌟</div><div style="font-weight:600;font-size:.9rem">Glassmorphism UI</div><div style="color:var(--muted);font-size:.75rem">Modern Design System</div></div>
       </div>
     </div>
@@ -109,9 +111,12 @@
   <!-- ARCHITECTURE -->
   <section style="background:var(--navy-2)">
     <div class="container">
-      <div class="text-center mb-4"><div class="section-label">Architecture</div><h2 class="section-title">System Architecture</h2></div>
+      <div class="text-center mb-4">
+        <div class="section-label">Architecture</div>
+        <h2 class="section-title">System Architecture</h2>
+      </div>
       <div class="card" style="padding:2rem">
-        <div style="margin-bottom:1.5rem;text-align:center"><span class="badge badge-cyan">Presentation Layer — HTML Pages (GitHub Pages)</span></div>
+        <div style="margin-bottom:1.5rem;text-align:center"><span class="badge badge-cyan">Presentation Layer — HTML Pages</span></div>
         <div class="arch-flow">
           <div class="arch-box"><div style="font-size:1.3rem">🔐</div><div style="font-weight:600;font-size:.82rem">login.html</div><div style="font-size:.7rem;color:var(--muted)">Auth Gate</div></div>
           <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">→</div>
@@ -124,28 +129,28 @@
           <div class="arch-box"><div style="font-size:1.3rem">⚙️</div><div style="font-weight:600;font-size:.82rem">admin-dashboard</div><div style="font-size:.7rem;color:var(--muted)">Admin Only</div></div>
         </div>
         <hr style="border:none;border-top:1px solid var(--glass-border);margin:1.5rem 0"/>
-        <div style="margin-bottom:1.5rem;text-align:center"><span class="badge badge-purple">Logic Layer — api.js (DataService) + script.js</span></div>
+        <div style="margin-bottom:1.5rem;text-align:center"><span class="badge badge-purple">Logic Layer — script.js</span></div>
         <div class="arch-flow">
           <div class="arch-box"><div style="font-size:1.3rem">🔐</div><div style="font-weight:600;font-size:.82rem">Auth Object</div><div style="font-size:.7rem;color:var(--muted)">Session mgmt</div></div>
           <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">→</div>
           <div class="arch-box"><div style="font-size:1.3rem">🧠</div><div style="font-weight:600;font-size:.82rem">calcMatchScore()</div><div style="font-size:.7rem;color:var(--muted)">AI Engine</div></div>
           <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">→</div>
-          <div class="arch-box"><div style="font-size:1.3rem">📡</div><div style="font-weight:600;font-size:.82rem">DataService</div><div style="font-size:.7rem;color:var(--muted)">API / Fallback</div></div>
+          <div class="arch-box"><div style="font-size:1.3rem">💾</div><div style="font-weight:600;font-size:.82rem">Store Object</div><div style="font-size:.7rem;color:var(--muted)">CRUD ops</div></div>
           <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">→</div>
           <div class="arch-box"><div style="font-size:1.3rem">🔔</div><div style="font-weight:600;font-size:.82rem">showToast()</div><div style="font-size:.7rem;color:var(--muted)">Notifications</div></div>
         </div>
         <hr style="border:none;border-top:1px solid var(--glass-border);margin:1.5rem 0"/>
-        <div style="margin-bottom:1.5rem;text-align:center"><span class="badge badge-green">Backend — Node.js/Express on Render + MongoDB Atlas</span></div>
+        <div style="margin-bottom:1.5rem;text-align:center"><span class="badge badge-green">Data Layer — Browser LocalStorage</span></div>
         <div class="arch-flow">
-          <div class="arch-box"><div style="font-size:1.3rem">🔑</div><div style="font-weight:600;font-size:.82rem">/api/auth</div><div style="font-size:.7rem;color:var(--muted)">Login/Register</div></div>
+          <div class="arch-box"><div style="font-size:1.3rem">👥</div><div style="font-weight:600;font-size:.82rem">aiias_users</div><div style="font-size:.7rem;color:var(--muted)">Login accounts</div></div>
           <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">↔</div>
-          <div class="arch-box"><div style="font-size:1.3rem">🎓</div><div style="font-weight:600;font-size:.82rem">/api/students</div><div style="font-size:.7rem;color:var(--muted)">Student CRUD</div></div>
+          <div class="arch-box"><div style="font-size:1.3rem">🎓</div><div style="font-weight:600;font-size:.82rem">aiias_students</div><div style="font-size:.7rem;color:var(--muted)">Student profiles</div></div>
           <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">↔</div>
-          <div class="arch-box"><div style="font-size:1.3rem">🏢</div><div style="font-weight:600;font-size:.82rem">/api/internships</div><div style="font-size:.7rem;color:var(--muted)">Listings</div></div>
+          <div class="arch-box"><div style="font-size:1.3rem">🏢</div><div style="font-weight:600;font-size:.82rem">aiias_internships</div><div style="font-size:.7rem;color:var(--muted)">Listings</div></div>
           <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">↔</div>
-          <div class="arch-box"><div style="font-size:1.3rem">📋</div><div style="font-weight:600;font-size:.82rem">/api/applications</div><div style="font-size:.7rem;color:var(--muted)">Applications</div></div>
+          <div class="arch-box"><div style="font-size:1.3rem">📋</div><div style="font-weight:600;font-size:.82rem">aiias_applications</div><div style="font-size:.7rem;color:var(--muted)">Applications</div></div>
           <div style="color:var(--cyan);font-size:1.4rem;opacity:.6">↔</div>
-          <div class="arch-box"><div style="font-size:1.3rem">🍃</div><div style="font-weight:600;font-size:.82rem">MongoDB Atlas</div><div style="font-size:.7rem;color:var(--muted)">Cloud DB</div></div>
+          <div class="arch-box"><div style="font-size:1.3rem">🔑</div><div style="font-weight:600;font-size:.82rem">aiias_session</div><div style="font-size:.7rem;color:var(--muted)">Current user</div></div>
         </div>
       </div>
     </div>
@@ -183,11 +188,7 @@
   </footer>
 </div>
 <div id="toastContainer" class="toast-container"></div>
-<!-- ✅ FIXED: script.js → api.js -->
-
-<script src="api.js"></script>
 <script src="script.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var session = Auth.getSession();

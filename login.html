@@ -6,182 +6,182 @@
 <title>Login — AI Internship System</title>
 <link rel="stylesheet" href="style.css"/>
 <style>
-body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-.auth-wrap { width: 100%; max-width: 460px; padding: 1.5rem; }
-.auth-logo { text-align: center; margin-bottom: 1.8rem; }
-.auth-logo .mark { width: 60px; height: 60px; font-size: 1.7rem; margin: 0 auto .8rem; }
-.auth-logo h1 { font-size: 1.25rem; margin-bottom: .25rem; }
-.tab-bar { display: flex; background: rgba(255,255,255,.05); border-radius: 10px; padding: 4px; margin-bottom: 1.7rem; }
-.tab-btn { flex: 1; padding: .6rem; border: none; background: transparent; color: var(--muted); font-weight: 600; font-size: .88rem; border-radius: 8px; cursor: pointer; transition: all .2s; }
-.tab-btn.active { background: linear-gradient(135deg, var(--blue), var(--cyan)); color: #04101f; }
-.auth-form { display: none; }
-.auth-form.active { display: block; }
-.alert { display: none; padding: .7rem 1rem; border-radius: var(--radius-sm); font-size: .85rem; margin-bottom: 1rem; }
-.alert.show { display: block; }
-.alert-error   { background: rgba(244,63,94,.12); border: 1px solid rgba(244,63,94,.3); color: #ff96a8; }
-.alert-success { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.3); color: #7ee2a0; }
-#connBadge { margin-bottom: 1.2rem; justify-content: center; width: 100%; }
-.back-home { display: inline-flex; align-items: center; gap: .4rem; color: var(--muted); font-size: .85rem; margin-bottom: 1.4rem; }
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--navy)}
+.auth-wrap{width:100%;max-width:440px;padding:1rem}
+.auth-card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:2.5rem;backdrop-filter:blur(20px)}
+.auth-logo{text-align:center;margin-bottom:2rem}
+.auth-logo .icon{width:64px;height:64px;background:linear-gradient(135deg,var(--blue),var(--cyan));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto .75rem;box-shadow:var(--shadow-glow)}
+.auth-logo h1{font-family:var(--font-head);font-size:1.5rem;font-weight:800}
+.auth-logo p{color:var(--muted);font-size:.85rem;margin-top:.25rem}
+.tab-bar{display:flex;background:rgba(255,255,255,.05);border-radius:10px;padding:4px;margin-bottom:1.75rem}
+.tab-btn{flex:1;padding:.55rem;border:none;background:transparent;color:var(--muted);font-size:.875rem;font-weight:600;border-radius:8px;cursor:pointer;transition:var(--transition)}
+.tab-btn.active{background:linear-gradient(135deg,var(--blue),var(--cyan));color:var(--navy)}
+.auth-form{display:none}
+.auth-form.active{display:block}
+.divider-text{text-align:center;color:var(--muted);font-size:.8rem;margin:1rem 0;position:relative}
+.divider-text::before,.divider-text::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--glass-border)}
+.divider-text::before{left:0}.divider-text::after{right:0}
+.demo-box{background:rgba(0,180,216,.07);border:1px solid rgba(0,180,216,.2);border-radius:var(--radius);padding:1rem;margin-top:1.25rem;font-size:.8rem}
+.demo-box p{color:var(--muted);margin-bottom:.4rem}
+.demo-cred{font-family:var(--font-mono);color:var(--cyan);font-size:.78rem}
+.error-msg{background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.3);border-radius:var(--radius);padding:.65rem 1rem;color:var(--danger);font-size:.83rem;margin-bottom:1rem;display:none}
+.error-msg.show{display:block}
+.back-link{text-align:center;margin-top:1.25rem}
+.back-link a{color:var(--muted);font-size:.83rem}
+.back-link a:hover{color:var(--cyan)}
 </style>
 </head>
 <body>
+<div class="bg-grid"></div>
+
 <div class="auth-wrap">
-  <a href="index.html" class="back-home">← Back to home</a>
-  <div class="card glass" style="padding:2.3rem">
-
+  <div class="auth-card">
     <div class="auth-logo">
-      <div class="mark" style="background:linear-gradient(135deg,var(--blue),var(--cyan));border-radius:18px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-glow)">🤖</div>
+      <div class="icon">🤖</div>
       <h1>AI Internship System</h1>
-      <p class="text-muted" style="font-size:.85rem;margin:0">Login or register to continue</p>
+      <p>Login or Register to continue</p>
     </div>
 
-    <span id="connBadge" class="conn-badge">🔄 Checking backend…</span>
-
+    <!-- Tab bar -->
     <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchTab('login', this)">Login</button>
-      <button class="tab-btn" onclick="switchTab('register', this)">Register</button>
+      <button class="tab-btn active" onclick="switchTab('login',this)">🔑 Login</button>
+      <button class="tab-btn" onclick="switchTab('register',this)">📝 Register</button>
     </div>
 
-    <!-- ══════════════ LOGIN ══════════════ -->
+    <!-- LOGIN FORM -->
     <div class="auth-form active" id="loginForm">
-      <div class="alert alert-error" id="loginError"></div>
+      <div class="error-msg" id="loginError"></div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-control" id="lEmail" type="email" placeholder="your@email.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div style="position:relative">
+          <input class="form-control" id="lPass" type="password" placeholder="Enter your password" autocomplete="current-password" style="padding-right:2.5rem"/>
+          <button type="button" onclick="togglePwd('lPass',this)" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">👁️</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary w-full btn-lg" onclick="doLogin()" style="margin-top:.5rem">
+        Login →
+      </button>
 
-      <label class="form-label">Email</label>
-      <input id="lEmail" type="email" placeholder="you@example.com" class="form-control" autocomplete="username"/>
-      <label class="form-label">Password</label>
-      <input id="lPass" type="password" placeholder="••••••••" class="form-control" autocomplete="current-password"/>
-
-      <button class="btn btn-primary w-full" id="loginBtn" onclick="doLogin()">Login →</button>
-
-      <p style="text-align:center;color:var(--muted);font-size:.8rem;margin-top:1.1rem">
-        Admin demo: <code>admin@aiias.edu</code> / <code>Admin@1234</code>
-      </p>
+      <div class="demo-box">
+        <p>Demo credentials:</p>
+        <div class="demo-cred">👑 Admin &nbsp; admin@aiias.edu / Admin@1234</div>
+        <div class="demo-cred" style="margin-top:.25rem">🎓 Student &nbsp; Register first using the Register tab</div>
+      </div>
     </div>
 
-    <!-- ══════════════ REGISTER ══════════════ -->
+    <!-- REGISTER FORM -->
     <div class="auth-form" id="registerForm">
-      <div class="alert alert-error"   id="regError"></div>
-      <div class="alert alert-success" id="regSuccess"></div>
-
-      <label class="form-label">Full Name</label>
-      <input id="rName" type="text" placeholder="Riya Sharma" class="form-control"/>
-      <label class="form-label">Email</label>
-      <input id="rEmail" type="email" placeholder="you@example.com" class="form-control" autocomplete="username"/>
-      <label class="form-label">Roll Number</label>
-      <input id="rRoll" type="text" placeholder="e.g. CSE-2023-014" class="form-control"/>
-      <label class="form-label">Password</label>
-      <input id="rPass" type="password" placeholder="At least 6 characters" class="form-control" autocomplete="new-password"/>
-      <label class="form-label">Confirm Password</label>
-      <input id="rPass2" type="password" placeholder="Re-enter password" class="form-control" autocomplete="new-password"/>
-
-      <button class="btn btn-primary w-full" id="regBtn" onclick="doRegister()">Create Account →</button>
-      <p style="text-align:center;color:var(--muted);font-size:.8rem;margin-top:1.1rem">
-        You can fill in skills, CGPA and the rest of your profile after registering.
-      </p>
+      <div class="error-msg" id="regError"></div>
+      <div class="form-group">
+        <label class="form-label">Full Name <span class="req">*</span></label>
+        <input class="form-control" id="rName" placeholder="e.g. Riya Sharma" autocomplete="name"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address <span class="req">*</span></label>
+        <input class="form-control" id="rEmail" type="email" placeholder="your@email.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Roll Number</label>
+        <input class="form-control" id="rRoll" placeholder="e.g. CSE2024001"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password <span class="req">*</span></label>
+        <div style="position:relative">
+          <input class="form-control" id="rPass" type="password" placeholder="Min 6 characters" autocomplete="new-password" style="padding-right:2.5rem"/>
+          <button type="button" onclick="togglePwd('rPass',this)" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">👁️</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm Password <span class="req">*</span></label>
+        <input class="form-control" id="rPass2" type="password" placeholder="Re-enter password" autocomplete="new-password"/>
+      </div>
+      <button type="button" class="btn btn-primary w-full btn-lg" onclick="doRegister()" style="margin-top:.5rem">
+        Create Account →
+      </button>
     </div>
 
+    <div class="back-link">
+      <a href="index.html">← Back to Home</a>
+    </div>
   </div>
 </div>
 
 <div id="toastContainer" class="toast-container"></div>
-
-<script src="api.js"></script>
 <script src="script.js"></script>
 <script>
-'use strict';
-
-document.addEventListener('DOMContentLoaded', function () {
-  if (Auth.isLoggedIn()) { redirectByRole(); return; }
-  refreshConnectionBadge();
-});
-
-function redirectByRole() {
-  var session = Auth.getSession();
-  if (!session) return;
-  var params = new URLSearchParams(window.location.search);
-  var next = params.get('next');
-  window.location.href = next || (session.role === 'admin' ? 'admin-dashboard.html' : 'student-dashboard.html');
-}
-
-async function refreshConnectionBadge() {
-  var badge = document.getElementById('connBadge');
-  try {
-    var online = await isBackendOnline(true);
-    badge.innerHTML = online ? '🟢 Backend connected' : '🟡 Offline mode — using this browser\'s storage';
-    badge.style.color = online ? 'var(--success)' : 'var(--warning)';
-  } catch (e) {
-    badge.innerHTML = '🟡 Offline mode — using this browser\'s storage';
-  }
+/* If already logged in, redirect */
+if (Auth.isLoggedIn()) {
+  window.location.href = Auth.isAdmin() ? 'admin-dashboard.html' : 'student-dashboard.html';
 }
 
 function switchTab(tab, btn) {
-  document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
-  document.querySelectorAll('.auth-form').forEach(function (f) { f.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.auth-form').forEach(function(f){ f.classList.remove('active'); });
   btn.classList.add('active');
-  document.getElementById(tab + 'Form').classList.add('active');
-  hideAlert('loginError'); hideAlert('regError'); hideAlert('regSuccess');
+  document.getElementById(tab+'Form').classList.add('active');
+  document.getElementById('loginError').classList.remove('show');
+  document.getElementById('regError').classList.remove('show');
 }
 
-function showAlert(id, msg) { var el = document.getElementById(id); if (!el) return; el.textContent = msg; el.classList.add('show'); }
-function hideAlert(id)      { var el = document.getElementById(id); if (el) el.classList.remove('show'); }
-function setLoading(btnId, loading) {
-  var btn = document.getElementById(btnId);
-  if (!btn) return;
-  btn.classList.toggle('btn-loading', loading);
-  btn.disabled = loading;
-  btn.textContent = loading ? 'Please wait…' : (btnId === 'loginBtn' ? 'Login →' : 'Create Account →');
+function togglePwd(id, btn) {
+  var inp = document.getElementById(id);
+  if (inp.type==='password') { inp.type='text'; btn.textContent='🙈'; }
+  else { inp.type='password'; btn.textContent='👁️'; }
 }
 
-async function doLogin() {
-  hideAlert('loginError');
-  var email = document.getElementById('lEmail').value.trim();
-  var pass  = document.getElementById('lPass').value;
+function showErr(id, msg) {
+  var el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
 
-  if (!email || !pass) { showAlert('loginError', 'Please enter your email and password.'); return; }
+function doLogin() {
+  document.getElementById('loginError').classList.remove('show');
+  var email = (document.getElementById('lEmail').value||'').trim();
+  var pass  = (document.getElementById('lPass').value||'');
+  if (!email||!pass) { showErr('loginError','Please enter email and password.'); return; }
+  var res = loginUser(email, pass);
+  if (!res.ok) { showErr('loginError', res.msg); return; }
+  showToast('Welcome back, '+res.user.name+'! 🎉','success');
+  setTimeout(function() {
+    window.location.href = res.user.role==='admin' ? 'admin-dashboard.html' : 'student-dashboard.html';
+  }, 600);
+}
 
-  setLoading('loginBtn', true);
-  try {
-    await Auth.login(email, pass);
-    showToast('Welcome back!', 'success');
-    redirectByRole();
-  } catch (e) {
-    showAlert('loginError', e.message || 'Login failed. Please try again.');
-  } finally {
-    setLoading('loginBtn', false);
+function doRegister() {
+  document.getElementById('regError').classList.remove('show');
+  var name  = (document.getElementById('rName').value||'').trim();
+  var email = (document.getElementById('rEmail').value||'').trim();
+  var roll  = (document.getElementById('rRoll').value||'').trim();
+  var pass  = (document.getElementById('rPass').value||'');
+  var pass2 = (document.getElementById('rPass2').value||'');
+
+  if (!name)  { showErr('regError','Full name is required.'); return; }
+  if (!email) { showErr('regError','Email is required.'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('regError','Enter a valid email.'); return; }
+  if (!pass)  { showErr('regError','Password is required.'); return; }
+  if (pass.length<6) { showErr('regError','Password must be at least 6 characters.'); return; }
+  if (pass!==pass2)  { showErr('regError','Passwords do not match.'); return; }
+
+  var res = registerUser(name, email, pass, roll);
+  if (!res.ok) { showErr('regError', res.msg); return; }
+
+  /* Auto-login after registration */
+  loginUser(email, pass);
+  showToast('Account created! Welcome, '+name+' 🎉','success');
+  setTimeout(function(){ window.location.href='student-dashboard.html'; }, 700);
+}
+
+/* Allow Enter key */
+document.addEventListener('keydown', function(e) {
+  if (e.key==='Enter') {
+    if (document.getElementById('loginForm').classList.contains('active')) doLogin();
+    else doRegister();
   }
-}
-
-async function doRegister() {
-  hideAlert('regError'); hideAlert('regSuccess');
-  var name  = document.getElementById('rName').value.trim();
-  var email = document.getElementById('rEmail').value.trim();
-  var roll  = document.getElementById('rRoll').value.trim();
-  var pass  = document.getElementById('rPass').value;
-  var pass2 = document.getElementById('rPass2').value;
-
-  if (!name || !email || !pass) { showAlert('regError', 'Full name, email and password are required.'); return; }
-  if (pass !== pass2)           { showAlert('regError', 'Passwords do not match.'); return; }
-  if (pass.length < 6)          { showAlert('regError', 'Password must be at least 6 characters.'); return; }
-
-  setLoading('regBtn', true);
-  try {
-    await Auth.register({ fullName: name, email: email, rollNo: roll, password: pass });
-    showAlert('regSuccess', '✅ Account created! You can log in now.');
-    ['rName','rEmail','rRoll','rPass','rPass2'].forEach(function (id) { document.getElementById(id).value = ''; });
-    setTimeout(function () { switchTab('login', document.querySelectorAll('.tab-btn')[0]); }, 1300);
-  } catch (e) {
-    showAlert('regError', e.message || 'Registration failed. Please try again.');
-  } finally {
-    setLoading('regBtn', false);
-  }
-}
-
-document.addEventListener('keydown', function (e) {
-  if (e.key !== 'Enter') return;
-  var activeForm = document.querySelector('.auth-form.active');
-  if (!activeForm) return;
-  if (activeForm.id === 'loginForm') doLogin();
-  if (activeForm.id === 'registerForm') doRegister();
 });
 </script>
 </body>
