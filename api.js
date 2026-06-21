@@ -1,18 +1,61 @@
 'use strict';
 
+/* ================================================================
+   AI INTERNSHIP ALLOCATION & RECOMMENDATION SYSTEM
+   api.js — FIXED VERSION
+   All API calls to backend. Falls back gracefully to offline mode.
+   ================================================================ */
+
 const API_BASE = window.API_BASE || 'https://capstone-project-backend-m20u.onrender.com/api';
 
-/* ============================================================
-   CHECK BACKEND
-============================================================ */
-async function isBackendOnline(force = false) {
+/* ── Token helpers ──────────────────────────────────────────── */
+function getToken() {
+  return localStorage.getItem('aiias_token') || null;
+}
+
+function saveToken(token) {
+  if (token) localStorage.setItem('aiias_token', token);
+}
+
+function authHeaders(extra) {
+  var headers = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+  var token = getToken();
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  return headers;
+}
+
+/* ── Generic fetch wrapper with error handling ──────────────── */
+async function apiFetch(url, options) {
   try {
-    const res = await fetch(`${API_BASE}/health`, {
-      method: 'GET'
-    });
-    const data = await res.json();
-    return !!data.success;
+    var res = await fetch(url, options);
+    var data = await res.json();
+
+    if (!res.ok) {
+      /* Backend returned an error status */
+      var msg = (data && (data.message || data.error)) || ('HTTP ' + res.status);
+      throw new Error(msg);
+    }
+
+    return data;
   } catch (err) {
+    /* Network error or JSON parse error */
+    if (err instanceof TypeError) {
+      throw new Error('Cannot reach server. Check your connection.');
+    }
+    throw err;
+  }
+}
+
+/* ============================================================
+   BACKEND HEALTH CHECK
+============================================================ */
+async function isBackendOnline(silent) {
+  try {
+    var res = await fetch(API_BASE + '/health', { signal: AbortSignal.timeout(5000) });
+    var data = await res.json();
+    return !!(data && data.success);
+  } catch (err) {
+    if (!silent) console.warn('[api.js] Backend offline:', err.message);
     return false;
   }
 }
@@ -21,22 +64,38 @@ async function isBackendOnline(force = false) {
    AUTH API
 ============================================================ */
 const AuthAPI = {
-  login: async (email, password) => {
-    const res = await fetch(`${API_BASE}/auth/login`, {
+  /**
+   * Login — works for both admin and student accounts.
+   * On success saves JWT token and returns the user object.
+   */
+  login: async function (email, password) {
+    var data = await apiFetch(API_BASE + '/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email: email, password: password })
     });
-    return res.json();
+
+    /* Save JWT if backend returns one */
+    if (data.token)              saveToken(data.token);
+    if (data.data && data.data.token) saveToken(data.data.token);
+
+    /* Normalise user object — backend may return it in data.user or data.data */
+    var user = data.user || data.data || data;
+    if (!user || !user.email) throw new Error(data.message || 'Login failed');
+
+    return { user: user };
   },
 
-  register: async (payload) => {
-    const res = await fetch(`${API_BASE}/auth/register`, {
+  /**
+   * Register — public student self-registration.
+   */
+  register: async function (payload) {
+    var data = await apiFetch(API_BASE + '/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    return res.json();
+    return data;
   }
 };
 
@@ -44,25 +103,76 @@ const AuthAPI = {
    STUDENT API
 ============================================================ */
 const StudentsAPI = {
-  create: async (payload) => {
-    const res = await fetch(`${API_BASE}/students`, {
+  /**
+   * FIX: Student SELF-registration hits /students/register (public),
+   * NOT /students (admin-protected).
+   */
+  register: async function (payload) {
+    var data = await apiFetch(API_BASE + '/students/register', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    return res.json();
+    return data;
   },
 
-  getAll: async () => {
-    const res = await fetch(`${API_BASE}/students`);
-    return res.json();
+  /**
+   * Admin-only: create student manually (requires auth token).
+   */
+  create: async function (payload) {
+    var data = await apiFetch(API_BASE + '/students', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return data;
   },
 
-  getById: async (id) => {
-    const res = await fetch(`${API_BASE}/students/${id}`);
-    return res.json();
+  getAll: async function (params) {
+    var query = params ? ('?' + new URLSearchParams(params).toString()) : '';
+    var data  = await apiFetch(API_BASE + '/students' + query, {
+      headers: authHeaders()
+    });
+    return data;
+  },
+
+  getById: async function (id) {
+    var data = await apiFetch(API_BASE + '/students/' + id, {
+      headers: authHeaders()
+    });
+    return data;
+  },
+
+  update: async function (id, payload) {
+    var data = await apiFetch(API_BASE + '/students/' + id, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return data;
+  },
+
+  delete: async function (id) {
+    var data = await apiFetch(API_BASE + '/students/' + id, {
+      method: 'DELETE',
+      headers: authHeaders()
+    });
+    return data;
+  },
+
+  getRecommendations: async function (id, topN) {
+    var query = topN ? ('?topN=' + topN) : '';
+    var data  = await apiFetch(API_BASE + '/students/' + id + '/recommendations' + query, {
+      headers: authHeaders()
+    });
+    return data;
+  },
+
+  getApplications: async function (id) {
+    var data = await apiFetch(API_BASE + '/students/' + id + '/applications', {
+      headers: authHeaders()
+    });
+    return data;
   }
 };
 
@@ -70,64 +180,67 @@ const StudentsAPI = {
    ADMIN API
 ============================================================ */
 const AdminAPI = {
-  login: async (email, password) => {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+  /** Alias — login is the same endpoint for all roles */
+  login: async function (email, password) {
+    return AuthAPI.login(email, password);
+  }
+};
+
+/* ============================================================
+   INTERNSHIP API
+============================================================ */
+const InternshipsAPI = {
+  getAll: async function () {
+    var data = await apiFetch(API_BASE + '/internships', {
+      headers: authHeaders()
     });
-    return res.json();
+    return data;
+  },
+
+  getById: async function (id) {
+    var data = await apiFetch(API_BASE + '/internships/' + id, {
+      headers: authHeaders()
+    });
+    return data;
   }
 };
 
 /* ============================================================
-   LOCAL STORAGE FALLBACK
+   APPLICATIONS API
 ============================================================ */
-function loginUser(email, pass) {
-  const users = JSON.parse(localStorage.getItem('users') || '[]');
-  const user = users.find(u => u.email === email && u.password === pass);
-  return user ? { ok: true, user } : { ok: false, msg: 'Invalid credentials' };
-}
-
-function registerUser(user) {
-  const users = JSON.parse(localStorage.getItem('users') || '[]');
-
-  if (users.find(u => u.email === user.email)) {
-    return { ok: false, msg: 'User already exists' };
-  }
-
-  users.push(user);
-  localStorage.setItem('users', JSON.stringify(users));
-  return { ok: true, user };
-}
-
-/* ============================================================
-   AUTH SESSION
-============================================================ */
-const Auth = {
-  setSession: (user) => {
-    localStorage.setItem('auth', JSON.stringify(user));
+const ApplicationsAPI = {
+  create: async function (payload) {
+    var data = await apiFetch(API_BASE + '/applications', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return data;
   },
 
-  getSession: () => {
-    return JSON.parse(localStorage.getItem('auth'));
+  getAll: async function () {
+    var data = await apiFetch(API_BASE + '/applications', {
+      headers: authHeaders()
+    });
+    return data;
   },
 
-  isLoggedIn: () => {
-    return !!localStorage.getItem('auth');
-  },
-
-  isAdmin: () => {
-    const u = Auth.getSession();
-    return u?.role === 'admin';
+  updateStatus: async function (id, status) {
+    var data = await apiFetch(API_BASE + '/applications/' + id, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify({ status: status })
+    });
+    return data;
   }
 };
 
-/* expose globally */
-window.isBackendOnline = isBackendOnline;
-window.AuthAPI = AuthAPI;
-window.StudentsAPI = StudentsAPI;
-window.AdminAPI = AdminAPI;
-window.loginUser = loginUser;
-window.registerUser = registerUser;
-window.Auth = Auth;
+/* ============================================================
+   EXPOSE GLOBALS
+============================================================ */
+window.isBackendOnline   = isBackendOnline;
+window.AuthAPI           = AuthAPI;
+window.AdminAPI          = AdminAPI;
+window.StudentsAPI       = StudentsAPI;
+window.InternshipsAPI    = InternshipsAPI;
+window.ApplicationsAPI   = ApplicationsAPI;

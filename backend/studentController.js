@@ -1,68 +1,75 @@
-const path = require('path');
-const fs = require('fs');
+/* ================================================================
+   AI INTERNSHIP ALLOCATION & RECOMMENDATION SYSTEM
+   studentController.js — FIXED VERSION
+   ================================================================ */
+const path    = require('path');
+const fs      = require('fs');
 const Student = require('./Student');
 const Application = require('./Application');
-const Internship = require('./Internship');
+const Internship  = require('./Internship');
 const { sendSuccess, sendError, paginate } = require('./apiResponse');
 const { getRecommendations } = require('./aiMatcher');
 
-/* ============================================================
-   HELPERS
-   ============================================================ */
+/* ── Helper: normalise comma-separated or array values ─────── */
 function normalizeArray(val) {
   if (!val) return [];
-  if (Array.isArray(val)) return val.map(s => String(s).trim()).filter(Boolean);
-  return String(val)
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+  if (Array.isArray(val)) return val.map(function(s) { return String(s).trim(); }).filter(Boolean);
+  return String(val).split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+}
+
+/* ── Helper: delete uploaded file on error ──────────────────── */
+function cleanupUpload(file) {
+  if (!file) return;
+  try {
+    var filePath = path.join(__dirname, '..', 'uploads', file.filename);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  } catch (e) {}
 }
 
 /* ============================================================
    GET /api/students
-   Query params: page, limit, search, department, semester,
-                 preferredDomain, sortBy, order
+   Query: page, limit, search, department, semester,
+          preferredDomain, sortBy, order
    ============================================================ */
 exports.getAllStudents = async (req, res) => {
   try {
-    const {
-      page = 1,
+    var {
+      page  = 1,
       limit = 20,
       search,
       department,
       semester,
       preferredDomain,
       sortBy = 'createdAt',
-      order = 'desc',
+      order  = 'desc'
     } = req.query;
 
-    const filter = { isActive: true };
+    var filter = { isActive: true };
 
     if (search) {
       filter.$or = [
         { fullName: { $regex: search, $options: 'i' } },
-        { rollNo: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
+        { rollNo:   { $regex: search, $options: 'i' } },
+        { email:    { $regex: search, $options: 'i' } }
       ];
     }
-
-    if (department) filter.department = department;
-    if (semester) filter.semester = semester;
+    if (department)     filter.department     = department;
+    if (semester)       filter.semester       = semester;
     if (preferredDomain) filter.preferredDomain = preferredDomain;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const sort = { [sortBy]: order === 'asc' ? 1 : -1 };
-    const total = await Student.countDocuments(filter);
+    var skip  = (parseInt(page) - 1) * parseInt(limit);
+    var sort  = { [sortBy]: order === 'asc' ? 1 : -1 };
+    var total = await Student.countDocuments(filter);
 
-    const students = await Student.find(filter)
+    var students = await Student.find(filter)
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit))
-      .select('-__v');
+      .select('-__v -password');
 
     return sendSuccess(res, {
       data: students,
-      meta: paginate(page, limit, total),
+      meta: paginate(page, limit, total)
     });
   } catch (err) {
     return sendError(res, { message: err.message });
@@ -74,12 +81,9 @@ exports.getAllStudents = async (req, res) => {
    ============================================================ */
 exports.getStudentById = async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id).select('-__v');
+    var student = await Student.findById(req.params.id).select('-__v -password');
     if (!student || !student.isActive) {
-      return sendError(res, {
-        message: 'Student not found',
-        statusCode: 404,
-      });
+      return sendError(res, { message: 'Student not found', statusCode: 404 });
     }
     return sendSuccess(res, { data: student });
   } catch (err) {
@@ -88,199 +92,198 @@ exports.getStudentById = async (req, res) => {
 };
 
 /* ============================================================
-   POST /api/students
-   ADMIN ONLY - create student from admin panel
+   POST /api/students/register
+   PUBLIC — student self-registration
+   FIX: This is the correct public endpoint. The protected
+        POST /api/students is for admin-created profiles only.
    ============================================================ */
-exports.createStudent = async (req, res) => {
+exports.registerStudent = async (req, res) => {
   try {
-    const studentData = {
-      ...req.body,
-      technicalSkills: normalizeArray(req.body.technicalSkills),
-      softSkills: normalizeArray(req.body.softSkills),
-      certifications: normalizeArray(req.body.certifications),
-      areasOfInterest: normalizeArray(req.body.areasOfInterest),
+    var {
+      fullName,
+      email,
+      password,
+      rollNo,
+      department      = 'Computer Engineering',
+      semester        = 'Semester 6',
+      cgpa            = 7.0,
+      preferredDomain = 'Artificial Intelligence',
+      technicalSkills = [],
+      softSkills      = [],
+      certifications  = [],
+      areasOfInterest = []
+    } = req.body;
+
+    /* Validate required fields */
+    if (!fullName || !email || !password) {
+      return sendError(res, {
+        message: 'Full name, email and password are required.',
+        statusCode: 400
+      });
+    }
+
+    if (password.length < 6) {
+      return sendError(res, {
+        message: 'Password must be at least 6 characters.',
+        statusCode: 400
+      });
+    }
+
+    var cleanEmail = String(email).trim().toLowerCase();
+    var cleanRoll  = rollNo ? String(rollNo).trim() : '';
+
+    /* Check duplicate email */
+    var existingEmail = await Student.findOne({ email: cleanEmail });
+    if (existingEmail) {
+      return sendError(res, { message: 'Email already registered.', statusCode: 400 });
+    }
+
+    /* Check duplicate roll no */
+    if (cleanRoll) {
+      var existingRoll = await Student.findOne({ rollNo: cleanRoll });
+      if (existingRoll) {
+        return sendError(res, { message: 'Roll number already registered.', statusCode: 400 });
+      }
+    }
+
+    var studentData = {
+      fullName:        String(fullName).trim(),
+      email:           cleanEmail,
+      password:        password,          /* Schema should hash this via pre-save hook */
+      rollNo:          cleanRoll,
+      department:      department,
+      semester:        semester,
+      cgpa:            parseFloat(cgpa) || 7.0,
+      preferredDomain: preferredDomain,
+      technicalSkills: normalizeArray(technicalSkills),
+      softSkills:      normalizeArray(softSkills),
+      certifications:  normalizeArray(certifications),
+      areasOfInterest: normalizeArray(areasOfInterest),
+      isActive:        true,
+      role:            'student'
     };
 
-    if (req.file) {
-      studentData.resumeFile = req.file.filename;
-      studentData.resumeOriginalName = req.file.originalname;
-    }
+    var student = await Student.create(studentData);
 
-    const student = await Student.create(studentData);
+    /* Don't return password in response */
+    var safeStudent = student.toObject();
+    delete safeStudent.password;
+    delete safeStudent.__v;
 
     return sendSuccess(res, {
-      message: 'Student profile created successfully',
+      message: 'Student registered successfully.',
       statusCode: 201,
-      data: student,
+      data: safeStudent
     });
   } catch (err) {
-    if (req.file) {
-      const filePath = path.join(__dirname, '..', 'uploads', req.file.filename);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
-
     return sendError(res, {
-      message: err.message,
-      statusCode: 400,
+      message: err.message || 'Registration failed.',
+      statusCode: 400
     });
   }
 };
 
 /* ============================================================
-   POST /api/students/register
-   PUBLIC - student self registration
+   POST /api/students
+   ADMIN ONLY — create student from admin panel
    ============================================================ */
-exports.registerStudent = async (req, res) => {
+exports.createStudent = async (req, res) => {
   try {
-    const {
-      fullName,
-      email,
-      password,
-      rollNo,
-      department = 'Computer Engineering',
-      semester = 'Semester 6',
-      cgpa = 7,
-      preferredDomain = 'Artificial Intelligence',
-      technicalSkills = [],
-      softSkills = [],
-      certifications = [],
-      areasOfInterest = [],
-    } = req.body;
+    var studentData = Object.assign({}, req.body, {
+      technicalSkills: normalizeArray(req.body.technicalSkills),
+      softSkills:      normalizeArray(req.body.softSkills),
+      certifications:  normalizeArray(req.body.certifications),
+      areasOfInterest: normalizeArray(req.body.areasOfInterest)
+    });
 
-    if (!fullName || !email || !password) {
-      return sendError(res, {
-        message: 'Full name, email and password are required',
-        statusCode: 400,
-      });
+    if (req.file) {
+      studentData.resumeFile         = req.file.filename;
+      studentData.resumeOriginalName = req.file.originalname;
     }
 
-    const cleanEmail = String(email).trim().toLowerCase();
-    const cleanRoll = rollNo ? String(rollNo).trim() : '';
+    var student = await Student.create(studentData);
 
-    const existingEmail = await Student.findOne({ email: cleanEmail });
-    if (existingEmail) {
-      return sendError(res, {
-        message: 'Email already registered',
-        statusCode: 400,
-      });
-    }
-
-    if (cleanRoll) {
-      const existingRoll = await Student.findOne({ rollNo: cleanRoll });
-      if (existingRoll) {
-        return sendError(res, {
-          message: 'Roll number already registered',
-          statusCode: 400,
-        });
-      }
-    }
-
-    const studentData = {
-      fullName: String(fullName).trim(),
-      email: cleanEmail,
-      password,
-      rollNo: cleanRoll,
-      department,
-      semester,
-      cgpa,
-      preferredDomain,
-      technicalSkills: normalizeArray(technicalSkills),
-      softSkills: normalizeArray(softSkills),
-      certifications: normalizeArray(certifications),
-      areasOfInterest: normalizeArray(areasOfInterest),
-      isActive: true,
-    };
-
-    const student = await Student.create(studentData);
+    var safeStudent = student.toObject();
+    delete safeStudent.password;
+    delete safeStudent.__v;
 
     return sendSuccess(res, {
-      message: 'Student registered successfully',
+      message: 'Student profile created successfully.',
       statusCode: 201,
-      data: student,
+      data: safeStudent
     });
   } catch (err) {
-    return sendError(res, {
-      message: err.message || 'Registration failed',
-      statusCode: 400,
-    });
+    cleanupUpload(req.file);
+    return sendError(res, { message: err.message, statusCode: 400 });
   }
 };
 
 /* ============================================================
    PUT /api/students/:id
+   ADMIN ONLY
    ============================================================ */
 exports.updateStudent = async (req, res) => {
   try {
-    const updates = { ...req.body };
+    var updates = Object.assign({}, req.body);
 
-    if (req.body.technicalSkills !== undefined) {
+    if (req.body.technicalSkills !== undefined)
       updates.technicalSkills = normalizeArray(req.body.technicalSkills);
-    }
-    if (req.body.softSkills !== undefined) {
+    if (req.body.softSkills !== undefined)
       updates.softSkills = normalizeArray(req.body.softSkills);
-    }
-    if (req.body.certifications !== undefined) {
+    if (req.body.certifications !== undefined)
       updates.certifications = normalizeArray(req.body.certifications);
-    }
-    if (req.body.areasOfInterest !== undefined) {
+    if (req.body.areasOfInterest !== undefined)
       updates.areasOfInterest = normalizeArray(req.body.areasOfInterest);
-    }
+
+    /* Never allow role/password update via this route */
+    delete updates.role;
+    delete updates.password;
 
     if (req.file) {
-      const existing = await Student.findById(req.params.id);
-
+      var existing = await Student.findById(req.params.id);
       if (existing && existing.resumeFile) {
-        const oldPath = path.join(__dirname, '..', 'uploads', existing.resumeFile);
+        var oldPath = path.join(__dirname, '..', 'uploads', existing.resumeFile);
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
       }
-
-      updates.resumeFile = req.file.filename;
+      updates.resumeFile         = req.file.filename;
       updates.resumeOriginalName = req.file.originalname;
     }
 
-    const student = await Student.findByIdAndUpdate(req.params.id, updates, {
+    var student = await Student.findByIdAndUpdate(req.params.id, updates, {
       new: true,
-      runValidators: true,
-    });
+      runValidators: true
+    }).select('-__v -password');
 
     if (!student) {
-      return sendError(res, {
-        message: 'Student not found',
-        statusCode: 404,
-      });
+      return sendError(res, { message: 'Student not found', statusCode: 404 });
     }
 
     return sendSuccess(res, {
-      message: 'Student profile updated successfully',
-      data: student,
+      message: 'Student profile updated successfully.',
+      data: student
     });
   } catch (err) {
-    return sendError(res, {
-      message: err.message,
-      statusCode: 400,
-    });
+    cleanupUpload(req.file);
+    return sendError(res, { message: err.message, statusCode: 400 });
   }
 };
 
 /* ============================================================
    DELETE /api/students/:id
+   ADMIN ONLY — soft delete
    ============================================================ */
 exports.deleteStudent = async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id);
-
+    var student = await Student.findById(req.params.id);
     if (!student) {
-      return sendError(res, {
-        message: 'Student not found',
-        statusCode: 404,
-      });
+      return sendError(res, { message: 'Student not found', statusCode: 404 });
     }
 
     student.isActive = false;
     await student.save({ validateBeforeSave: false });
 
     return sendSuccess(res, {
-      message: `Student '${student.fullName}' deleted successfully`,
+      message: 'Student "' + student.fullName + '" deleted successfully.'
     });
   } catch (err) {
     return sendError(res, { message: err.message });
@@ -292,25 +295,22 @@ exports.deleteStudent = async (req, res) => {
    ============================================================ */
 exports.getRecommendationsForStudent = async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id);
-    if (!student) {
-      return sendError(res, {
-        message: 'Student not found',
-        statusCode: 404,
-      });
+    var student = await Student.findById(req.params.id);
+    if (!student || !student.isActive) {
+      return sendError(res, { message: 'Student not found', statusCode: 404 });
     }
 
-    const internships = await Internship.find({ isActive: true });
-    const topN = parseInt(req.query.topN) || 10;
-    const results = getRecommendations(student, internships, topN);
+    var internships = await Internship.find({ isActive: true });
+    var topN        = parseInt(req.query.topN) || 10;
+    var results     = getRecommendations(student, internships, topN);
 
     return sendSuccess(res, {
       data: results,
       meta: {
-        studentId: student._id,
+        studentId:   student._id,
         studentName: student.fullName,
-        total: results.length,
-      },
+        total:       results.length
+      }
     });
   } catch (err) {
     return sendError(res, { message: err.message });
@@ -322,7 +322,7 @@ exports.getRecommendationsForStudent = async (req, res) => {
    ============================================================ */
 exports.getStudentApplications = async (req, res) => {
   try {
-    const apps = await Application.find({ student: req.params.id })
+    var apps = await Application.find({ student: req.params.id })
       .populate('internship', 'title company domain location stipend deadline')
       .sort({ createdAt: -1 });
 
@@ -337,21 +337,18 @@ exports.getStudentApplications = async (req, res) => {
    ============================================================ */
 exports.downloadResume = async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id);
+    var student = await Student.findById(req.params.id);
 
     if (!student || !student.resumeFile) {
-      return sendError(res, {
-        message: 'Resume not found',
-        statusCode: 404,
-      });
+      return sendError(res, { message: 'Resume not found', statusCode: 404 });
     }
 
-    const filePath = path.join(__dirname, '..', 'uploads', student.resumeFile);
+    var filePath = path.join(__dirname, '..', 'uploads', student.resumeFile);
 
     if (!fs.existsSync(filePath)) {
       return sendError(res, {
-        message: 'Resume file missing on server',
-        statusCode: 404,
+        message: 'Resume file is missing on the server.',
+        statusCode: 404
       });
     }
 

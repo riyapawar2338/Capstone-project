@@ -51,7 +51,11 @@ canvas#heroCanvas{position:absolute;inset:0;z-index:0;pointer-events:none}
 <body>
 <div class="bg-grid"></div>
 <nav class="navbar">
-  <a href="index.html" class="nav-brand"><div class="brand-icon">🤖</div><span>AI Internship System</span></a>
+  <a href="index.html" class="nav-brand">
+    <div class="brand-icon">🤖</div>
+    <span>AI Internship System</span>
+  </a>
+
   <div class="nav-links">
     <a href="index.html">Home</a>
     <a href="about.html">About</a>
@@ -59,8 +63,11 @@ canvas#heroCanvas{position:absolute;inset:0;z-index:0;pointer-events:none}
     <a href="recommendations.html">Internships</a>
     <a href="admin-dashboard.html" id="navAdmin" class="hidden">Admin Panel</a>
     <a href="contact.html">Contact</a>
+
+    <!-- FIX: always show login here dynamically -->
     <span id="navAuthLink"></span>
   </div>
+
   <div id="navUserPill" style="display:flex;align-items:center"></div>
   <button class="nav-toggle"><span></span><span></span><span></span></button>
 </nav>
@@ -195,73 +202,3 @@ canvas#heroCanvas{position:absolute;inset:0;z-index:0;pointer-events:none}
 <script src="api.js"></script>
 <script src="script.js"></script>
 
-<script>
-document.addEventListener('DOMContentLoaded', async function() {
-  var session = Auth.getSession();
-
-  /* Show admin link */
-  if (session && session.role === 'admin') document.getElementById('navAdmin').classList.remove('hidden');
-
-  /* Auth link in nav */
-  var authLink = document.getElementById('navAuthLink');
-  if (authLink && !session) authLink.innerHTML = '<a href="login.html" class="nav-cta btn">Login / Register</a>';
-
-  /* Hero CTA buttons */
-  var heroCta = document.getElementById('heroCta');
-  var ctaBtns = document.getElementById('ctaButtons');
-  if (!session) {
-    heroCta.innerHTML = '<a href="login.html" class="btn btn-primary btn-lg">🚀 Get Started — Login</a><a href="about.html" class="btn btn-outline btn-lg">📖 Learn More</a>';
-    ctaBtns.innerHTML = '<a href="login.html" class="btn btn-primary btn-lg">🚀 Register Now — It\'s Free</a><a href="about.html" class="btn btn-outline btn-lg">📖 Learn More</a>';
-  } else if (session.role === 'admin') {
-    heroCta.innerHTML = '<a href="admin-dashboard.html" class="btn btn-primary btn-lg">📊 Admin Dashboard</a><a href="student-management.html" class="btn btn-outline btn-lg">🎓 Manage Students</a>';
-    ctaBtns.innerHTML = '<a href="admin-dashboard.html" class="btn btn-primary btn-lg">📊 Go to Admin Dashboard</a>';
-  } else {
-    heroCta.innerHTML = '<a href="student-dashboard.html" class="btn btn-primary btn-lg">📊 My Dashboard</a><a href="recommendations.html" class="btn btn-outline btn-lg">🔍 Browse Internships</a>';
-    ctaBtns.innerHTML = '<a href="student-dashboard.html" class="btn btn-primary btn-lg">📊 View My Dashboard</a><a href="recommendations.html" class="btn btn-outline btn-lg">🔍 Browse Internships</a>';
-  }
-
-  /* ✅ FIXED: Load student count from backend/localStorage via DataService */
-  try {
-    var res = await DataService.getStudents();
-    var cnt = (res.meta && res.meta.total) || (res.data || []).length;
-    document.getElementById('hStudents').textContent  = cnt;
-    document.getElementById('statStudents').textContent = cnt;
-  } catch(e) {
-    /* Fallback to localStorage count */
-    var cnt2 = Store.get(KEYS.STUDENTS).length;
-    document.getElementById('hStudents').textContent  = cnt2;
-    document.getElementById('statStudents').textContent = cnt2;
-  }
-
-  /* Hero canvas particles */
-  var canvas = document.getElementById('heroCanvas');
-  var ctx    = canvas.getContext('2d');
-  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-  resize(); window.addEventListener('resize', resize);
-  var particles = [];
-  for (var i = 0; i < 55; i++) {
-    particles.push({ x:Math.random()*window.innerWidth, y:Math.random()*window.innerHeight,
-      r:Math.random()*1.5+.5, dx:(Math.random()-.5)*.4, dy:(Math.random()-.5)*.4, a:Math.random()*.5+.1 });
-  }
-  function draw() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    particles.forEach(function(p){
-      p.x+=p.dx; p.y+=p.dy;
-      if(p.x<0)p.x=canvas.width; if(p.x>canvas.width)p.x=0;
-      if(p.y<0)p.y=canvas.height; if(p.y>canvas.height)p.y=0;
-      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle='rgba(0,180,216,'+p.a+')'; ctx.fill();
-    });
-    for (var i=0;i<particles.length;i++) for (var j=i+1;j<particles.length;j++){
-      var dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
-      var dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist<100){ ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y);
-        ctx.strokeStyle='rgba(0,180,216,'+(0.06*(1-dist/100))+')'; ctx.lineWidth=.6; ctx.stroke(); }
-    }
-    requestAnimationFrame(draw);
-  }
-  draw();
-});
-</script>
-</body>
-</html>
