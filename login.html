@@ -400,7 +400,7 @@ async function doRegister() {
 
     if (online) {
       // PUBLIC backend student registration
-      var student = await StudentsAPI.register({
+      var student = await StudentsAPI.create({
         fullName: name,
         email: email,
         rollNo: roll,
