@@ -9,9 +9,15 @@
 /* ============================================================
    GLOBAL CONFIG
    ============================================================ */
-window._backendOnline = null;
 
-/* Backend API base */
+/*
+IMPORTANT:
+Your backend health route is:
+https://capstone-project-backend-m20u.onrender.com/api/health
+
+So API_BASE must be WITHOUT the final /health
+*/
+window._backendOnline = null;
 window.API_BASE =
   window.API_BASE || 'https://capstone-project-backend-m20u.onrender.com/api';
 
@@ -27,13 +33,8 @@ function genId() {
   );
 }
 
-/**
- * Normalise a comma-separated string OR array into an array of strings.
- * Example:
- *   "C, C++, Java" -> ["C", "C++", "Java"]
- */
 function normaliseArray(v) {
-  if (v == null) return [];
+  if (v == null || v === '') return [];
   if (Array.isArray(v)) {
     return v.map(x => String(x).trim()).filter(Boolean);
   }
@@ -43,9 +44,6 @@ function normaliseArray(v) {
     .filter(Boolean);
 }
 
-/**
- * Safely extract an ID from a primitive, object, or mixed field.
- */
 function extractId(value) {
   if (!value) return null;
   if (typeof value === 'string') return value;
@@ -74,19 +72,10 @@ const TokenStore = {
 /* ============================================================
    CONNECTION STATE
    ============================================================ */
-
-/**
- * IMPORTANT:
- * This checks whether backend is reachable.
- * Since API_BASE already ends with /api, this health URL becomes:
- *   https://...onrender.com/api/health
- *
- * Make sure your backend actually has:
- *   app.get('/api/health', ...)
- *
- * If your backend has only /health and NOT /api/health,
- * then either change backend OR change the URL here.
- */
+/*
+Checks backend using:
+GET https://capstone-project-backend-m20u.onrender.com/api/health
+*/
 window.isBackendOnline = async function (force = false) {
   if (!force && window._backendOnline !== null) {
     return window._backendOnline;
@@ -94,31 +83,27 @@ window.isBackendOnline = async function (force = false) {
 
   try {
     const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
 
-    /* Render free tier may take time to wake up */
-    const timer = setTimeout(() => ctrl.abort(), 12000);
-
-    const response = await fetch(`${window.API_BASE}/health`, {
+    const res = await fetch(`${window.API_BASE}/health`, {
       method: 'GET',
       signal: ctrl.signal,
       headers: {
-        Accept: 'application/json',
+        'Content-Type': 'application/json',
       },
     });
 
     clearTimeout(timer);
-
-    window._backendOnline = response.ok;
+    window._backendOnline = !!res.ok;
   } catch (err) {
-    console.warn('Backend health check failed:', err);
     window._backendOnline = false;
   }
 
   const badge = document.getElementById('connBadge');
   if (badge) {
     badge.textContent = window._backendOnline
-      ? '🟢 API Connected'
-      : '🟡 Offline Mode';
+      ? '🟢 Backend Connected — data saves to MongoDB'
+      : '🟡 Offline Mode — data saves to browser only';
   }
 
   return window._backendOnline;
@@ -134,8 +119,9 @@ async function apiRequest(method, path, body = null, isFormData = false) {
     headers['Content-Type'] = 'application/json';
   }
 
-  if (TokenStore.isPresent()) {
-    headers['Authorization'] = `Bearer ${TokenStore.get()}`;
+  const token = TokenStore.get();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   const options = {
@@ -143,7 +129,7 @@ async function apiRequest(method, path, body = null, isFormData = false) {
     headers,
   };
 
-  if (body != null) {
+  if (body !== null && body !== undefined) {
     options.body = isFormData ? body : JSON.stringify(body);
   }
 
@@ -152,58 +138,54 @@ async function apiRequest(method, path, body = null, isFormData = false) {
   try {
     response = await fetch(`${window.API_BASE}${path}`, options);
   } catch (err) {
-    console.error(`API request failed [${method} ${path}]`, err);
     window._backendOnline = false;
-    throw new Error('Backend request failed. Please try again.');
+    throw new Error('Could not connect to backend server.');
   }
 
-  let rawText = '';
-  try {
-    rawText = await response.text();
-  } catch (err) {
-    rawText = '';
-  }
+  let data = null;
+  const raw = await response.text();
 
-  let json = null;
   try {
-    json = rawText ? JSON.parse(rawText) : null;
-  } catch (err) {
-    json = null;
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    data = null;
   }
 
   if (!response.ok) {
-    /* 401 etc means backend is online, just request failed */
-    if (response.status >= 500 || response.status === 0) {
-      window._backendOnline = false;
-    }
-
     throw new Error(
-      (json && (json.message || json.error)) ||
-      `API error ${response.status}`
+      (data && (data.message || data.error)) ||
+        `Request failed with status ${response.status}`
     );
   }
 
-  /* backend reachable */
-  window._backendOnline = true;
-
-  if (json && json.success === false) {
-    throw new Error(json.message || 'Request failed');
-  }
-
-  return json || { success: true };
+  return data;
 }
 
 /* ============================================================
    SHORTHAND HTTP METHODS
    ============================================================ */
 const http = {
-  get: path => apiRequest('GET', path),
-  post: (path, body) => apiRequest('POST', path, body),
-  put: (path, body) => apiRequest('PUT', path, body),
-  patch: (path, body) => apiRequest('PATCH', path, body),
-  del: path => apiRequest('DELETE', path),
-  postForm: (path, formData) => apiRequest('POST', path, formData, true),
-  putForm: (path, formData) => apiRequest('PUT', path, formData, true),
+  get(path) {
+    return apiRequest('GET', path);
+  },
+  post(path, body) {
+    return apiRequest('POST', path, body);
+  },
+  put(path, body) {
+    return apiRequest('PUT', path, body);
+  },
+  patch(path, body) {
+    return apiRequest('PATCH', path, body);
+  },
+  del(path) {
+    return apiRequest('DELETE', path);
+  },
+  postForm(path, formData) {
+    return apiRequest('POST', path, formData, true);
+  },
+  putForm(path, formData) {
+    return apiRequest('PUT', path, formData, true);
+  },
 };
 
 /* ============================================================
@@ -230,6 +212,7 @@ const StudentsAPI = {
       payload instanceof FormData
         ? await http.postForm('/students', payload)
         : await http.post('/students', payload);
+
     return res.data || res;
   },
 
@@ -238,6 +221,7 @@ const StudentsAPI = {
       payload instanceof FormData
         ? await http.putForm(`/students/${id}`, payload)
         : await http.put(`/students/${id}`, payload);
+
     return res.data || res;
   },
 
@@ -357,15 +341,15 @@ const AdminAPI = {
   async login(email, password) {
     const res = await http.post('/auth/login', { email, password });
 
-    const data = res.data || res;
-
-    if (data?.token) {
-      TokenStore.set(data.token);
-    } else if (res?.data?.token) {
+    // expected backend response:
+    // { success: true, data: { token, user } }
+    if (res?.data?.token) {
       TokenStore.set(res.data.token);
+    } else if (res?.token) {
+      TokenStore.set(res.token);
     }
 
-    return data;
+    return res.data || res;
   },
 
   async logout() {
@@ -430,9 +414,9 @@ const APIStore = {
   save(key, item) {
     const list = this.get(key);
     const itemId = item._id || item.id;
-
     const idx = list.findIndex(i => (i._id || i.id) === itemId);
-    if (idx >= 0) list.splice(idx, 1, item);
+
+    if (idx >= 0) list[idx] = item;
     else list.push(item);
 
     this.set(key, list);
@@ -456,7 +440,7 @@ const DataService = {
      ========================================================== */
   async getStudents(params = {}) {
     if (await window.isBackendOnline()) {
-      return StudentsAPI.getAll(params);
+      return await StudentsAPI.getAll(params);
     }
 
     let data = APIStore.get(API_KEYS.STUDENTS);
@@ -467,16 +451,18 @@ const DataService = {
         (st.fullName || '').toLowerCase().includes(s) ||
         (st.rollNo || '').toLowerCase().includes(s) ||
         (st.department || '').toLowerCase().includes(s) ||
-        (st.technicalSkills || []).join(' ').toLowerCase().includes(s)
+        (st.email || '').toLowerCase().includes(s)
       );
     }
 
     if (params.department) {
       data = data.filter(st => st.department === params.department);
     }
+
     if (params.semester) {
       data = data.filter(st => String(st.semester) === String(params.semester));
     }
+
     if (params.preferredDomain) {
       data = data.filter(st => st.preferredDomain === params.preferredDomain);
     }
@@ -489,18 +475,18 @@ const DataService = {
 
   async getStudent(id) {
     if (await window.isBackendOnline()) {
-      return StudentsAPI.getById(id);
+      return await StudentsAPI.getById(id);
     }
     return APIStore.getOne(API_KEYS.STUDENTS, id);
   },
 
   async createStudent(payload) {
     if (await window.isBackendOnline()) {
-      return StudentsAPI.create(payload);
+      return await StudentsAPI.create(payload);
     }
 
     const raw =
-      payload instanceof FormData ? Object.fromEntries(payload) : { ...payload };
+      payload instanceof FormData ? Object.fromEntries(payload.entries()) : { ...payload };
 
     const newId = genId();
 
@@ -522,12 +508,12 @@ const DataService = {
 
   async updateStudent(id, payload) {
     if (await window.isBackendOnline()) {
-      return StudentsAPI.update(id, payload);
+      return await StudentsAPI.update(id, payload);
     }
 
     const existing = APIStore.getOne(API_KEYS.STUDENTS, id) || {};
     const raw =
-      payload instanceof FormData ? Object.fromEntries(payload) : { ...payload };
+      payload instanceof FormData ? Object.fromEntries(payload.entries()) : { ...payload };
 
     const updated = {
       ...existing,
@@ -554,14 +540,14 @@ const DataService = {
 
   async deleteStudent(id) {
     if (await window.isBackendOnline()) {
-      return StudentsAPI.delete(id);
+      return await StudentsAPI.delete(id);
     }
     APIStore.remove(API_KEYS.STUDENTS, id);
   },
 
   async getRecommendations(studentId, topN = 10) {
     if (await window.isBackendOnline()) {
-      return StudentsAPI.getRecommendations(studentId, topN);
+      return await StudentsAPI.getRecommendations(studentId, topN);
     }
 
     const student = APIStore.getOne(API_KEYS.STUDENTS, studentId);
@@ -596,7 +582,7 @@ const DataService = {
 
   async getStudentApplications(studentId) {
     if (await window.isBackendOnline()) {
-      return StudentsAPI.getApplications(studentId);
+      return await StudentsAPI.getApplications(studentId);
     }
 
     return APIStore.get(API_KEYS.APPLICATIONS)
@@ -618,7 +604,7 @@ const DataService = {
      ========================================================== */
   async getInternships(params = {}) {
     if (await window.isBackendOnline()) {
-      return InternshipsAPI.getAll(params);
+      return await InternshipsAPI.getAll(params);
     }
 
     let data = APIStore.get(API_KEYS.INTERNSHIPS);
@@ -635,12 +621,15 @@ const DataService = {
     if (params.domain) {
       data = data.filter(i => i.domain === params.domain);
     }
+
     if (params.location) {
       data = data.filter(i => i.location === params.location);
     }
+
     if (params.duration) {
       data = data.filter(i => i.duration === params.duration);
     }
+
     if (params.minCgpa) {
       data = data.filter(
         i => parseFloat(i.minCgpa || 0) <= parseFloat(params.minCgpa)
@@ -649,23 +638,64 @@ const DataService = {
 
     return {
       data,
-      meta: { total: data.length }
+      meta: { total: data.length },
     };
   },
 
   async getInternship(id) {
     if (await window.isBackendOnline()) {
-      return InternshipsAPI.getById(id);
+      return await InternshipsAPI.getById(id);
     }
     return APIStore.getOne(API_KEYS.INTERNSHIPS, id);
   },
 
+  async createInternship(payload) {
+    if (await window.isBackendOnline()) {
+      return await InternshipsAPI.create(payload);
+    }
+
+    const newInternship = {
+      ...payload,
+      _id: genId(),
+      id: genId(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    APIStore.save(API_KEYS.INTERNSHIPS, newInternship);
+    return newInternship;
+  },
+
+  async updateInternship(id, payload) {
+    if (await window.isBackendOnline()) {
+      return await InternshipsAPI.update(id, payload);
+    }
+
+    const existing = APIStore.getOne(API_KEYS.INTERNSHIPS, id) || {};
+    const updated = {
+      ...existing,
+      ...payload,
+      updatedAt: new Date().toISOString(),
+    };
+
+    APIStore.save(API_KEYS.INTERNSHIPS, updated);
+    return updated;
+  },
+
+  async deleteInternship(id) {
+    if (await window.isBackendOnline()) {
+      return await InternshipsAPI.delete(id);
+    }
+    APIStore.remove(API_KEYS.INTERNSHIPS, id);
+  },
+
   async getFilterMeta() {
     if (await window.isBackendOnline()) {
-      return InternshipsAPI.getFilterMeta();
+      return await InternshipsAPI.getFilterMeta();
     }
 
     const all = APIStore.get(API_KEYS.INTERNSHIPS);
+
     return {
       domains: [...new Set(all.map(i => i.domain).filter(Boolean))],
       locations: [...new Set(all.map(i => i.location).filter(Boolean))],
@@ -678,7 +708,7 @@ const DataService = {
      ========================================================== */
   async applyForInternship(studentId, internshipId, coverLetter = '') {
     if (await window.isBackendOnline()) {
-      return ApplicationsAPI.create(studentId, internshipId, coverLetter);
+      return await ApplicationsAPI.create(studentId, internshipId, coverLetter);
     }
 
     const apps = APIStore.get(API_KEYS.APPLICATIONS);
@@ -686,6 +716,7 @@ const DataService = {
     const alreadyApplied = apps.some(a => {
       const appStudentId = extractId(a.studentId) || extractId(a.student);
       const appInternshipId = extractId(a.internshipId) || extractId(a.internship);
+
       return appStudentId === studentId && appInternshipId === internshipId;
     });
 
@@ -701,16 +732,16 @@ const DataService = {
         ? calcMatchScore(student, internship)
         : 0;
 
-    const newAppId = genId();
+    const appId = genId();
 
     const app = {
-      _id: newAppId,
-      id: newAppId,
+      _id: appId,
+      id: appId,
       studentId,
       internshipId,
       student: {
         _id: student?._id || student?.id || studentId,
-        fullName: student?.fullName || '',
+        fullName: student?.fullName || student?.name || '',
         rollNo: student?.rollNo || '',
         department: student?.department || '',
       },
@@ -720,7 +751,7 @@ const DataService = {
         company: internship?.company || '',
         domain: internship?.domain || '',
       },
-      studentName: student?.fullName || '',
+      studentName: student?.fullName || student?.name || '',
       rollNo: student?.rollNo || '',
       matchScore: score,
       coverLetter,
@@ -736,7 +767,7 @@ const DataService = {
 
   async getApplications(params = {}) {
     if (await window.isBackendOnline()) {
-      return ApplicationsAPI.getAll(params);
+      return await ApplicationsAPI.getAll(params);
     }
 
     let data = APIStore.get(API_KEYS.APPLICATIONS);
@@ -761,13 +792,13 @@ const DataService = {
 
     return {
       data,
-      meta: { total: data.length }
+      meta: { total: data.length },
     };
   },
 
   async updateApplicationStatus(id, status, notes = '') {
     if (await window.isBackendOnline()) {
-      return ApplicationsAPI.updateStatus(id, status, notes);
+      return await ApplicationsAPI.updateStatus(id, status, notes);
     }
 
     const apps = APIStore.get(API_KEYS.APPLICATIONS);
@@ -787,7 +818,7 @@ const DataService = {
 
   async deleteApplication(id) {
     if (await window.isBackendOnline()) {
-      return ApplicationsAPI.delete(id);
+      return await ApplicationsAPI.delete(id);
     }
     APIStore.remove(API_KEYS.APPLICATIONS, id);
   },
@@ -797,7 +828,7 @@ const DataService = {
      ========================================================== */
   async getAdminDashboard() {
     if (await window.isBackendOnline()) {
-      return AdminAPI.getDashboard();
+      return await AdminAPI.getDashboard();
     }
 
     const students = APIStore.get(API_KEYS.STUDENTS);
@@ -833,10 +864,8 @@ const DataService = {
       cgpaStats: {
         avgCgpa: students.length
           ? (
-              students.reduce(
-                (sum, st) => sum + (parseFloat(st.cgpa) || 0),
-                0
-              ) / students.length
+              students.reduce((sum, st) => sum + (parseFloat(st.cgpa) || 0), 0) /
+              students.length
             ).toFixed(2)
           : 0,
       },
@@ -868,7 +897,7 @@ const DataService = {
 
   async getAllocationReport() {
     if (await window.isBackendOnline()) {
-      return AdminAPI.getAllocationReport();
+      return await AdminAPI.getAllocationReport();
     }
 
     const students = APIStore.get(API_KEYS.STUDENTS);
@@ -880,9 +909,7 @@ const DataService = {
         .map(i => ({
           internship: i,
           matchScore:
-            typeof calcMatchScore === 'function'
-              ? calcMatchScore(s, i)
-              : 0,
+            typeof calcMatchScore === 'function' ? calcMatchScore(s, i) : 0,
         }))
         .sort((a, b) => b.matchScore - a.matchScore);
 
@@ -904,7 +931,7 @@ const DataService = {
 };
 
 /* ============================================================
-   OPTIONAL GLOBAL EXPORTS
+   GLOBAL EXPORTS
    ============================================================ */
 window.TokenStore = TokenStore;
 window.StudentsAPI = StudentsAPI;
