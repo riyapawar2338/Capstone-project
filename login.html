@@ -5,33 +5,131 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Login — AI Internship System</title>
 <link rel="stylesheet" href="style.css"/>
+
 <style>
-body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--navy)}
-.auth-wrap{width:100%;max-width:440px;padding:1rem}
-.auth-card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:2.5rem;backdrop-filter:blur(20px)}
-.auth-logo{text-align:center;margin-bottom:2rem}
-.auth-logo .icon{width:64px;height:64px;background:linear-gradient(135deg,var(--blue),var(--cyan));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto .75rem;box-shadow:var(--shadow-glow)}
-.auth-logo h1{font-family:var(--font-head);font-size:1.5rem;font-weight:800}
-.auth-logo p{color:var(--muted);font-size:.85rem;margin-top:.25rem}
-.tab-bar{display:flex;background:rgba(255,255,255,.05);border-radius:10px;padding:4px;margin-bottom:1.75rem}
-.tab-btn{flex:1;padding:.55rem;border:none;background:transparent;color:var(--muted);font-size:.875rem;font-weight:600;border-radius:8px;cursor:pointer;transition:var(--transition)}
-.tab-btn.active{background:linear-gradient(135deg,var(--blue),var(--cyan));color:var(--navy)}
+body{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:100vh;
+  background:var(--navy);
+}
+.auth-wrap{
+  width:100%;
+  max-width:440px;
+  padding:1rem;
+}
+.auth-card{
+  background:var(--glass-bg);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius-lg);
+  padding:2.5rem;
+  backdrop-filter:blur(20px);
+}
+.auth-logo{
+  text-align:center;
+  margin-bottom:2rem;
+}
+.auth-logo .icon{
+  width:64px;
+  height:64px;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  border-radius:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.8rem;
+  margin:0 auto .75rem;
+  box-shadow:var(--shadow-glow);
+}
+.auth-logo h1{
+  font-family:var(--font-head);
+  font-size:1.5rem;
+  font-weight:800;
+}
+.auth-logo p{
+  color:var(--muted);
+  font-size:.85rem;
+  margin-top:.25rem;
+}
+.tab-bar{
+  display:flex;
+  background:rgba(255,255,255,.05);
+  border-radius:10px;
+  padding:4px;
+  margin-bottom:1.75rem;
+}
+.tab-btn{
+  flex:1;
+  padding:.55rem;
+  border:none;
+  background:transparent;
+  color:var(--muted);
+  font-size:.875rem;
+  font-weight:600;
+  border-radius:8px;
+  cursor:pointer;
+  transition:var(--transition);
+}
+.tab-btn.active{
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  color:var(--navy);
+}
 .auth-form{display:none}
 .auth-form.active{display:block}
-.demo-box{background:rgba(0,180,216,.07);border:1px solid rgba(0,180,216,.2);border-radius:var(--radius);padding:1rem;margin-top:1.25rem;font-size:.8rem}
-.demo-box p{color:var(--muted);margin-bottom:.4rem}
-.demo-cred{font-family:var(--font-mono);color:var(--cyan);font-size:.78rem}
-.error-msg{background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.3);border-radius:var(--radius);padding:.65rem 1rem;color:var(--danger);font-size:.83rem;margin-bottom:1rem;display:none}
+.demo-box{
+  background:rgba(0,180,216,.07);
+  border:1px solid rgba(0,180,216,.2);
+  border-radius:var(--radius);
+  padding:1rem;
+  margin-top:1.25rem;
+  font-size:.8rem;
+}
+.demo-box p{
+  color:var(--muted);
+  margin-bottom:.4rem;
+}
+.demo-cred{
+  font-family:var(--font-mono);
+  color:var(--cyan);
+  font-size:.78rem;
+}
+.error-msg{
+  background:rgba(255,77,109,.12);
+  border:1px solid rgba(255,77,109,.3);
+  border-radius:var(--radius);
+  padding:.65rem 1rem;
+  color:var(--danger);
+  font-size:.83rem;
+  margin-bottom:1rem;
+  display:none;
+}
 .error-msg.show{display:block}
-.back-link{text-align:center;margin-top:1.25rem}
-.back-link a{color:var(--muted);font-size:.83rem}
+.back-link{
+  text-align:center;
+  margin-top:1.25rem;
+}
+.back-link a{
+  color:var(--muted);
+  font-size:.83rem;
+}
 .back-link a:hover{color:var(--cyan)}
-/* Connection badge */
-#connBadge{font-size:.72rem;padding:.2rem .6rem;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--glass-border);margin-bottom:1rem;display:block;text-align:center}
+#connBadge{
+  font-size:.72rem;
+  padding:.2rem .6rem;
+  border-radius:10px;
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--glass-border);
+  margin-bottom:1rem;
+  display:block;
+  text-align:center;
+}
 </style>
 </head>
 <body>
+
 <div class="bg-grid"></div>
+
 <div class="auth-wrap">
   <div class="auth-card">
     <div class="auth-logo">
@@ -43,25 +141,54 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;bac
     <span id="connBadge">🔄 Checking backend…</span>
 
     <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchTab('login',this)">🔑 Login</button>
-      <button class="tab-btn" onclick="switchTab('register',this)">📝 Register</button>
+      <button class="tab-btn active" onclick="switchTab('login', this)">🔑 Login</button>
+      <button class="tab-btn" onclick="switchTab('register', this)">📝 Register</button>
     </div>
 
     <!-- LOGIN FORM -->
     <div class="auth-form active" id="loginForm">
       <div class="error-msg" id="loginError"></div>
+
       <div class="form-group">
         <label class="form-label">Email Address</label>
-        <input class="form-control" id="lEmail" type="email" placeholder="your@email.com" autocomplete="email"/>
+        <input
+          class="form-control"
+          id="lEmail"
+          type="email"
+          placeholder="your@email.com"
+          autocomplete="email"
+        />
       </div>
+
       <div class="form-group">
         <label class="form-label">Password</label>
         <div style="position:relative">
-          <input class="form-control" id="lPass" type="password" placeholder="Enter your password" autocomplete="current-password" style="padding-right:2.5rem"/>
-          <button type="button" onclick="togglePwd('lPass',this)" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">👁️</button>
+          <input
+            class="form-control"
+            id="lPass"
+            type="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            style="padding-right:2.5rem"
+          />
+          <button
+            type="button"
+            onclick="togglePwd('lPass', this)"
+            style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem"
+          >👁️</button>
         </div>
       </div>
-      <button type="button" class="btn btn-primary w-full btn-lg" id="loginBtn" onclick="doLogin()" style="margin-top:.5rem">Login →</button>
+
+      <button
+        type="button"
+        class="btn btn-primary w-full btn-lg"
+        id="loginBtn"
+        onclick="doLogin()"
+        style="margin-top:.5rem"
+      >
+        Login →
+      </button>
+
       <div class="demo-box">
         <p>Demo credentials:</p>
         <div class="demo-cred">👑 Admin &nbsp; admin@aiias.edu / Admin@1234</div>
@@ -72,190 +199,339 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;bac
     <!-- REGISTER FORM -->
     <div class="auth-form" id="registerForm">
       <div class="error-msg" id="regError"></div>
+
       <div class="form-group">
         <label class="form-label">Full Name <span class="req">*</span></label>
         <input class="form-control" id="rName" placeholder="e.g. Riya Sharma" autocomplete="name"/>
       </div>
+
       <div class="form-group">
         <label class="form-label">Email Address <span class="req">*</span></label>
         <input class="form-control" id="rEmail" type="email" placeholder="your@email.com" autocomplete="email"/>
       </div>
+
       <div class="form-group">
         <label class="form-label">Roll Number</label>
         <input class="form-control" id="rRoll" placeholder="e.g. CSE2024001"/>
       </div>
+
       <div class="form-group">
         <label class="form-label">Password <span class="req">*</span></label>
         <div style="position:relative">
-          <input class="form-control" id="rPass" type="password" placeholder="Min 6 characters" autocomplete="new-password" style="padding-right:2.5rem"/>
-          <button type="button" onclick="togglePwd('rPass',this)" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">👁️</button>
+          <input
+            class="form-control"
+            id="rPass"
+            type="password"
+            placeholder="Min 6 characters"
+            autocomplete="new-password"
+            style="padding-right:2.5rem"
+          />
+          <button
+            type="button"
+            onclick="togglePwd('rPass', this)"
+            style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem"
+          >👁️</button>
         </div>
       </div>
+
       <div class="form-group">
         <label class="form-label">Confirm Password <span class="req">*</span></label>
         <input class="form-control" id="rPass2" type="password" placeholder="Re-enter password" autocomplete="new-password"/>
       </div>
-      <button type="button" class="btn btn-primary w-full btn-lg" id="regBtn" onclick="doRegister()" style="margin-top:.5rem">Create Account →</button>
+
+      <button
+        type="button"
+        class="btn btn-primary w-full btn-lg"
+        id="regBtn"
+        onclick="doRegister()"
+        style="margin-top:.5rem"
+      >
+        Create Account →
+      </button>
     </div>
 
-    <div class="back-link"><a href="index.html">← Back to Home</a></div>
+    <div class="back-link">
+      <a href="index.html">← Back to Home</a>
+    </div>
   </div>
 </div>
 
 <div id="toastContainer" class="toast-container"></div>
+
 <script src="api.js"></script>
 <script src="script.js"></script>
 
 <script>
 'use strict';
 
-/* If already logged in, redirect */
-if (Auth.isLoggedIn()) {
+/* Redirect if already logged in */
+if (typeof Auth !== 'undefined' && Auth.isLoggedIn && Auth.isLoggedIn()) {
   window.location.href = Auth.isAdmin() ? 'admin-dashboard.html' : 'student-dashboard.html';
 }
 
 /* Check backend and update badge */
-(async function() {
-  var online = await window.isBackendOnline();
-  var badge  = document.getElementById('connBadge');
-  badge.textContent  = online ? '🟢 Backend Connected — data saves to MongoDB' : '🟡 Offline Mode — data saves to browser only';
-  badge.style.color  = online ? 'var(--success)' : 'var(--warning)';
+(async function () {
+  try {
+    var online = await window.isBackendOnline(true);
+    var badge = document.getElementById('connBadge');
+    if (!badge) return;
+
+    badge.textContent = online
+      ? '🟢 Backend Connected — data saves to MongoDB'
+      : '🟡 Offline Mode — data saves to browser only';
+
+    badge.style.color = online ? 'var(--success)' : 'var(--warning)';
+  } catch (err) {
+    console.error('Backend badge check failed:', err);
+    var badge = document.getElementById('connBadge');
+    if (badge) {
+      badge.textContent = '🟡 Offline Mode — data saves to browser only';
+      badge.style.color = 'var(--warning)';
+    }
+  }
 })();
 
 function switchTab(tab, btn) {
-  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-  document.querySelectorAll('.auth-form').forEach(function(f){ f.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function (b) {
+    b.classList.remove('active');
+  });
+
+  document.querySelectorAll('.auth-form').forEach(function (f) {
+    f.classList.remove('active');
+  });
+
   btn.classList.add('active');
-  document.getElementById(tab+'Form').classList.add('active');
+  document.getElementById(tab + 'Form').classList.add('active');
+
   document.getElementById('loginError').classList.remove('show');
   document.getElementById('regError').classList.remove('show');
 }
 
 function togglePwd(id, btn) {
   var inp = document.getElementById(id);
-  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
-  else { inp.type = 'password'; btn.textContent = '👁️'; }
+  if (!inp) return;
+
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    inp.type = 'password';
+    btn.textContent = '👁️';
+  }
 }
 
 function showErr(id, msg) {
   var el = document.getElementById(id);
+  if (!el) return;
   el.textContent = msg;
   el.classList.add('show');
 }
 
 async function doLogin() {
   document.getElementById('loginError').classList.remove('show');
+
   var email = (document.getElementById('lEmail').value || '').trim();
-  var pass  =  document.getElementById('lPass').value  || '';
-  if (!email || !pass) { showErr('loginError', 'Please enter email and password.'); return; }
+  var pass = document.getElementById('lPass').value || '';
+
+  if (!email || !pass) {
+    showErr('loginError', 'Please enter email and password.');
+    return;
+  }
 
   var btn = document.getElementById('loginBtn');
-  btn.disabled = true; btn.textContent = '⏳ Logging in…';
+  btn.disabled = true;
+  btn.textContent = '⏳ Logging in…';
 
   try {
-    var online = await window.isBackendOnline();
+    var online = await window.isBackendOnline(true);
     var user;
 
     if (online) {
-      /* ✅ Backend login — stores JWT token via TokenStore */
+      /* Backend login */
       var result = await AdminAPI.login(email, pass);
       user = result.user || result;
-      /* Also set localStorage session so other pages (script.js) can read it */
-      Auth.setSession({ id: user._id || user.id, name: user.name, email: user.email, role: user.role, rollNo: user.rollNo || '' });
+
+      if (!user) {
+        throw new Error('Invalid login response from server.');
+      }
+
+      if (typeof Auth !== 'undefined' && Auth.setSession) {
+        Auth.setSession({
+          id: user._id || user.id,
+          name: user.name || user.fullName || 'User',
+          email: user.email || email,
+          role: user.role || 'student',
+          rollNo: user.rollNo || ''
+        });
+      }
     } else {
-      /* Fallback: localStorage login */
+      /* Offline localStorage login */
       var res = loginUser(email, pass);
-      if (!res.ok) { showErr('loginError', res.msg); return; }
+      if (!res.ok) {
+        showErr('loginError', res.msg || 'Invalid email or password.');
+        return;
+      }
       user = res.user;
     }
 
-    showToast('Welcome back, ' + user.name + '! 🎉', 'success');
-    setTimeout(function() {
-      window.location.href = user.role === 'admin' ? 'admin-dashboard.html' : 'student-dashboard.html';
+    showToast('Welcome back, ' + (user.name || user.fullName || 'User') + '! 🎉', 'success');
+
+    setTimeout(function () {
+      window.location.href = (user.role === 'admin')
+        ? 'admin-dashboard.html'
+        : 'student-dashboard.html';
     }, 600);
+
   } catch (err) {
+    console.error('Login error:', err);
     showErr('loginError', err.message || 'Login failed. Check credentials.');
   } finally {
-    btn.disabled = false; btn.textContent = 'Login →';
+    btn.disabled = false;
+    btn.textContent = 'Login →';
   }
 }
 
 async function doRegister() {
   document.getElementById('regError').classList.remove('show');
-  var name  = (document.getElementById('rName').value  || '').trim();
+
+  var name  = (document.getElementById('rName').value || '').trim();
   var email = (document.getElementById('rEmail').value || '').trim();
-  var roll  = (document.getElementById('rRoll').value  || '').trim();
-  var pass  =  document.getElementById('rPass').value  || '';
-  var pass2 =  document.getElementById('rPass2').value || '';
+  var roll  = (document.getElementById('rRoll').value || '').trim();
+  var pass  = document.getElementById('rPass').value || '';
+  var pass2 = document.getElementById('rPass2').value || '';
 
-  if (!name)  { showErr('regError', 'Full name is required.'); return; }
-  if (!email) { showErr('regError', 'Email is required.'); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('regError', 'Enter a valid email.'); return; }
-  if (!pass)  { showErr('regError', 'Password is required.'); return; }
-  if (pass.length < 6) { showErr('regError', 'Password must be at least 6 characters.'); return; }
-  if (pass !== pass2)  { showErr('regError', 'Passwords do not match.'); return; }
-
-  var btn = document.getElementById('regBtn');
-  btn.disabled = true; btn.textContent = '⏳ Creating account…';
-
-  try {
-    var online = await window.isBackendOnline();
-    var user;
-
-   if (online) {
-
-  try {
-    var student = await DataService.createStudent({
-      fullName: name,
-      email: email,
-      rollNo: roll,
-
-      department: "Computer Engineering",
-      semester: "Semester 6",
-      cgpa: 7,
-
-      preferredDomain: "Artificial Intelligence",
-
-      // ❗ MUST NOT be empty (important fix)
-      technicalSkills: ["Not specified"],
-      softSkills: ["Not specified"],
-      certifications: ["None"],
-      areasOfInterest: ["General"]
-    });
-
-    user = student.data || student;
-
-    Auth.setSession({
-      id: user._id || user.id,
-      name: user.fullName,
-      email: user.email,
-      role: "student",
-      rollNo: user.rollNo
-    });
-
-  } catch (err) {
-    showErr('regError', err.message || "Student registration failed");
-    btn.disabled = false;
-    btn.textContent = "Create Account →";
+  if (!name) {
+    showErr('regError', 'Full name is required.');
     return;
   }
-}
 
-    showToast('Account created! Welcome, ' + name + ' 🎉', 'success');
-    setTimeout(function() { window.location.href = 'student-dashboard.html'; }, 700);
+  if (!email) {
+    showErr('regError', 'Email is required.');
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showErr('regError', 'Enter a valid email.');
+    return;
+  }
+
+  if (!pass) {
+    showErr('regError', 'Password is required.');
+    return;
+  }
+
+  if (pass.length < 6) {
+    showErr('regError', 'Password must be at least 6 characters.');
+    return;
+  }
+
+  if (pass !== pass2) {
+    showErr('regError', 'Passwords do not match.');
+    return;
+  }
+
+  var btn = document.getElementById('regBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Creating account…';
+
+  try {
+    var online = await window.isBackendOnline(true);
+    var user;
+
+    if (online) {
+      /* Backend registration */
+      var student = await DataService.createStudent({
+        fullName: name,
+        email: email,
+        rollNo: roll,
+
+        department: "Computer Engineering",
+        semester: "Semester 6",
+        cgpa: 7,
+        preferredDomain: "Artificial Intelligence",
+        technicalSkills: ["Not specified"],
+        softSkills: ["Not specified"],
+        certifications: ["None"],
+        areasOfInterest: ["General"],
+
+        password: pass
+      });
+
+      user = student.data || student;
+
+      if (!user) {
+        throw new Error('Invalid registration response from server.');
+      }
+
+      if (typeof Auth !== 'undefined' && Auth.setSession) {
+        Auth.setSession({
+          id: user._id || user.id,
+          name: user.fullName || user.name || name,
+          email: user.email || email,
+          role: 'student',
+          rollNo: user.rollNo || roll
+        });
+      }
+
+      showToast('Account created on backend successfully! 🎉', 'success');
+
+      setTimeout(function () {
+        window.location.href = 'student-dashboard.html';
+      }, 700);
+
+    } else {
+      /* Offline fallback registration */
+      var result = registerUser({
+        name: name,
+        email: email,
+        password: pass,
+        rollNo: roll,
+        role: 'student'
+      });
+
+      if (!result.ok) {
+        showErr('regError', result.msg || 'Registration failed.');
+        return;
+      }
+
+      user = result.user;
+
+      if (typeof Auth !== 'undefined' && Auth.setSession) {
+        Auth.setSession({
+          id: user.id || Date.now().toString(),
+          name: user.name,
+          email: user.email,
+          role: 'student',
+          rollNo: user.rollNo || ''
+        });
+      }
+
+      showToast('Account created in offline mode! 🎉', 'success');
+
+      setTimeout(function () {
+        window.location.href = 'student-dashboard.html';
+      }, 700);
+    }
+
   } catch (err) {
+    console.error('Registration error:', err);
     showErr('regError', err.message || 'Registration failed. Try again.');
   } finally {
-    btn.disabled = false; btn.textContent = 'Create Account →';
+    btn.disabled = false;
+    btn.textContent = 'Create Account →';
   }
 }
 
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
   if (e.key === 'Enter') {
-    if (document.getElementById('loginForm').classList.contains('active')) doLogin();
-    else doRegister();
+    if (document.getElementById('loginForm').classList.contains('active')) {
+      doLogin();
+    } else {
+      doRegister();
+    }
   }
 });
 </script>
+
 </body>
 </html>

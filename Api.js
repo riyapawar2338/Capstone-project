@@ -10,6 +10,8 @@
    GLOBAL CONFIG
    ============================================================ */
 window._backendOnline = null;
+
+/* Backend API base */
 window.API_BASE =
   window.API_BASE || 'https://capstone-project-backend-m20u.onrender.com/api';
 
@@ -28,7 +30,7 @@ function genId() {
 /**
  * Normalise a comma-separated string OR array into an array of strings.
  * Example:
- *   "C, C++, Java" -> ["C","C++","Java"]
+ *   "C, C++, Java" -> ["C", "C++", "Java"]
  */
 function normaliseArray(v) {
   if (v == null) return [];
@@ -58,8 +60,8 @@ const TokenStore = {
   get() {
     return localStorage.getItem('aiias_admin_token');
   },
-  set(t) {
-    localStorage.setItem('aiias_admin_token', t);
+  set(token) {
+    localStorage.setItem('aiias_admin_token', token);
   },
   clear() {
     localStorage.removeItem('aiias_admin_token');
@@ -72,6 +74,19 @@ const TokenStore = {
 /* ============================================================
    CONNECTION STATE
    ============================================================ */
+
+/**
+ * IMPORTANT:
+ * This checks whether backend is reachable.
+ * Since API_BASE already ends with /api, this health URL becomes:
+ *   https://...onrender.com/api/health
+ *
+ * Make sure your backend actually has:
+ *   app.get('/api/health', ...)
+ *
+ * If your backend has only /health and NOT /api/health,
+ * then either change backend OR change the URL here.
+ */
 window.isBackendOnline = async function (force = false) {
   if (!force && window._backendOnline !== null) {
     return window._backendOnline;
@@ -79,15 +94,23 @@ window.isBackendOnline = async function (force = false) {
 
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 3000);
 
-    const r = await fetch(`${window.API_BASE}/health`, {
+    /* Render free tier may take time to wake up */
+    const timer = setTimeout(() => ctrl.abort(), 12000);
+
+    const response = await fetch(`${window.API_BASE}/health`, {
+      method: 'GET',
       signal: ctrl.signal,
+      headers: {
+        Accept: 'application/json',
+      },
     });
 
     clearTimeout(timer);
-    window._backendOnline = r.ok;
-  } catch (e) {
+
+    window._backendOnline = response.ok;
+  } catch (err) {
+    console.warn('Backend health check failed:', err);
     window._backendOnline = false;
   }
 
@@ -115,35 +138,56 @@ async function apiRequest(method, path, body = null, isFormData = false) {
     headers['Authorization'] = `Bearer ${TokenStore.get()}`;
   }
 
-  const options = { method, headers };
-  if (body) {
+  const options = {
+    method,
+    headers,
+  };
+
+  if (body != null) {
     options.body = isFormData ? body : JSON.stringify(body);
   }
 
   let response;
+
   try {
     response = await fetch(`${window.API_BASE}${path}`, options);
   } catch (err) {
+    console.error(`API request failed [${method} ${path}]`, err);
     window._backendOnline = false;
-    throw new Error('Backend request failed');
+    throw new Error('Backend request failed. Please try again.');
   }
 
-  const rawText = await response.text();
-  let json = null;
+  let rawText = '';
+  try {
+    rawText = await response.text();
+  } catch (err) {
+    rawText = '';
+  }
 
+  let json = null;
   try {
     json = rawText ? JSON.parse(rawText) : null;
-  } catch {
+  } catch (err) {
     json = null;
   }
 
   if (!response.ok) {
-    window._backendOnline = false;
-    throw new Error(json?.message || `API error ${response.status}`);
+    /* 401 etc means backend is online, just request failed */
+    if (response.status >= 500 || response.status === 0) {
+      window._backendOnline = false;
+    }
+
+    throw new Error(
+      (json && (json.message || json.error)) ||
+      `API error ${response.status}`
+    );
   }
 
+  /* backend reachable */
+  window._backendOnline = true;
+
   if (json && json.success === false) {
-    throw new Error(json.message || `API error ${response.status}`);
+    throw new Error(json.message || 'Request failed');
   }
 
   return json || { success: true };
@@ -178,7 +222,7 @@ const StudentsAPI = {
 
   async getById(id) {
     const res = await http.get(`/students/${id}`);
-    return res.data;
+    return res.data || res;
   },
 
   async create(payload) {
@@ -186,7 +230,7 @@ const StudentsAPI = {
       payload instanceof FormData
         ? await http.postForm('/students', payload)
         : await http.post('/students', payload);
-    return res.data;
+    return res.data || res;
   },
 
   async update(id, payload) {
@@ -194,21 +238,21 @@ const StudentsAPI = {
       payload instanceof FormData
         ? await http.putForm(`/students/${id}`, payload)
         : await http.put(`/students/${id}`, payload);
-    return res.data;
+    return res.data || res;
   },
 
   async delete(id) {
-    await http.del(`/students/${id}`);
+    return await http.del(`/students/${id}`);
   },
 
   async getRecommendations(id, topN = 10) {
     const res = await http.get(`/students/${id}/recommendations?topN=${topN}`);
-    return res.data;
+    return res.data || res;
   },
 
   async getApplications(id) {
     const res = await http.get(`/students/${id}/applications`);
-    return res.data;
+    return res.data || res;
   },
 
   downloadResume(id) {
@@ -232,31 +276,31 @@ const InternshipsAPI = {
 
   async getById(id) {
     const res = await http.get(`/internships/${id}`);
-    return res.data;
+    return res.data || res;
   },
 
   async create(payload) {
     const res = await http.post('/internships', payload);
-    return res.data;
+    return res.data || res;
   },
 
   async update(id, payload) {
     const res = await http.put(`/internships/${id}`, payload);
-    return res.data;
+    return res.data || res;
   },
 
   async delete(id) {
-    await http.del(`/internships/${id}`);
+    return await http.del(`/internships/${id}`);
   },
 
   async getFilterMeta() {
     const res = await http.get('/internships/meta/filters');
-    return res.data;
+    return res.data || res;
   },
 
   async getApplications(id) {
     const res = await http.get(`/internships/${id}/applications`);
-    return res.data;
+    return res.data || res;
   },
 };
 
@@ -270,7 +314,7 @@ const ApplicationsAPI = {
       internshipId,
       coverLetter,
     });
-    return res.data;
+    return res.data || res;
   },
 
   async getAll(params = {}) {
@@ -285,7 +329,7 @@ const ApplicationsAPI = {
 
   async getById(id) {
     const res = await http.get(`/applications/${id}`);
-    return res.data;
+    return res.data || res;
   },
 
   async updateStatus(id, status, adminNotes = '') {
@@ -293,16 +337,16 @@ const ApplicationsAPI = {
       status,
       adminNotes,
     });
-    return res.data;
+    return res.data || res;
   },
 
   async delete(id) {
-    await http.del(`/applications/${id}`);
+    return await http.del(`/applications/${id}`);
   },
 
   async getAnalytics() {
     const res = await http.get('/applications/analytics');
-    return res.data;
+    return res.data || res;
   },
 };
 
@@ -312,8 +356,16 @@ const ApplicationsAPI = {
 const AdminAPI = {
   async login(email, password) {
     const res = await http.post('/auth/login', { email, password });
-    if (res?.data?.token) TokenStore.set(res.data.token);
-    return res.data;
+
+    const data = res.data || res;
+
+    if (data?.token) {
+      TokenStore.set(data.token);
+    } else if (res?.data?.token) {
+      TokenStore.set(res.data.token);
+    }
+
+    return data;
   },
 
   async logout() {
@@ -325,27 +377,27 @@ const AdminAPI = {
 
   async getMe() {
     const res = await http.get('/auth/me');
-    return res.data;
+    return res.data || res;
   },
 
   async getDashboard() {
     const res = await http.get('/admin/dashboard');
-    return res.data;
+    return res.data || res;
   },
 
   async getAllocationReport() {
     const res = await http.get('/admin/allocation');
-    return res.data;
+    return res.data || res;
   },
 
   async getStudentsReport() {
     const res = await http.get('/admin/reports/students');
-    return res.data;
+    return res.data || res;
   },
 
   async getRecommendationsReport() {
     const res = await http.get('/admin/reports/recommendations');
-    return res.data;
+    return res.data || res;
   },
 };
 
@@ -399,9 +451,9 @@ const APIStore = {
    Auto-selects API or LocalStorage based on backend availability
    ============================================================ */
 const DataService = {
-  /* ────────────────────────────────────────────────────────────
+  /* ==========================================================
      STUDENTS
-     ──────────────────────────────────────────────────────────── */
+     ========================================================== */
   async getStudents(params = {}) {
     if (await window.isBackendOnline()) {
       return StudentsAPI.getAll(params);
@@ -519,9 +571,10 @@ const DataService = {
 
     return internships
       .map(i => {
-        const score = typeof calcMatchScore === 'function'
-          ? calcMatchScore(student, i)
-          : 0;
+        const score =
+          typeof calcMatchScore === 'function'
+            ? calcMatchScore(student, i)
+            : 0;
 
         return {
           internship: i,
@@ -560,9 +613,9 @@ const DataService = {
       }));
   },
 
-  /* ────────────────────────────────────────────────────────────
+  /* ==========================================================
      INTERNSHIPS
-     ──────────────────────────────────────────────────────────── */
+     ========================================================== */
   async getInternships(params = {}) {
     if (await window.isBackendOnline()) {
       return InternshipsAPI.getAll(params);
@@ -594,7 +647,10 @@ const DataService = {
       );
     }
 
-    return { data, meta: { total: data.length } };
+    return {
+      data,
+      meta: { total: data.length }
+    };
   },
 
   async getInternship(id) {
@@ -617,9 +673,9 @@ const DataService = {
     };
   },
 
-  /* ────────────────────────────────────────────────────────────
+  /* ==========================================================
      APPLICATIONS
-     ──────────────────────────────────────────────────────────── */
+     ========================================================== */
   async applyForInternship(studentId, internshipId, coverLetter = '') {
     if (await window.isBackendOnline()) {
       return ApplicationsAPI.create(studentId, internshipId, coverLetter);
@@ -628,11 +684,8 @@ const DataService = {
     const apps = APIStore.get(API_KEYS.APPLICATIONS);
 
     const alreadyApplied = apps.some(a => {
-      const appStudentId =
-        extractId(a.studentId) || extractId(a.student);
-      const appInternshipId =
-        extractId(a.internshipId) || extractId(a.internship);
-
+      const appStudentId = extractId(a.studentId) || extractId(a.student);
+      const appInternshipId = extractId(a.internshipId) || extractId(a.internship);
       return appStudentId === studentId && appInternshipId === internshipId;
     });
 
@@ -694,21 +747,22 @@ const DataService = {
 
     if (params.studentId) {
       data = data.filter(a => {
-        const appStudentId =
-          extractId(a.studentId) || extractId(a.student);
+        const appStudentId = extractId(a.studentId) || extractId(a.student);
         return appStudentId === params.studentId;
       });
     }
 
     if (params.internshipId) {
       data = data.filter(a => {
-        const appInternshipId =
-          extractId(a.internshipId) || extractId(a.internship);
+        const appInternshipId = extractId(a.internshipId) || extractId(a.internship);
         return appInternshipId === params.internshipId;
       });
     }
 
-    return { data, meta: { total: data.length } };
+    return {
+      data,
+      meta: { total: data.length }
+    };
   },
 
   async updateApplicationStatus(id, status, notes = '') {
@@ -738,9 +792,9 @@ const DataService = {
     APIStore.remove(API_KEYS.APPLICATIONS, id);
   },
 
-  /* ────────────────────────────────────────────────────────────
+  /* ==========================================================
      ADMIN DASHBOARD
-     ──────────────────────────────────────────────────────────── */
+     ========================================================== */
   async getAdminDashboard() {
     if (await window.isBackendOnline()) {
       return AdminAPI.getDashboard();
@@ -834,8 +888,7 @@ const DataService = {
 
       const bestApp = apps
         .filter(a => {
-          const appStudentId =
-            extractId(a.studentId) || extractId(a.student);
+          const appStudentId = extractId(a.studentId) || extractId(a.student);
           return appStudentId === s._id || appStudentId === s.id;
         })
         .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))[0];
@@ -852,7 +905,6 @@ const DataService = {
 
 /* ============================================================
    OPTIONAL GLOBAL EXPORTS
-   (useful if other scripts expect these on window)
    ============================================================ */
 window.TokenStore = TokenStore;
 window.StudentsAPI = StudentsAPI;
