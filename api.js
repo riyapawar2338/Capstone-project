@@ -110,6 +110,12 @@ var StudentsAPI = {
       : await http.put('/students/' + id, payload);
     return res.data;
   },
+  async updateSelf(id, payload) {
+  var res = payload instanceof FormData
+    ? await http.putForm('/students/' + id + '/self', payload)
+    : await http.put('/students/' + id + '/self', payload);
+  return res.data;
+},
   async delete(id) { await http.del('/students/' + id); },
   async getRecommendations(id, topN) {
     topN = topN || 10;
@@ -269,17 +275,35 @@ var DataService = {
   },
 
   async updateStudent(id, payload) {
-    if (await isBackendOnline()) return StudentsAPI.update(id, payload);
-    var existing = Store.getOne(KEYS.STUDENTS, id) || {};
-    var raw      = payload instanceof FormData ? Object.fromEntries(payload.entries()) : Object.assign({}, payload);
-    var updated  = normalizeStudentRecord(raw, existing);
-    if (raw.resume && typeof raw.resume === 'object') {
-      updated.resumeOriginalName = raw.resume.name || existing.resumeOriginalName || 'resume';
-      updated.resumeFile         = raw.resume.name || existing.resumeFile         || 'resume';
+  if (await isBackendOnline()) {
+    var session = (window.Auth && Auth.getSession) ? Auth.getSession() : null;
+    var isAdmin = session && session.role === 'admin';
+
+    // Admin uses protected route
+    if (isAdmin) {
+      return StudentsAPI.update(id, payload);
     }
-    Store.save(KEYS.STUDENTS, updated);
-    return updated;
-  },
+
+    // Student uses self route
+    return StudentsAPI.updateSelf(id, payload);
+  }
+
+  // localStorage fallback
+  var existing = Store.getOne(KEYS.STUDENTS, id) || {};
+  var raw = payload instanceof FormData
+    ? Object.fromEntries(payload.entries())
+    : Object.assign({}, payload);
+
+  var updated = normalizeStudentRecord(raw, existing);
+
+  if (raw.resume && typeof raw.resume === 'object') {
+    updated.resumeOriginalName = raw.resume.name || existing.resumeOriginalName || 'resume';
+    updated.resumeFile = raw.resume.name || existing.resumeFile || 'resume';
+  }
+
+  Store.save(KEYS.STUDENTS, updated);
+  return updated;
+},
 
   async deleteStudent(id) {
     if (await isBackendOnline()) return StudentsAPI.delete(id);

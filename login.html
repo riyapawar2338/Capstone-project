@@ -180,26 +180,32 @@ async function doLogin() {
 
 async function doRegister() {
   document.getElementById('regError').classList.remove('show');
-  var name  = (document.getElementById('rName').value||'').trim();
-  var email = (document.getElementById('rEmail').value||'').trim();
-  var roll  = (document.getElementById('rRoll').value||'').trim();
-  var pass  = (document.getElementById('rPass').value||'');
-  var pass2 = (document.getElementById('rPass2').value||'');
 
-  if (!name)  { showErr('regError','Full name is required.'); return; }
-  if (!email) { showErr('regError','Email is required.'); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('regError','Enter a valid email.'); return; }
-  if (!pass)  { showErr('regError','Password is required.'); return; }
-  if (pass.length<6) { showErr('regError','Password must be at least 6 characters.'); return; }
-  if (pass!==pass2)  { showErr('regError','Passwords do not match.'); return; }
+  var name  = (document.getElementById('rName').value  || '').trim();
+  var email = (document.getElementById('rEmail').value || '').trim();
+  var roll  = (document.getElementById('rRoll').value  || '').trim();
+  var pass  = (document.getElementById('rPass').value  || '');
+  var pass2 = (document.getElementById('rPass2').value || '');
 
-  var res = registerUser(name, email, pass, roll);
-  if (!res.ok) { showErr('regError', res.msg); return; }
+  /* ── Validation ─────────────────────────────────────────── */
+  if (!name)  { showErr('regError', 'Full name is required.'); return; }
+  if (!email) { showErr('regError', 'Email is required.'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showErr('regError', 'Enter a valid email.');
+    return;
+  }
+  if (!pass)           { showErr('regError', 'Password is required.'); return; }
+  if (pass.length < 6) { showErr('regError', 'Password must be at least 6 chars.'); return; }
+  if (pass !== pass2)  { showErr('regError', 'Passwords do not match.'); return; }
 
-  /* Try backend registration first */
-  var backendOnline2 = (typeof isBackendOnline === 'function') ? await isBackendOnline() : false;
-  if (backendOnline2) {
+  var backendOnline = (typeof isBackendOnline === 'function')
+    ? await isBackendOnline()
+    : false;
+
+  /* ── PATH A: Backend online ─────────────────────────────── */
+  if (backendOnline) {
     try {
+      // Step 1: register student in MongoDB
       await StudentsAPI.register({
         fullName: name,
         email: email,
@@ -211,46 +217,63 @@ async function doRegister() {
         preferredDomain: 'Artificial Intelligence',
         technicalSkills: ['To be updated']
       });
-      /* Backend register succeeded — now do backend login */
-      try {
-        var stuData = await AdminAPI.studentLogin(email, pass);
-        var st = stuData.student;
-        Auth.setSession({ id: st.id, _id: st.id, name: st.fullName, email: st.email, role: 'student', rollNo: st.rollNo||'' });
-      } catch(e) {
-        loginUser(email, pass);
-      }
-      showToast('Account created! Welcome, '+name+' 🎉','success');
-      setTimeout(function(){ window.location.href='student-dashboard.html'; }, 700);
+
+      // Step 2: login student to get token + real MongoDB _id
+      var stuData = await AdminAPI.studentLogin(email, pass);
+      var st = stuData.student;
+
+      // Step 3: store real MongoDB id in session
+      Auth.setSession({
+        id: st._id || st.id,
+        _id: st._id || st.id,
+        name: st.fullName,
+        email: st.email,
+        role: 'student',
+        rollNo: st.rollNo || ''
+      });
+
+      // Step 4: store JWT token
+      TokenStore.set(stuData.token);
+
+      showToast('Account created! Welcome, ' + name + ' 🎉', 'success');
+      setTimeout(function () {
+        window.location.href = 'student-dashboard.html';
+      }, 700);
       return;
-    } catch(backErr) {
-      /* If backend error is not duplicate-email, fall through to localStorage */
-      if (backErr.message && backErr.message.toLowerCase().includes('already')) {
-        showErr('regError', 'Email already registered. Please login.'); return;
+
+    } catch (backErr) {
+      var msg = (backErr.message || '').toLowerCase();
+
+      if (
+        msg.includes('already') ||
+        msg.includes('duplicate') ||
+        msg.includes('exists')
+      ) {
+        showErr('regError', 'Email already registered. Please login instead.');
+        return;
       }
+
+      console.warn('Backend register failed, falling back to localStorage:', backErr.message);
     }
   }
 
-  /* LocalStorage registration fallback */
- /* LocalStorage fallback — only used when backend is completely offline */
-  /* Skip duplicate check against localStorage if backend already saved it */
-  var existsInBackend = false;
-  try {
-    var checkRes = await fetch('https://capstone-project-backend-m20u.onrender.com/api/health');
-    existsInBackend = checkRes.ok;
-  } catch(e) {}
-
-  if (!existsInBackend) {
-    var res = registerUser(name, email, pass, roll);
-    if (!res.ok) { showErr('regError', res.msg); return; }
-    loginUser(email, pass);
-  } else {
-    /* Backend is online but registration failed for non-duplicate reason */
-    /* Just create local session without saving to localStorage users */
-    var tempId = Date.now().toString(36);
-    Auth.setSession({ id: tempId, _id: tempId, name: name, email: email.toLowerCase(), role: 'student', rollNo: roll || '' });
+  /* ── PATH B: backend offline → localStorage fallback ───── */
+  var res = registerUser(name, email, pass, roll);
+  if (!res.ok) {
+    showErr('regError', res.msg);
+    return;
   }
-  showToast('Account created! Welcome, '+name+' 🎉','success');
-  setTimeout(function(){ window.location.href='student-dashboard.html'; }, 700);
+
+  var loginRes = loginUser(email, pass);
+  if (!loginRes.ok) {
+    showErr('regError', loginRes.msg);
+    return;
+  }
+
+  showToast('Account created (offline mode)! Welcome, ' + name + ' 🎉', 'success');
+  setTimeout(function () {
+    window.location.href = 'student-dashboard.html';
+  }, 700);
 }
 
 /* Allow Enter key */
