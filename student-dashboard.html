@@ -19,11 +19,12 @@
 .mpct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:800;font-size:.78rem}
 .no-profile{text-align:center;padding:4rem 2rem}
 @media(max-width:1024px){.dash-layout{grid-template-columns:1fr}}
-@media(max-width:640px){.dg2{grid-template-columns:1fr}}
+@media(max-width:640px){.dg2{grid-template-columns:1fr}#recCards{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
 <div class="bg-grid"></div>
+
 <nav class="navbar">
   <a href="index.html" class="nav-brand"><div class="brand-icon">🤖</div><span>AI Internship System</span></a>
   <div class="nav-links">
@@ -43,7 +44,10 @@
     <div class="container">
       <div class="breadcrumb"><a href="index.html">Home</a><span class="sep">›</span><span>Student Dashboard</span></div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
-        <div><h1 id="dashHeading">My Dashboard</h1><p id="dashSubtitle">Your profile, skills, and AI recommendations.</p></div>
+        <div>
+          <h1 id="dashHeading">My Dashboard</h1>
+          <p id="dashSubtitle">Your profile, skills, and AI recommendations.</p>
+        </div>
         <div style="display:flex;gap:.75rem;flex-wrap:wrap" id="dashActions"></div>
       </div>
     </div>
@@ -51,6 +55,7 @@
 
   <section>
     <div class="container">
+
       <!-- Not logged in -->
       <div id="notLoggedIn" class="hidden" style="text-align:center;padding:5rem 2rem">
         <div style="font-size:4rem;margin-bottom:1rem">🔒</div>
@@ -59,17 +64,21 @@
         <a href="login.html" class="btn btn-primary btn-lg">Login / Register</a>
       </div>
 
-      <!-- No profile yet (student) -->
+      <!-- No profile -->
       <div id="noProfile" class="hidden no-profile">
         <div style="font-size:4rem;margin-bottom:1rem;opacity:.4">📋</div>
         <h2>Complete Your Profile</h2>
-        <p style="color:var(--muted);margin:.75rem 0 1.5rem">You haven't filled your student profile yet.<br>Add your details to get AI internship recommendations.</p>
+        <p style="color:var(--muted);margin:.75rem 0 1.5rem">
+          You haven't filled your student profile yet.<br>
+          Add your details to get AI internship recommendations.
+        </p>
         <a href="student-management.html" class="btn btn-primary btn-lg">➕ Fill My Profile</a>
       </div>
 
-      <!-- Dashboard content -->
+      <!-- Dashboard -->
       <div id="dashContent" class="hidden">
         <div class="dash-layout">
+
           <!-- Sidebar -->
           <div>
             <div class="card pcard" style="margin-bottom:1.25rem">
@@ -77,26 +86,32 @@
               <div style="font-family:var(--font-head);font-size:1.25rem;font-weight:800" id="pName">—</div>
               <div style="font-family:var(--font-mono);font-size:.73rem;color:var(--muted);margin-top:.2rem" id="pRoll">—</div>
               <div style="color:var(--cyan);font-size:.85rem;margin-top:.4rem" id="pDept">—</div>
+
               <div style="margin-top:1rem">
                 <div style="font-size:.73rem;color:var(--muted);margin-bottom:.35rem">Profile Completeness</div>
                 <div class="progress-bar"><div class="progress-fill" id="pBar" style="width:0%"></div></div>
                 <div style="font-size:.72rem;color:var(--cyan);margin-top:.3rem;text-align:right" id="pPct">0%</div>
               </div>
+
               <div id="pMeta" style="margin-top:1rem"></div>
+
               <div style="display:flex;gap:.5rem;margin-top:1.25rem">
                 <a href="student-management.html" class="btn btn-ghost btn-sm w-full" id="editProfileBtn">✏️ Edit Profile</a>
                 <a href="recommendations.html" class="btn btn-primary btn-sm w-full">🎯 Apply</a>
               </div>
             </div>
+
             <div class="card" style="padding:1.25rem;margin-bottom:1.25rem">
               <div style="font-size:.72rem;font-family:var(--font-mono);color:var(--cyan);letter-spacing:.08em;margin-bottom:.75rem">CERTIFICATIONS</div>
               <div id="pCerts"></div>
             </div>
+
             <div class="card" style="padding:1.25rem">
               <div style="font-size:.72rem;font-family:var(--font-mono);color:var(--cyan);letter-spacing:.08em;margin-bottom:.75rem">MY APPLICATIONS</div>
               <div id="pApps"></div>
             </div>
           </div>
+
           <!-- Main -->
           <div>
             <div class="dg2">
@@ -105,23 +120,43 @@
               <div class="stat-card"><div style="font-size:1.5rem;margin-bottom:.4rem">📜</div><div class="stat-number" id="dCerts">0</div><div class="stat-label">Certifications</div></div>
               <div class="stat-card"><div style="font-size:1.5rem;margin-bottom:.4rem">💼</div><div class="stat-number" id="dBest">—</div><div class="stat-label">Best AI Match</div></div>
             </div>
+
             <div class="card" style="margin-bottom:1.5rem">
-              <div class="card-header"><div style="display:flex;justify-content:space-between;align-items:center"><h3>⚡ Technical Skills</h3><span class="badge badge-cyan" id="skillBadge">0</span></div></div>
+              <div class="card-header">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <h3>⚡ Technical Skills</h3>
+                  <span class="badge badge-cyan" id="skillBadge">0</span>
+                </div>
+              </div>
               <div class="card-body">
                 <div id="skillChips" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem"></div>
                 <div id="skillBars"></div>
               </div>
             </div>
+
             <div class="dg2" style="margin-bottom:1.5rem">
-              <div class="card" style="padding:1.25rem"><div style="font-size:.72rem;font-family:var(--font-mono);color:var(--cyan);letter-spacing:.08em;margin-bottom:.75rem">SOFT SKILLS</div><div id="softChips" style="display:flex;flex-wrap:wrap;gap:.4rem"></div></div>
-              <div class="card" style="padding:1.25rem"><div style="font-size:.72rem;font-family:var(--font-mono);color:var(--cyan);letter-spacing:.08em;margin-bottom:.75rem">INTERESTS</div><div id="intChips" style="display:flex;flex-wrap:wrap;gap:.4rem"></div></div>
+              <div class="card" style="padding:1.25rem">
+                <div style="font-size:.72rem;font-family:var(--font-mono);color:var(--cyan);letter-spacing:.08em;margin-bottom:.75rem">SOFT SKILLS</div>
+                <div id="softChips" style="display:flex;flex-wrap:wrap;gap:.4rem"></div>
+              </div>
+              <div class="card" style="padding:1.25rem">
+                <div style="font-size:.72rem;font-family:var(--font-mono);color:var(--cyan);letter-spacing:.08em;margin-bottom:.75rem">INTERESTS</div>
+                <div id="intChips" style="display:flex;flex-wrap:wrap;gap:.4rem"></div>
+              </div>
             </div>
+
             <div class="card" style="margin-bottom:1.5rem">
               <div class="card-header"><h3>🚀 Projects</h3></div>
               <div class="card-body" id="pProjects" style="color:var(--muted);font-size:.9rem;line-height:1.8"></div>
             </div>
+
             <div class="card">
-              <div class="card-header"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem"><h3>🤖 AI Internship Recommendations</h3><span class="badge badge-purple">AI-Powered</span></div></div>
+              <div class="card-header">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+                  <h3>🤖 AI Internship Recommendations</h3>
+                  <span class="badge badge-purple">AI-Powered</span>
+                </div>
+              </div>
               <div class="card-body">
                 <div id="aiSummary" style="background:rgba(124,77,255,.08);border:1px solid rgba(124,77,255,.2);border-radius:var(--radius);padding:1rem;margin-bottom:1.25rem;font-size:.85rem;color:var(--white-2);line-height:1.6"></div>
                 <div id="recCards" style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem"></div>
@@ -129,17 +164,185 @@
               </div>
             </div>
           </div>
+
         </div>
       </div>
+
     </div>
   </section>
-  <footer><div class="container"><div class="footer-bottom"><p>© 2025 AI Internship Allocation &amp; Recommendation System</p></div></div></footer>
+
+  <footer>
+    <div class="container">
+      <div class="footer-bottom"><p>© 2025 AI Internship Allocation &amp; Recommendation System</p></div>
+    </div>
+  </footer>
 </div>
+
 <div id="toastContainer" class="toast-container"></div>
+
+<!-- IMPORTANT: api.js first, then script.js -->
 <script src="api.js"></script>
 <script src="script.js"></script>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+/* ============================================================
+   STUDENT DASHBOARD — BACKEND FIRST + LOCAL FALLBACK
+   ============================================================ */
+
+function toArray(v) {
+  if (Array.isArray(v)) return v.filter(Boolean);
+  if (!v) return [];
+  return String(v).split(',').map(function(t){ return t.trim(); }).filter(Boolean);
+}
+
+function getStudentId(s) {
+  return s && (s._id || s.id) ? (s._id || s.id) : '';
+}
+
+function normalizeStudent(raw) {
+  if (!raw) return null;
+  return {
+    id: raw.id || raw._id || '',
+    _id: raw._id || raw.id || '',
+    fullName: raw.fullName || raw.name || '',
+    email: raw.email || '',
+    rollNo: raw.rollNo || '',
+    department: raw.department || '',
+    semester: raw.semester || '',
+    cgpa: raw.cgpa || 0,
+    percentage: raw.percentage || null,
+    preferredDomain: raw.preferredDomain || '',
+    technicalSkills: Array.isArray(raw.technicalSkills) ? raw.technicalSkills : toArray(raw.technicalSkills),
+    softSkills: Array.isArray(raw.softSkills) ? raw.softSkills : toArray(raw.softSkills),
+    certifications: Array.isArray(raw.certifications) ? raw.certifications : toArray(raw.certifications),
+    areasOfInterest: Array.isArray(raw.areasOfInterest) ? raw.areasOfInterest : toArray(raw.areasOfInterest),
+    projects: raw.projects || '',
+    phone: raw.phone || '',
+    city: raw.city || '',
+    resumeFile: raw.resumeFile || '',
+    resumeOriginalName: raw.resumeOriginalName || '',
+    createdAt: raw.createdAt || '',
+    updatedAt: raw.updatedAt || '',
+    role: raw.role || 'student'
+  };
+}
+
+/* ---------- Backend helpers ---------- */
+
+async function fetchStudentFromBackend(studentId, token) {
+  if (!studentId || !token || !window.API_BASE) return null;
+
+  try {
+    var res = await fetch(window.API_BASE + '/students/' + studentId, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + token
+      }
+    });
+
+    var data = await res.json().catch(function(){ return null; });
+
+    if (!res.ok || !data || !data.success || !data.data) return null;
+
+    return normalizeStudent(data.data);
+  } catch (err) {
+    console.warn('Student fetch from backend failed:', err);
+    return null;
+  }
+}
+
+async function fetchAllStudentsFromBackend(token) {
+  if (!token || !window.API_BASE) return [];
+
+  try {
+    var res = await fetch(window.API_BASE + '/students', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + token
+      }
+    });
+
+    var data = await res.json().catch(function(){ return null; });
+
+    if (!res.ok || !data || !data.success || !Array.isArray(data.data)) return [];
+    return data.data.map(normalizeStudent).filter(Boolean);
+  } catch (err) {
+    console.warn('Student list fetch failed:', err);
+    return [];
+  }
+}
+
+/* ---------- Student loaders ---------- */
+
+async function getLoggedInStudent() {
+  var session = Auth.getSession();
+  if (!session) return null;
+
+  var token = localStorage.getItem('aiias_admin_token');
+  var sessionId = session.id || session._id || '';
+
+  /* 1) Backend first */
+  if (token && typeof isBackendOnline === 'function') {
+    try {
+      var online = await isBackendOnline();
+      if (online && sessionId) {
+        var backendStudent = await fetchStudentFromBackend(sessionId, token);
+        if (backendStudent) return backendStudent;
+      }
+    } catch (e) {
+      console.warn('Backend student lookup skipped:', e);
+    }
+  }
+
+  /* 2) localStorage fallback */
+  var students = Store.get(KEYS.STUDENTS);
+
+  var student = null;
+
+  if (sessionId) {
+    student = students.find(function(s) {
+      return (s._id || s.id) === sessionId;
+    });
+  }
+
+  if (!student && session.email) {
+    student = students.find(function(s) {
+      return s.email && s.email.toLowerCase() === session.email.toLowerCase();
+    });
+  }
+
+  if (!student && session.rollNo) {
+    student = students.find(function(s) {
+      return s.rollNo && String(s.rollNo).toLowerCase() === String(session.rollNo).toLowerCase();
+    });
+  }
+
+  return normalizeStudent(student);
+}
+
+async function getAllStudentsForAdmin() {
+  var token = localStorage.getItem('aiias_admin_token');
+
+  /* Backend first */
+  if (token && typeof isBackendOnline === 'function') {
+    try {
+      var online = await isBackendOnline();
+      if (online) {
+        var backendStudents = await fetchAllStudentsFromBackend(token);
+        if (backendStudents.length) return backendStudents;
+      }
+    } catch (e) {
+      console.warn('Admin backend student list failed:', e);
+    }
+  }
+
+  /* local fallback */
+  return Store.get(KEYS.STUDENTS).map(normalizeStudent).filter(Boolean);
+}
+
+/* ---------- Init ---------- */
+
+document.addEventListener('DOMContentLoaded', async function() {
   var session = Auth.getSession();
 
   if (!session) {
@@ -147,43 +350,18 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  /* Show/hide nav links based on role */
-  if (session.role==='admin') {
+  if (session.role === 'admin') {
     document.getElementById('navAdmin').classList.remove('hidden');
     document.getElementById('navManage').classList.remove('hidden');
-    document.getElementById('dashHeading').textContent='Admin — Student Overview';
-    document.getElementById('dashSubtitle').textContent='Viewing student profiles as admin.';
-  }
+    document.getElementById('dashHeading').textContent = 'Admin — Student Overview';
+    document.getElementById('dashSubtitle').textContent = 'Viewing student profiles as admin.';
 
-  /* Find student profile linked to this user */
-  var student = null;
-  var students = Store.get(KEYS.STUDENTS);
-
-  if (session.role==='student') {
-    /* Match by session id (most reliable — set by registerUser) */
-    var sid = session.id || session._id;
-    if (sid) {
-      student = students.find(function(s){
-        return (s._id||s.id) === sid;
-      });
-    }
-    /* Fallback: match by email */
-    if (!student) {
-      student = students.find(function(s){
-        return s.email && s.email.toLowerCase()===session.email.toLowerCase();
-      });
-    }
-    /* Fallback: match by roll number */
-    if (!student && session.rollNo) {
-      student = students.find(function(s){
-        return s.rollNo && s.rollNo.toLowerCase()===(session.rollNo||'').toLowerCase();
-      });
-    }
-  } else if (session.role==='admin') {
-    /* Admin sees first student or picks — show selector */
-    showAdminStudentView(students);
+    var adminStudents = await getAllStudentsForAdmin();
+    showAdminStudentView(adminStudents);
     return;
   }
+
+  var student = await getLoggedInStudent();
 
   if (!student) {
     document.getElementById('noProfile').classList.remove('hidden');
@@ -192,142 +370,244 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  var studentEditId = student._id || student.id;
- document.getElementById('dashActions').innerHTML =
-  '<a href="student-management.html" class="btn btn-outline btn-sm" onclick="sessionStorage.setItem(&quot;editStudentId&quot;, \'' + studentEditId + '\')">✏️ Edit Profile</a>' +
-  '<a href="recommendations.html" class="btn btn-primary btn-sm">🎯 Find Internships</a>';
+  var studentEditId = getStudentId(student);
+
+  document.getElementById('dashActions').innerHTML =
+    '<a href="student-management.html" class="btn btn-outline btn-sm" onclick="sessionStorage.setItem(&quot;editStudentId&quot;, \'' + studentEditId + '\')">✏️ Edit Profile</a>' +
+    '<a href="recommendations.html" class="btn btn-primary btn-sm">🎯 Find Internships</a>';
+
+  var editBtn = document.getElementById('editProfileBtn');
+  if (editBtn) {
+    editBtn.onclick = function() {
+      sessionStorage.setItem('editStudentId', studentEditId);
+    };
+  }
+
   loadStudentDash(student);
 });
 
+/* ---------- Admin UI ---------- */
+
 function showAdminStudentView(students) {
   document.getElementById('noProfile').classList.remove('hidden');
+
+  if (!students || !students.length) {
+    document.getElementById('noProfile').innerHTML =
+      '<div style="font-size:3rem;margin-bottom:1rem">👑</div>' +
+      '<h2>Admin View</h2>' +
+      '<p style="color:var(--muted);margin:.75rem 0 1.5rem">No student profiles found yet.</p>' +
+      '<div style="margin-top:1.5rem"><a href="admin-dashboard.html" class="btn btn-primary">📊 Go to Admin Dashboard</a></div>';
+    return;
+  }
+
   document.getElementById('noProfile').innerHTML =
-    '<div style="font-size:3rem;margin-bottom:1rem">👑</div>'+
-    '<h2>Admin View</h2>'+
-    '<p style="color:var(--muted);margin:.75rem 0 1.5rem">You are logged in as Admin.<br>Select a student below to view their dashboard.</p>'+
-    '<select id="adminStuSel" class="form-control" style="max-width:320px;margin:0 auto" onchange="adminViewStudent(this.value)">'+
-      '<option value="">— Select a Student —</option>'+
-      students.map(function(s){ return '<option value="'+s.id+'">'+s.fullName+' ('+s.rollNo+')</option>'; }).join('')+
-    '</select>'+
+    '<div style="font-size:3rem;margin-bottom:1rem">👑</div>' +
+    '<h2>Admin View</h2>' +
+    '<p style="color:var(--muted);margin:.75rem 0 1.5rem">You are logged in as Admin.<br>Select a student below to view their dashboard.</p>' +
+    '<select id="adminStuSel" class="form-control" style="max-width:320px;margin:0 auto">' +
+      '<option value="">— Select a Student —</option>' +
+      students.map(function(s){
+        var sid = getStudentId(s);
+        var nm = s.fullName || 'Unnamed Student';
+        var rn = s.rollNo || 'No Roll No';
+        return '<option value="' + sid + '">' + nm + ' (' + rn + ')</option>';
+      }).join('') +
+    '</select>' +
     '<div style="margin-top:1.5rem"><a href="admin-dashboard.html" class="btn btn-primary">📊 Go to Admin Dashboard</a></div>';
+
+  var sel = document.getElementById('adminStuSel');
+  if (sel) {
+    sel.addEventListener('change', function() {
+      adminViewStudent(this.value, students);
+    });
+  }
 }
 
-function adminViewStudent(id) {
+function adminViewStudent(id, students) {
   if (!id) return;
-  var s = Store.getOne(KEYS.STUDENTS, id);
+  students = students || [];
+  var s = students.find(function(st) {
+    return getStudentId(st) === id;
+  });
   if (!s) return;
+
   document.getElementById('noProfile').classList.add('hidden');
+  document.getElementById('dashActions').innerHTML =
+    '<a href="student-management.html" class="btn btn-outline btn-sm" onclick="sessionStorage.setItem(&quot;editStudentId&quot;, \'' + getStudentId(s) + '\')">✏️ Edit Profile</a>' +
+    '<a href="admin-dashboard.html" class="btn btn-primary btn-sm">📊 Admin Dashboard</a>';
+
   loadStudentDash(s);
 }
+
+/* ---------- Dashboard render ---------- */
 
 function loadStudentDash(s) {
   document.getElementById('dashContent').classList.remove('hidden');
   document.getElementById('noProfile').classList.add('hidden');
 
-  var toArr = function(v){ return Array.isArray(v)?v:(v||'').split(',').map(function(t){return t.trim();}).filter(Boolean); };
-  var skills = toArr(s.technicalSkills);
-  var certs  = toArr(s.certifications);
-  var soft   = toArr(s.softSkills);
-  var ints   = toArr(s.areasOfInterest);
-  var init   = (s.fullName||'??').split(' ').map(function(n){return n[0]||'';}).join('').toUpperCase().slice(0,2)||'??';
+  s = normalizeStudent(s);
+
+  var skills = toArray(s.technicalSkills);
+  var certs  = toArray(s.certifications);
+  var soft   = toArray(s.softSkills);
+  var ints   = toArray(s.areasOfInterest);
+  var init   = (s.fullName || '??').split(' ').map(function(n){ return n[0] || ''; }).join('').toUpperCase().slice(0,2) || '??';
 
   document.getElementById('pAv').textContent   = init;
-  document.getElementById('pName').textContent = s.fullName;
-  document.getElementById('pRoll').textContent = s.rollNo;
-  document.getElementById('pDept').textContent = (s.department||'—')+' · '+(s.semester||'—');
+  document.getElementById('pName').textContent = s.fullName || '—';
+  document.getElementById('pRoll').textContent = s.rollNo || '—';
+  document.getElementById('pDept').textContent = (s.department || '—') + ' · ' + (s.semester || '—');
 
-  var fields=[s.fullName,s.rollNo,s.department,s.semester,s.cgpa,s.email,s.preferredDomain,skills.length,certs.length,s.projects,s.resumeFile];
-  var pct=Math.round(fields.filter(Boolean).length/fields.length*100);
-  document.getElementById('pBar').style.width=pct+'%';
-  document.getElementById('pPct').textContent=pct+'%';
+  var fields = [
+    s.fullName,
+    s.rollNo,
+    s.department,
+    s.semester,
+    s.cgpa,
+    s.email,
+    s.preferredDomain,
+    skills.length,
+    certs.length,
+    s.projects,
+    s.resumeFile
+  ];
+  var pct = Math.round((fields.filter(Boolean).length / fields.length) * 100);
+  document.getElementById('pBar').style.width = pct + '%';
+  document.getElementById('pPct').textContent = pct + '%';
 
-  document.getElementById('pMeta').innerHTML=[
-    ['CGPA',s.cgpa||'—'],['Percentage',s.percentage?s.percentage+'%':'—'],
-    ['Domain',s.preferredDomain||'—'],['Email',s.email||'—'],
-    ['Added',fmtDate(s.createdAt)]
-  ].map(function(r){return '<div class="pm-row"><span style="color:var(--muted)">'+r[0]+'</span><span style="color:var(--white-2);font-weight:500;text-align:right">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('pMeta').innerHTML = [
+    ['CGPA', s.cgpa || '—'],
+    ['Percentage', s.percentage ? s.percentage + '%' : '—'],
+    ['Domain', s.preferredDomain || '—'],
+    ['Email', s.email || '—'],
+    ['Added', fmtDate(s.createdAt)]
+  ].map(function(r){
+    return '<div class="pm-row"><span style="color:var(--muted)">' + r[0] + '</span><span style="color:var(--white-2);font-weight:500;text-align:right">' + r[1] + '</span></div>';
+  }).join('');
 
   document.getElementById('pCerts').innerHTML = certs.length
-    ? certs.map(function(c){return '<div style="font-size:.82rem;color:var(--white-2);display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem"><span style="color:var(--success)">✓</span>'+c+'</div>';}).join('')
+    ? certs.map(function(c){
+        return '<div style="font-size:.82rem;color:var(--white-2);display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem"><span style="color:var(--success)">✓</span>' + c + '</div>';
+      }).join('')
     : '<div style="color:var(--muted);font-size:.82rem">No certifications added.</div>';
 
-  /* My applications */
-  var apps = Store.get(KEYS.APPLICATIONS).filter(function(a){ return a.studentId===s.id; });
-  var sBadge={Pending:'badge-yellow',Shortlisted:'badge-cyan',Accepted:'badge-green',Rejected:'badge-red'};
+  /* Applications */
+  var studentId = getStudentId(s);
+  var apps = Store.get(KEYS.APPLICATIONS).filter(function(a){
+    return a.studentId === studentId || a.studentId === s.id || a.studentId === s._id;
+  });
+
+  var sBadge = {Pending:'badge-yellow',Shortlisted:'badge-cyan',Accepted:'badge-green',Rejected:'badge-red'};
   document.getElementById('pApps').innerHTML = apps.length
     ? apps.slice(0,4).map(function(a){
-        var i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--glass-border);font-size:.8rem">'+
-          '<span style="color:var(--white-2)">'+(i?i.title:'—')+'</span>'+
-          '<span class="badge '+(sBadge[a.status]||'badge-cyan')+'">'+a.status+'</span>'+
+        var i = Store.getOne(KEYS.INTERNSHIPS, a.internshipId);
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--glass-border);font-size:.8rem">' +
+          '<span style="color:var(--white-2)">' + (i ? i.title : '—') + '</span>' +
+          '<span class="badge ' + (sBadge[a.status] || 'badge-cyan') + '">' + a.status + '</span>' +
         '</div>';
       }).join('')
     : '<div style="color:var(--muted);font-size:.82rem">No applications yet.<br><a href="recommendations.html" style="color:var(--cyan)">Browse internships →</a></div>';
 
-  document.getElementById('dCgpa').textContent   = s.cgpa||'—';
+  document.getElementById('dCgpa').textContent   = s.cgpa || '—';
   document.getElementById('dSkills').textContent = skills.length;
   document.getElementById('dCerts').textContent  = certs.length;
 
-  document.getElementById('skillBadge').textContent = skills.length+' skills';
-  document.getElementById('skillChips').innerHTML  = skills.map(function(sk){return '<span class="chip">'+sk+'</span>';}).join('');
+  document.getElementById('skillBadge').textContent = skills.length + ' skills';
+  document.getElementById('skillChips').innerHTML = skills.length
+    ? skills.map(function(sk){ return '<span class="chip">' + sk + '</span>'; }).join('')
+    : '<span style="color:var(--muted);font-size:.85rem">No technical skills added yet.</span>';
 
-  var prof=[92,85,78,88,72,65,80,70];
+  var prof = [92,85,78,88,72,65,80,70];
   document.getElementById('skillBars').innerHTML = skills.slice(0,6).map(function(sk,i){
-    var p=prof[i%prof.length];
-    return '<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">'+
-      '<div style="width:130px;font-size:.82rem;color:var(--white-2);flex-shrink:0">'+sk+'</div>'+
-      '<div style="flex:1"><div class="progress-bar"><div class="progress-fill" data-t="'+p+'" style="width:0%"></div></div></div>'+
-      '<div style="font-family:var(--font-mono);font-size:.75rem;color:var(--cyan);width:30px;text-align:right">'+p+'%</div>'+
+    var p = prof[i % prof.length];
+    return '<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">' +
+      '<div style="width:130px;font-size:.82rem;color:var(--white-2);flex-shrink:0">' + sk + '</div>' +
+      '<div style="flex:1"><div class="progress-bar"><div class="progress-fill" data-t="' + p + '" style="width:0%"></div></div></div>' +
+      '<div style="font-family:var(--font-mono);font-size:.75rem;color:var(--cyan);width:30px;text-align:right">' + p + '%</div>' +
     '</div>';
   }).join('');
-  setTimeout(function(){ document.querySelectorAll('#skillBars .progress-fill').forEach(function(el){ el.style.width=el.dataset.t+'%'; }); },120);
+
+  setTimeout(function(){
+    document.querySelectorAll('#skillBars .progress-fill').forEach(function(el){
+      el.style.width = el.dataset.t + '%';
+    });
+  }, 120);
 
   document.getElementById('softChips').innerHTML = soft.length
-    ? soft.map(function(sk){return '<span class="chip" style="background:rgba(124,77,255,.12);border-color:rgba(124,77,255,.25);color:var(--accent-2)">'+sk+'</span>';}).join('')
+    ? soft.map(function(sk){
+        return '<span class="chip" style="background:rgba(124,77,255,.12);border-color:rgba(124,77,255,.25);color:var(--accent-2)">' + sk + '</span>';
+      }).join('')
     : '<span style="color:var(--muted);font-size:.85rem">Not specified</span>';
 
   document.getElementById('intChips').innerHTML = ints.length
-    ? ints.map(function(i){return '<span class="chip" style="background:rgba(0,200,151,.1);border-color:rgba(0,200,151,.25);color:var(--success)">'+i+'</span>';}).join('')
+    ? ints.map(function(i){
+        return '<span class="chip" style="background:rgba(0,200,151,.1);border-color:rgba(0,200,151,.25);color:var(--success)">' + i + '</span>';
+      }).join('')
     : '<span style="color:var(--muted);font-size:.85rem">Not specified</span>';
 
-  document.getElementById('pProjects').innerHTML = (s.projects||'').trim()
-    ? s.projects.split('\n').filter(Boolean).map(function(p){return '<div style="display:flex;gap:.5rem;margin-bottom:.4rem"><span style="color:var(--cyan)">▸</span><span>'+p+'</span></div>';}).join('')
+  document.getElementById('pProjects').innerHTML = (s.projects || '').trim()
+    ? s.projects.split('\n').filter(Boolean).map(function(p){
+        return '<div style="display:flex;gap:.5rem;margin-bottom:.4rem"><span style="color:var(--cyan)">▸</span><span>' + p + '</span></div>';
+      }).join('')
     : '<span style="color:var(--muted)">No projects listed.</span>';
 
-  /* AI Recommendations */
-  var internships = Store.get(KEYS.INTERNSHIPS);
-  var recs = internships.map(function(i){ return {i:i,sc:calcMatchScore(s,i)}; }).sort(function(a,b){return b.sc-a.sc;}).slice(0,6);
+  /* AI recommendations */
+  var internships = Store.get(KEYS.INTERNSHIPS) || [];
+  var recs = internships.map(function(i){
+    return { i:i, sc:calcMatchScore(s, i) };
+  }).sort(function(a,b){
+    return b.sc - a.sc;
+  }).slice(0,6);
+
   var top = recs.length ? recs[0].sc : 0;
-  document.getElementById('dBest').textContent = top+'%';
+  document.getElementById('dBest').textContent = top + '%';
 
   document.getElementById('aiSummary').innerHTML =
-    '🤖 <strong>AI Analysis for '+s.fullName+':</strong> Based on skills in <em>'+(skills.slice(0,2).join(', ')||'your profile')+'</em>, '
-    +'CGPA of <strong>'+s.cgpa+'</strong> and preference for <strong>'+s.preferredDomain+'</strong>, '
-    +'our AI found <strong>'+recs.filter(function(r){return r.sc>=60;}).length+'</strong> matches ≥60%. '
-    +'Best match: <strong>'+(recs[0]?recs[0].i.title:'—')+'</strong> at <strong>'+(recs[0]?recs[0].i.company:'—')+'</strong> '
-    +'with <strong style="color:var(--success)">'+top+'%</strong> compatibility.';
+    '🤖 <strong>AI Analysis for ' + (s.fullName || 'Student') + ':</strong> Based on skills in <em>' +
+    (skills.slice(0,2).join(', ') || 'your profile') +
+    '</em>, CGPA of <strong>' + (s.cgpa || '—') + '</strong> and preference for <strong>' +
+    (s.preferredDomain || 'Not specified') + '</strong>, our AI found <strong>' +
+    recs.filter(function(r){ return r.sc >= 60; }).length +
+    '</strong> matches ≥60%. Best match: <strong>' +
+    (recs[0] ? recs[0].i.title : '—') +
+    '</strong> at <strong>' +
+    (recs[0] ? recs[0].i.company : '—') +
+    '</strong> with <strong style="color:var(--success)">' + top + '%</strong> compatibility.';
 
-  var rc = document.getElementById('recCards'); rc.innerHTML='';
+  var rc = document.getElementById('recCards');
+  rc.innerHTML = '';
+
   recs.forEach(function(r){
-    var i=r.i,sc=r.sc,col=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--danger)';
-    var R=22,circ=(2*Math.PI*R).toFixed(1),offset=(parseFloat(circ)-(sc/100)*parseFloat(circ)).toFixed(1);
-    var d=document.createElement('div'); d.className='mcard';
-    d.onclick=function(){ window.location.href='recommendations.html'; };
-    d.innerHTML=
-      '<div class="mring">'+
-        '<svg width="54" height="54" viewBox="0 0 54 54">'+
-          '<circle cx="27" cy="27" r="'+R+'" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="4"/>'+
-          '<circle cx="27" cy="27" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="4" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" stroke-linecap="round"/>'+
-        '</svg>'+
-        '<div class="mpct" style="color:'+col+'">'+sc+'%</div>'+
-      '</div>'+
-      '<div style="flex:1;min-width:0">'+
-        '<div style="font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+i.title+'</div>'+
-        '<div style="font-size:.75rem;color:var(--muted)">'+i.company+' · '+i.location+'</div>'+
-        '<div style="margin-top:.3rem"><span class="badge badge-cyan" style="font-size:.67rem">'+(sc>=80?'Excellent':sc>=60?'Good':sc>=40?'Fair':'Low')+' Match</span></div>'+
+    var i = r.i, sc = r.sc;
+    var col = sc >= 80 ? 'var(--success)' : sc >= 60 ? 'var(--warning)' : 'var(--danger)';
+    var R = 22;
+    var circ = (2 * Math.PI * R).toFixed(1);
+    var offset = (parseFloat(circ) - (sc / 100) * parseFloat(circ)).toFixed(1);
+
+    var d = document.createElement('div');
+    d.className = 'mcard';
+    d.onclick = function(){ window.location.href = 'recommendations.html'; };
+
+    d.innerHTML =
+      '<div class="mring">' +
+        '<svg width="54" height="54" viewBox="0 0 54 54">' +
+          '<circle cx="27" cy="27" r="' + R + '" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="4"/>' +
+          '<circle cx="27" cy="27" r="' + R + '" fill="none" stroke="' + col + '" stroke-width="4" stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '" stroke-linecap="round"/>' +
+        '</svg>' +
+        '<div class="mpct" style="color:' + col + '">' + sc + '%</div>' +
+      '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + i.title + '</div>' +
+        '<div style="font-size:.75rem;color:var(--muted)">' + i.company + ' · ' + i.location + '</div>' +
+        '<div style="margin-top:.3rem"><span class="badge badge-cyan" style="font-size:.67rem">' + (sc>=80?'Excellent':sc>=60?'Good':sc>=40?'Fair':'Low') + ' Match</span></div>' +
       '</div>';
+
     rc.appendChild(d);
   });
+
+  if (!recs.length) {
+    rc.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);text-align:center;padding:1rem">No internships available yet.</div>';
+  }
 }
 </script>
 </body>
