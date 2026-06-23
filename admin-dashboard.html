@@ -240,17 +240,21 @@
 var pendingStatusId=null, rptHeaders=[], rptRows=[], rptType='';
 var DC=['#00b4d8','#7c4dff','#00c897','#ffaa00','#ff4d6d','#48cae4'];
 
-document.addEventListener('DOMContentLoaded',function(){
-  var session=Auth.getSession();
+document.addEventListener('DOMContentLoaded', async function(){
+  var session = Auth.getSession();
   document.getElementById('navAdmin').classList.remove('hidden');
 
-  if(!session||session.role!=='admin'){
+  if (!session || session.role !== 'admin') {
     document.getElementById('accessDenied').classList.remove('hidden');
-    document.getElementById('adminLayout').style.display='none';
+    document.getElementById('adminLayout').style.display = 'none';
     return;
   }
 
-  document.getElementById('adminLayout').style.display='grid';
+  document.getElementById('adminLayout').style.display = 'grid';
+
+  /* Sync MongoDB data to localStorage so Store.get() works */
+  await syncFromBackend();
+
   updateBadges();
   renderOverview();
 });
@@ -448,11 +452,21 @@ function openStatusModal(id,name,cur){
   document.getElementById('statusNotes').value='';
   openModal('statusModal');
 }
-function confirmStatus(){
+async function confirmStatus(){
   if(!pendingStatusId) return;
-  var apps=Store.get(KEYS.APPLICATIONS), idx=apps.findIndex(function(a){return a.id===pendingStatusId;});
-  if(idx>=0){apps[idx].status=document.getElementById('newStatus').value; apps[idx].adminNotes=document.getElementById('statusNotes').value;}
+  var newSt=document.getElementById('newStatus').value;
+  var notes=document.getElementById('statusNotes').value;
+
+  // Update in localStorage
+  var apps=Store.get(KEYS.APPLICATIONS), idx=apps.findIndex(function(a){return (a.id||a._id)===pendingStatusId;});
+  if(idx>=0){apps[idx].status=newSt; apps[idx].adminNotes=notes;}
   Store.set(KEYS.APPLICATIONS,apps);
+
+  // Also update in MongoDB
+  try {
+    await ApplicationsAPI.updateStatus(pendingStatusId, newSt, notes);
+  } catch(e) { console.warn('MongoDB status update failed, saved locally only'); }
+
   closeModal('statusModal'); showToast('Status updated!','success'); renderApplications();
 }
 
