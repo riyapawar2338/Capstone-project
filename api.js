@@ -181,15 +181,27 @@ var ApplicationsAPI = {
    ============================================================ */
 var AdminAPI = {
   async login(email, password) {
-    var res = await http.post('/auth/login', { email: email, password: password });
-    TokenStore.set(res.data.token);
-    return res.data;
-  },
+  var res = await http.post('/auth/login', { email: email, password: password });
+
+  var token =
+    (res.data && res.data.token) ||
+    (res.data && res.data.data && res.data.data.token);
+
+  if (token) TokenStore.set(token);
+
+  return res.data;
+},
   async studentLogin(email, password) {
-    var res = await http.post('/auth/student-login', { email: email, password: password });
-    TokenStore.set(res.data.token);
-    return res.data;
-  },
+  var res = await http.post('/auth/student-login', { email: email, password: password });
+
+  var token =
+    (res.data && res.data.token) ||
+    (res.data && res.data.data && res.data.data.token);
+
+  if (token) TokenStore.set(token);
+
+  return res.data;
+},
   async logout() {
     try { await http.post('/auth/logout'); } catch(e) {}
     TokenStore.clear();
@@ -261,7 +273,37 @@ var DataService = {
     if (await isBackendOnline()) return StudentsAPI.getById(id);
     return Store.getOne(KEYS.STUDENTS, id);
   },
+  async registerStudent(payload) {
+    if (await isBackendOnline()) {
+      return StudentsAPI.register(payload);
+    }
 
+    // localStorage fallback only when backend is offline
+    var raw = payload instanceof FormData
+      ? Object.fromEntries(payload.entries())
+      : Object.assign({}, payload);
+
+    var student = normalizeStudentRecord(raw, null);
+
+    if (raw.resume && typeof raw.resume === 'object') {
+      student.resumeOriginalName = raw.resume.name || 'resume';
+      student.resumeFile = raw.resume.name || 'resume';
+    }
+
+    Store.save(KEYS.STUDENTS, student);
+
+    // optional local auth fallback
+    if (typeof registerUser === 'function') {
+      registerUser(
+        student.fullName,
+        student.email,
+        raw.password || '',
+        student.rollNo
+      );
+    }
+
+    return student;
+  },
   async createStudent(payload) {
     if (await isBackendOnline()) return StudentsAPI.create(payload);
     var raw     = payload instanceof FormData ? Object.fromEntries(payload.entries()) : Object.assign({}, payload);
@@ -440,6 +482,7 @@ var DataService = {
         .map(function(a){ return Object.assign({},a, { student: { fullName: a.studentName||((a.student||{}).fullName), rollNo: a.rollNo||((a.student||{}).rollNo) }, internship: Store.getOne(KEYS.INTERNSHIPS, a.internshipId||a.internship) }); })
     };
   },
+
 
   async getAllocationReport() {
     if (await isBackendOnline()) return AdminAPI.getAllocationReport();
