@@ -1,12 +1,41 @@
-// utils/seed.js
-// Run: node utils/seed.js
-require('dotenv').config({
-  path: require('path').join(__dirname, '..', 'backend', '.env')
-});
-const mongoose    = require('mongoose');
-const connectDB = require('../backend/db')
-const Admin       = require('../backend/Admin');
-const Internship  = require('../backend/Internship');
+// seed.js  — run from ANY folder: node seed.js
+// Auto-detects .env location
+
+const path = require('path');
+const fs   = require('fs');
+
+/* ── Find .env automatically ─────────────────────────────── */
+const possibleEnvPaths = [
+  path.join(__dirname, '.env'),
+  path.join(__dirname, '..', '.env'),
+  path.join(__dirname, 'backend', '.env'),
+  path.join(__dirname, '..', 'backend', '.env'),
+];
+
+let envLoaded = false;
+for (const p of possibleEnvPaths) {
+  if (fs.existsSync(p)) {
+    require('dotenv').config({ path: p });
+    console.log('✅ Loaded .env from:', p);
+    envLoaded = true;
+    break;
+  }
+}
+if (!envLoaded) {
+  require('dotenv').config(); // fallback — process.cwd()
+  console.log('⚠️  Using default dotenv (process.cwd())');
+}
+
+/* ── Check MONGO_URI ─────────────────────────────────────── */
+if (!process.env.MONGO_URI) {
+  console.error('❌ MONGO_URI not found in .env — please check the file path.');
+  process.exit(1);
+}
+console.log('🔗 Connecting to:', process.env.MONGO_URI.replace(/:([^@]+)@/, ':****@'));
+
+const mongoose   = require('mongoose');
+const Admin      = require('./Admin');
+const Internship = require('./Internship');
 
 const INTERNSHIPS = [
   {
@@ -20,9 +49,9 @@ const INTERNSHIPS = [
     requiredSkills: ['Python', 'Machine Learning', 'TensorFlow', 'NumPy', 'Pandas'],
     minCgpa: 7.0,
     seats: 5,
-    description: 'Work on cutting-edge ML models and deployment pipelines. Build and train deep learning models for real-world classification, regression, and NLP problems.',
+    description: 'Work on cutting-edge ML models and deployment pipelines.',
     tags: ['AI', 'Python', 'ML'],
-    deadline: new Date('2025-08-30'),
+    deadline: new Date('2026-08-30'),
   },
   {
     title: 'Full Stack Web Developer Intern',
@@ -35,9 +64,9 @@ const INTERNSHIPS = [
     requiredSkills: ['React', 'Node.js', 'MongoDB', 'JavaScript', 'CSS', 'REST API'],
     minCgpa: 6.5,
     seats: 8,
-    description: 'Build responsive web applications using React and Node.js. Collaborate with design and backend teams to ship production features.',
+    description: 'Build responsive web applications using React and Node.js.',
     tags: ['React', 'Node.js', 'Full Stack'],
-    deadline: new Date('2025-09-15'),
+    deadline: new Date('2026-09-15'),
   },
   {
     title: 'Data Science Intern',
@@ -50,9 +79,9 @@ const INTERNSHIPS = [
     requiredSkills: ['Python', 'Pandas', 'SQL', 'Data Visualization', 'Statistics', 'Scikit-learn'],
     minCgpa: 7.5,
     seats: 4,
-    description: 'Analyze large datasets and build predictive models. Create dashboards and reports for business decision-making using Tableau and Power BI.',
+    description: 'Analyze large datasets and build predictive models.',
     tags: ['Data Science', 'Python', 'SQL'],
-    deadline: new Date('2025-07-20'),
+    deadline: new Date('2026-07-20'),
   },
   {
     title: 'Android App Developer Intern',
@@ -65,9 +94,9 @@ const INTERNSHIPS = [
     requiredSkills: ['Java', 'Kotlin', 'Android Studio', 'Firebase', 'REST API'],
     minCgpa: 6.0,
     seats: 6,
-    description: 'Develop Android applications for millions of users. Work with Kotlin and modern Android frameworks like Jetpack Compose.',
+    description: 'Develop Android applications with modern frameworks.',
     tags: ['Android', 'Kotlin', 'Mobile'],
-    deadline: new Date('2025-09-01'),
+    deadline: new Date('2026-09-01'),
   },
   {
     title: 'Cybersecurity Analyst Intern',
@@ -80,9 +109,9 @@ const INTERNSHIPS = [
     requiredSkills: ['Network Security', 'Linux', 'Python', 'Ethical Hacking', 'OWASP'],
     minCgpa: 7.0,
     seats: 3,
-    description: 'Assist in vulnerability assessments and penetration testing. Learn real-world cybersecurity workflows and incident response procedures.',
+    description: 'Assist in vulnerability assessments and penetration testing.',
     tags: ['Security', 'Linux', 'Networking'],
-    deadline: new Date('2025-08-10'),
+    deadline: new Date('2026-08-10'),
   },
   {
     title: 'Cloud Infrastructure Intern',
@@ -95,9 +124,9 @@ const INTERNSHIPS = [
     requiredSkills: ['AWS', 'Docker', 'Kubernetes', 'Linux', 'Terraform', 'CI/CD'],
     minCgpa: 7.0,
     seats: 4,
-    description: 'Deploy and manage cloud infrastructure on AWS. Work with containerization, orchestration, and CI/CD pipelines.',
+    description: 'Deploy and manage cloud infrastructure on AWS.',
     tags: ['AWS', 'Docker', 'Cloud'],
-    deadline: new Date('2025-08-25'),
+    deadline: new Date('2026-08-25'),
   },
   {
     title: 'UI/UX Design Intern',
@@ -110,9 +139,9 @@ const INTERNSHIPS = [
     requiredSkills: ['Figma', 'Adobe XD', 'HTML', 'CSS', 'User Research', 'Prototyping'],
     minCgpa: 6.0,
     seats: 5,
-    description: 'Design beautiful user interfaces and conduct usability testing for web and mobile products used by thousands.',
+    description: 'Design beautiful user interfaces and conduct usability testing.',
     tags: ['Figma', 'Design', 'UX'],
-    deadline: new Date('2025-07-25'),
+    deadline: new Date('2026-07-25'),
   },
   {
     title: 'IoT Systems Intern',
@@ -125,9 +154,9 @@ const INTERNSHIPS = [
     requiredSkills: ['Arduino', 'Raspberry Pi', 'Python', 'C++', 'Embedded Systems', 'MQTT'],
     minCgpa: 6.5,
     seats: 4,
-    description: 'Develop IoT prototypes and integrate sensors with cloud platforms for smart manufacturing solutions.',
+    description: 'Develop IoT prototypes and integrate sensors with cloud platforms.',
     tags: ['IoT', 'Arduino', 'Embedded'],
-    deadline: new Date('2025-08-20'),
+    deadline: new Date('2026-08-20'),
   },
   {
     title: 'DevOps Engineer Intern',
@@ -140,9 +169,9 @@ const INTERNSHIPS = [
     requiredSkills: ['Linux', 'Docker', 'Jenkins', 'Git', 'Bash', 'Nginx'],
     minCgpa: 6.5,
     seats: 3,
-    description: 'Build and maintain CI/CD pipelines, automate deployments, and manage Linux server infrastructure.',
+    description: 'Build and maintain CI/CD pipelines and manage Linux server infrastructure.',
     tags: ['DevOps', 'Linux', 'Docker'],
-    deadline: new Date('2025-09-10'),
+    deadline: new Date('2026-09-10'),
   },
   {
     title: 'Data Analyst Intern',
@@ -155,57 +184,58 @@ const INTERNSHIPS = [
     requiredSkills: ['SQL', 'Excel', 'Python', 'Tableau', 'Statistics'],
     minCgpa: 6.0,
     seats: 6,
-    description: 'Analyse sales and marketing data to provide actionable business insights. Build automated reporting dashboards.',
+    description: 'Analyse sales and marketing data to provide actionable business insights.',
     tags: ['SQL', 'Tableau', 'Analytics'],
-    deadline: new Date('2025-08-05'),
+    deadline: new Date('2026-08-05'),
   },
 ];
 
 const seed = async () => {
   try {
-    // ── DB CONNECT ─────────────────────────────
-    await connectDB();
-
-    // ── ADMIN SEED ─────────────────────────────
-    const existingAdmin = await Admin.findOne({
-      email: process.env.ADMIN_EMAIL
+    /* ── Connect ────────────────────────────────────────────── */
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS:         10000,
+      socketTimeoutMS:          45000,
+      family:                   4,
     });
+    console.log('✅ MongoDB connected:', mongoose.connection.host);
 
-    if (!existingAdmin) {
-      const password = process.env.ADMIN_PASSWORD || 'Admin@1234';
+    /* ── Admin ──────────────────────────────────────────────── */
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@aiias.edu';
+    const existing   = await Admin.findOne({ email: adminEmail });
 
-      if (password.length < 6) {
-        throw new Error('ADMIN_PASSWORD must be at least 6 characters');
-      }
-
+    if (!existing) {
       await Admin.create({
         username: process.env.ADMIN_USERNAME || 'admin23',
-        email: process.env.ADMIN_EMAIL || 'admin@aiias.edu',
-        password,
-        role: 'superadmin'
+        email:    adminEmail,
+        password: process.env.ADMIN_PASSWORD || 'Admin@1234',
+        role:     'superadmin',
       });
-
-      console.log('✅ Admin created successfully');
+      console.log('✅ Admin created:', adminEmail);
     } else {
-      console.log('ℹ️ Admin already exists — skipping');
+      console.log('ℹ️  Admin already exists — skipping');
     }
 
-    // ── INTERNSHIP SEED ─────────────────────────
+    /* ── Internships ────────────────────────────────────────── */
     const count = await Internship.countDocuments();
-
     if (count === 0) {
       await Internship.insertMany(INTERNSHIPS);
       console.log(`✅ ${INTERNSHIPS.length} internships seeded`);
     } else {
-      console.log(`ℹ️ ${count} internships already exist — skipping`);
+      console.log(`ℹ️  ${count} internships already exist — skipping`);
     }
 
     console.log('\n🎉 Seeding complete!\n');
-
     process.exit(0);
 
   } catch (err) {
     console.error('❌ Seeding error:', err.message);
+    console.error('\n👉 TROUBLESHOOTING TIPS:');
+    console.error('   1. Check your Atlas password in .env (replace YOUR_ACTUAL_PASSWORD)');
+    console.error('   2. Go to Atlas → Network Access → Add IP → Add 0.0.0.0/0 (allow all)');
+    console.error('   3. Make sure your cluster is not paused on Atlas dashboard');
+    console.error('   4. Try a different network (mobile hotspot bypasses SRV blocks)\n');
     process.exit(1);
   }
 };

@@ -139,11 +139,37 @@ function showErr(id, msg) {
   el.classList.add('show');
 }
 
-function doLogin() {
+async function doLogin() {
   document.getElementById('loginError').classList.remove('show');
   var email = (document.getElementById('lEmail').value||'').trim();
   var pass  = (document.getElementById('lPass').value||'');
   if (!email||!pass) { showErr('loginError','Please enter email and password.'); return; }
+
+  /* Try backend login first (admin JWT), then student backend login, then localStorage fallback */
+  var backendOnline = (typeof isBackendOnline === 'function') ? await isBackendOnline() : false;
+
+  if (backendOnline) {
+    /* Try admin login */
+    try {
+      var adminData = await AdminAPI.login(email, pass);
+      Auth.setSession({ id: adminData.admin.id, _id: adminData.admin.id, name: adminData.admin.username, email: adminData.admin.email, role: 'admin' });
+      showToast('Welcome back, '+adminData.admin.username+'! 👑','success');
+      setTimeout(function(){ window.location.href='admin-dashboard.html'; }, 600);
+      return;
+    } catch(e) {}
+
+    /* Try student backend login */
+    try {
+      var stuData = await AdminAPI.studentLogin(email, pass);
+      var st = stuData.student;
+      Auth.setSession({ id: st.id, _id: st.id, name: st.fullName, email: st.email, role: 'student', rollNo: st.rollNo||'' });
+      showToast('Welcome back, '+st.fullName+'! 🎉','success');
+      setTimeout(function(){ window.location.href='student-dashboard.html'; }, 600);
+      return;
+    } catch(e) {}
+  }
+
+  /* LocalStorage fallback */
   var res = loginUser(email, pass);
   if (!res.ok) { showErr('loginError', res.msg); return; }
   showToast('Welcome back, '+res.user.name+'! 🎉','success');
@@ -152,7 +178,7 @@ function doLogin() {
   }, 600);
 }
 
-function doRegister() {
+async function doRegister() {
   document.getElementById('regError').classList.remove('show');
   var name  = (document.getElementById('rName').value||'').trim();
   var email = (document.getElementById('rEmail').value||'').trim();
@@ -170,9 +196,45 @@ function doRegister() {
   var res = registerUser(name, email, pass, roll);
   if (!res.ok) { showErr('regError', res.msg); return; }
 
-  /* Auto-login after registration */
+  /* Try backend registration first */
+  var backendOnline2 = (typeof isBackendOnline === 'function') ? await isBackendOnline() : false;
+  if (backendOnline2) {
+    try {
+      await StudentsAPI.register({
+        fullName: name,
+        email: email,
+        password: pass,
+        rollNo: roll || ('STU' + Date.now().toString().slice(-6)),
+        department: 'Computer Engineering',
+        semester: 'Semester 6',
+        cgpa: 7.0,
+        preferredDomain: 'Artificial Intelligence',
+        technicalSkills: ['To be updated']
+      });
+      /* Backend register succeeded — now do backend login */
+      try {
+        var stuData = await AdminAPI.studentLogin(email, pass);
+        var st = stuData.student;
+        Auth.setSession({ id: st.id, _id: st.id, name: st.fullName, email: st.email, role: 'student', rollNo: st.rollNo||'' });
+      } catch(e) {
+        loginUser(email, pass);
+      }
+      showToast('Account created! Welcome, '+name+' 🎉','success');
+      setTimeout(function(){ window.location.href='student-dashboard.html'; }, 700);
+      return;
+    } catch(backErr) {
+      /* If backend error is not duplicate-email, fall through to localStorage */
+      if (backErr.message && backErr.message.toLowerCase().includes('already')) {
+        showErr('regError', 'Email already registered. Please login.'); return;
+      }
+    }
+  }
+
+  /* LocalStorage registration fallback */
+  var res = registerUser(name, email, pass, roll);
+  if (!res.ok) { showErr('regError', res.msg); return; }
   loginUser(email, pass);
-  showToast('Account created! Welcome, '+name+' 🎉','success');
+  showToast('Account created! Welcome, '+name+' 🎉 Please complete your profile.','success');
   setTimeout(function(){ window.location.href='student-dashboard.html'; }, 700);
 }
 

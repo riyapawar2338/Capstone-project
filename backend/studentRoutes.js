@@ -10,15 +10,15 @@ const upload = require('./upload');
    PUBLIC ROUTES
    ============================================================ */
 
-// Public registration for students
+// Public student self-registration
 router.post('/register', ctrl.registerStudent);
 
 // Public browse / read routes
 router.get('/', ctrl.getAllStudents);
-router.get('/:id', mongoIdParam(), validate, ctrl.getStudentById);
 router.get('/:id/recommendations', mongoIdParam(), validate, ctrl.getRecommendationsForStudent);
 router.get('/:id/applications', mongoIdParam(), validate, ctrl.getStudentApplications);
 router.get('/:id/resume', mongoIdParam(), validate, ctrl.downloadResume);
+router.get('/:id', mongoIdParam(), validate, ctrl.getStudentById);
 
 /* ============================================================
    PROTECTED ADMIN ROUTES

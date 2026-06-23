@@ -25,16 +25,16 @@ var Store = {
     catch(e) {}
   },
   getOne: function(key, id) {
-    return this.get(key).find(function(i){ return i.id === id; }) || null;
+    return this.get(key).find(function(i){ return (i._id||i.id) === id; }) || null;
   },
   save: function(key, item) {
     var list = this.get(key);
-    var idx  = list.findIndex(function(i){ return i.id === item.id; });
+    var idx  = list.findIndex(function(i){ return (i._id||i.id) === (item._id||item.id); });
     if (idx >= 0) list[idx] = item; else list.push(item);
     this.set(key, list);
   },
   remove: function(key, id) {
-    this.set(key, this.get(key).filter(function(i){ return i.id !== id; }));
+    this.set(key, this.get(key).filter(function(i){ return (i._id||i.id) !== id; }));
   }
 };
 
@@ -64,7 +64,6 @@ var Auth = {
   getCurrentUser: function() {
     return this.getSession();
   },
-  /* Redirect to login if not logged in */
   requireLogin: function() {
     if (!this.isLoggedIn()) {
       window.location.href = 'login.html';
@@ -72,7 +71,6 @@ var Auth = {
     }
     return true;
   },
-  /* Redirect to home if not admin */
   requireAdmin: function() {
     if (!this.isLoggedIn()) { window.location.href = 'login.html'; return false; }
     if (!this.isAdmin())    { window.location.href = 'student-dashboard.html'; return false; }
@@ -84,30 +82,40 @@ var Auth = {
   }
 };
 
-/* ── Seed default admin + seed users from registered students ─── */
+/* ── Seed default admin ───────────────────────────────────────── */
 function seedDefaultAdmin() {
   var users = Store.get(KEYS.USERS);
   var hasAdmin = users.some(function(u){ return u.role === 'admin'; });
   if (!hasAdmin) {
     Store.save(KEYS.USERS, {
-      id:       'admin_001',
-      name:     'Administrator',
-      email:    'admin@aiias.edu',
-      password: 'Admin@1234',
-      role:     'admin',
+      id:        'admin_001',
+      _id:       'admin_001',
+      name:      'Administrator',
+      email:     'admin@aiias.edu',
+      password:  'Admin@1234',
+      role:      'admin',
       createdAt: new Date().toISOString()
     });
   }
 }
 
+/* ── Unique ID ────────────────────────────────────────────────── */
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
 /* ── Register a new student user ─────────────────────────────── */
+/* FIX: Now also creates a matching student record in KEYS.STUDENTS */
 function registerUser(name, email, password, rollNo) {
   var users = Store.get(KEYS.USERS);
   if (users.some(function(u){ return u.email.toLowerCase() === email.toLowerCase(); })) {
     return { ok: false, msg: 'Email already registered. Please login.' };
   }
+
+  var uid = genId();
   var user = {
-    id:        genId(),
+    id:        uid,
+    _id:       uid,
     name:      name,
     email:     email.toLowerCase(),
     password:  password,
@@ -116,6 +124,42 @@ function registerUser(name, email, password, rollNo) {
     createdAt: new Date().toISOString()
   };
   Store.save(KEYS.USERS, user);
+
+  /* ── FIX: Create a matching student profile so the dashboard can find it ── */
+  var existingStudent = Store.get(KEYS.STUDENTS).find(function(s){
+    return s.email && s.email.toLowerCase() === email.toLowerCase();
+  });
+  if (!existingStudent) {
+    var studentId = uid; /* same id so session lookup works */
+    var studentRecord = {
+      id:              studentId,
+      _id:             studentId,
+      fullName:        name,
+      email:           email.toLowerCase(),
+      rollNo:          (rollNo || '').toUpperCase(),
+      department:      '',
+      semester:        '',
+      cgpa:            0,
+      percentage:      null,
+      preferredDomain: '',
+      technicalSkills: [],
+      softSkills:      [],
+      certifications:  [],
+      areasOfInterest: [],
+      projects:        '',
+      phone:           '',
+      city:            '',
+      resumeFile:      '',
+      resumeOriginalName: '',
+      profileCompleteness: 0,
+      isActive:        true,
+      role:            'student',
+      createdAt:       new Date().toISOString(),
+      updatedAt:       new Date().toISOString()
+    };
+    Store.save(KEYS.STUDENTS, studentRecord);
+  }
+
   return { ok: true, user: user };
 }
 
@@ -126,13 +170,17 @@ function loginUser(email, password) {
     return u.email.toLowerCase() === email.toLowerCase() && u.password === password;
   });
   if (!user) return { ok: false, msg: 'Invalid email or password.' };
-  Auth.setSession({ id: user.id, name: user.name, email: user.email, role: user.role, rollNo: user.rollNo || '' });
-  return { ok: true, user: user };
-}
 
-/* ── Unique ID ────────────────────────────────────────────────── */
-function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  /* Store studentId in session so dashboard can look up profile */
+  Auth.setSession({
+    id:     user.id || user._id,
+    _id:    user.id || user._id,
+    name:   user.name,
+    email:  user.email,
+    role:   user.role,
+    rollNo: user.rollNo || ''
+  });
+  return { ok: true, user: user };
 }
 
 /* ── Date formatter ───────────────────────────────────────────── */
@@ -232,13 +280,11 @@ function buildNav() {
   var nav = document.querySelector('.nav-links');
   if (!nav) return;
 
-  /* Scroll shadow */
   window.addEventListener('scroll', function(){
     var nb=document.querySelector('.navbar');
     if(nb) nb.classList.toggle('scrolled', window.scrollY>20);
   });
 
-  /* Mobile toggle */
   var toggle=document.querySelector('.nav-toggle');
   if (toggle) {
     toggle.addEventListener('click', function(){
@@ -253,13 +299,11 @@ function buildNav() {
     });
   });
 
-  /* Active link */
   var page = location.pathname.split('/').pop()||'index.html';
   nav.querySelectorAll('a').forEach(function(a){
-    if ((a.getAttribute('href')||'')=== page) a.classList.add('active');
+    if ((a.getAttribute('href')||'') === page) a.classList.add('active');
   });
 
-  /* User pill in nav */
   var userPill = document.getElementById('navUserPill');
   if (userPill) {
     if (session) {
@@ -312,18 +356,18 @@ function calcMatchScore(student, internship) {
 function seedInternships() {
   if (Store.get(KEYS.INTERNSHIPS).length>0) return;
   var list=[
-    {title:'AI/ML Engineering Intern',company:'TechCorp Solutions',domain:'Artificial Intelligence',location:'Pune',duration:'3 months',stipend:'₹15,000/mo',stipendAmount:15000,requiredSkills:['Python','Machine Learning','TensorFlow','NumPy','Pandas'],minCgpa:'7.0',seats:5,description:'Work on cutting-edge ML models and deployment pipelines. Build and train deep learning models for real-world problems.',deadline:'2025-12-30',tags:['AI','Python','ML']},
-    {title:'Full Stack Web Developer Intern',company:'InnovateTech Pvt Ltd',domain:'Web Development',location:'Mumbai',duration:'6 months',stipend:'₹12,000/mo',stipendAmount:12000,requiredSkills:['React','Node.js','MongoDB','JavaScript','CSS'],minCgpa:'6.5',seats:8,description:'Build responsive web applications using React and Node.js. Collaborate with teams to ship production features.',deadline:'2025-12-30',tags:['React','Node.js','Full Stack']},
-    {title:'Data Science Intern',company:'DataInsights Pvt Ltd',domain:'Data Science',location:'Bangalore',duration:'4 months',stipend:'₹18,000/mo',stipendAmount:18000,requiredSkills:['Python','Pandas','SQL','Data Visualization','Statistics'],minCgpa:'7.5',seats:4,description:'Analyze large datasets and build predictive models. Create dashboards and reports for business decisions.',deadline:'2025-12-30',tags:['Data Science','Python','SQL']},
-    {title:'Android App Developer Intern',company:'MobileFirst Studios',domain:'Mobile Development',location:'Hyderabad',duration:'3 months',stipend:'₹10,000/mo',stipendAmount:10000,requiredSkills:['Java','Kotlin','Android Studio','Firebase','REST API'],minCgpa:'6.0',seats:6,description:'Develop Android applications. Work with Kotlin and modern Android frameworks like Jetpack Compose.',deadline:'2025-12-30',tags:['Android','Kotlin','Mobile']},
-    {title:'Cybersecurity Analyst Intern',company:'SecureNet Labs',domain:'Cybersecurity',location:'Delhi',duration:'3 months',stipend:'₹14,000/mo',stipendAmount:14000,requiredSkills:['Network Security','Linux','Python','Ethical Hacking','OWASP'],minCgpa:'7.0',seats:3,description:'Assist in vulnerability assessments and penetration testing. Learn real-world cybersecurity workflows.',deadline:'2025-12-30',tags:['Security','Linux','Networking']},
-    {title:'Cloud Infrastructure Intern',company:'CloudScale Inc',domain:'Cloud Computing',location:'Pune',duration:'6 months',stipend:'₹20,000/mo',stipendAmount:20000,requiredSkills:['AWS','Docker','Kubernetes','Linux','Terraform'],minCgpa:'7.0',seats:4,description:'Deploy and manage cloud infrastructure on AWS. Work with containerization and CI/CD pipelines.',deadline:'2025-12-30',tags:['AWS','Docker','Cloud']},
-    {title:'UI/UX Design Intern',company:'PixelCraft Design',domain:'UI/UX Design',location:'Bangalore',duration:'3 months',stipend:'₹10,000/mo',stipendAmount:10000,requiredSkills:['Figma','Adobe XD','HTML','CSS','User Research'],minCgpa:'6.0',seats:5,description:'Design user interfaces and conduct usability testing for web and mobile products.',deadline:'2025-12-30',tags:['Figma','Design','UX']},
-    {title:'IoT Systems Intern',company:'SmartTech Industries',domain:'Internet of Things',location:'Chennai',duration:'4 months',stipend:'₹12,000/mo',stipendAmount:12000,requiredSkills:['Arduino','Raspberry Pi','Python','C++','Embedded Systems'],minCgpa:'6.5',seats:4,description:'Develop IoT prototypes and integrate sensors with cloud platforms for smart manufacturing.',deadline:'2025-12-30',tags:['IoT','Arduino','Embedded']},
-    {title:'DevOps Engineer Intern',company:'Infra Solutions Ltd',domain:'DevOps',location:'Noida',duration:'6 months',stipend:'₹16,000/mo',stipendAmount:16000,requiredSkills:['Linux','Docker','Jenkins','Git','Bash'],minCgpa:'6.5',seats:3,description:'Build CI/CD pipelines, automate deployments, and manage Linux server infrastructure.',deadline:'2025-12-30',tags:['DevOps','Linux','Docker']},
-    {title:'Data Analyst Intern',company:'BizAnalytics Corp',domain:'Data Science',location:'Mumbai',duration:'3 months',stipend:'₹12,000/mo',stipendAmount:12000,requiredSkills:['SQL','Excel','Python','Tableau','Statistics'],minCgpa:'6.0',seats:6,description:'Analyse sales and marketing data to provide actionable insights. Build automated dashboards.',deadline:'2025-12-30',tags:['SQL','Tableau','Analytics']}
+    {title:'AI/ML Engineering Intern',company:'TechCorp Solutions',domain:'Artificial Intelligence',location:'Pune',duration:'3 months',stipend:'₹15,000/mo',stipendAmount:15000,requiredSkills:['Python','Machine Learning','TensorFlow','NumPy','Pandas'],minCgpa:'7.0',seats:5,description:'Work on cutting-edge ML models and deployment pipelines.',deadline:'2025-12-30',tags:['AI','Python','ML']},
+    {title:'Full Stack Web Developer Intern',company:'InnovateTech Pvt Ltd',domain:'Web Development',location:'Mumbai',duration:'6 months',stipend:'₹12,000/mo',stipendAmount:12000,requiredSkills:['React','Node.js','MongoDB','JavaScript','CSS'],minCgpa:'6.5',seats:8,description:'Build responsive web applications using React and Node.js.',deadline:'2025-12-30',tags:['React','Node.js','Full Stack']},
+    {title:'Data Science Intern',company:'DataInsights Pvt Ltd',domain:'Data Science',location:'Bangalore',duration:'4 months',stipend:'₹18,000/mo',stipendAmount:18000,requiredSkills:['Python','Pandas','SQL','Data Visualization','Statistics'],minCgpa:'7.5',seats:4,description:'Analyze large datasets and build predictive models.',deadline:'2025-12-30',tags:['Data Science','Python','SQL']},
+    {title:'Android App Developer Intern',company:'MobileFirst Studios',domain:'Mobile Development',location:'Hyderabad',duration:'3 months',stipend:'₹10,000/mo',stipendAmount:10000,requiredSkills:['Java','Kotlin','Android Studio','Firebase','REST API'],minCgpa:'6.0',seats:6,description:'Develop Android applications with modern frameworks.',deadline:'2025-12-30',tags:['Android','Kotlin','Mobile']},
+    {title:'Cybersecurity Analyst Intern',company:'SecureNet Labs',domain:'Cybersecurity',location:'Delhi',duration:'3 months',stipend:'₹14,000/mo',stipendAmount:14000,requiredSkills:['Network Security','Linux','Python','Ethical Hacking','OWASP'],minCgpa:'7.0',seats:3,description:'Assist in vulnerability assessments and penetration testing.',deadline:'2025-12-30',tags:['Security','Linux','Networking']},
+    {title:'Cloud Infrastructure Intern',company:'CloudScale Inc',domain:'Cloud Computing',location:'Pune',duration:'6 months',stipend:'₹20,000/mo',stipendAmount:20000,requiredSkills:['AWS','Docker','Kubernetes','Linux','Terraform'],minCgpa:'7.0',seats:4,description:'Deploy and manage cloud infrastructure on AWS.',deadline:'2025-12-30',tags:['AWS','Docker','Cloud']},
+    {title:'UI/UX Design Intern',company:'PixelCraft Design',domain:'UI/UX Design',location:'Bangalore',duration:'3 months',stipend:'₹10,000/mo',stipendAmount:10000,requiredSkills:['Figma','Adobe XD','HTML','CSS','User Research'],minCgpa:'6.0',seats:5,description:'Design user interfaces and conduct usability testing.',deadline:'2025-12-30',tags:['Figma','Design','UX']},
+    {title:'IoT Systems Intern',company:'SmartTech Industries',domain:'Internet of Things',location:'Chennai',duration:'4 months',stipend:'₹12,000/mo',stipendAmount:12000,requiredSkills:['Arduino','Raspberry Pi','Python','C++','Embedded Systems'],minCgpa:'6.5',seats:4,description:'Develop IoT prototypes and integrate sensors with cloud platforms.',deadline:'2025-12-30',tags:['IoT','Arduino','Embedded']},
+    {title:'DevOps Engineer Intern',company:'Infra Solutions Ltd',domain:'DevOps',location:'Noida',duration:'6 months',stipend:'₹16,000/mo',stipendAmount:16000,requiredSkills:['Linux','Docker','Jenkins','Git','Bash'],minCgpa:'6.5',seats:3,description:'Build CI/CD pipelines and manage Linux server infrastructure.',deadline:'2025-12-30',tags:['DevOps','Linux','Docker']},
+    {title:'Data Analyst Intern',company:'BizAnalytics Corp',domain:'Data Science',location:'Mumbai',duration:'3 months',stipend:'₹12,000/mo',stipendAmount:12000,requiredSkills:['SQL','Excel','Python','Tableau','Statistics'],minCgpa:'6.0',seats:6,description:'Analyse sales data to provide actionable business insights.',deadline:'2025-12-30',tags:['SQL','Tableau','Analytics']}
   ];
-  list.forEach(function(item){ item.id=genId(); });
+  list.forEach(function(item){ var id=genId(); item.id=id; item._id=id; });
   Store.set(KEYS.INTERNSHIPS, list);
 }
 

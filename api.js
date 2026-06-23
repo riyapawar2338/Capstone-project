@@ -1,364 +1,254 @@
 /* ============================================================
    AI INTERNSHIP ALLOCATION & RECOMMENDATION SYSTEM
-   api.js — Frontend REST API Client
-   Connects the HTML pages to the Node.js/Express backend.
-   Falls back to LocalStorage if backend is unreachable.
+   api.js — FIXED VERSION
    ============================================================ */
 'use strict';
 
-// ── Backend base URL ──────────────────────────────────────────
-const API_BASE = window.API_BASE || 'https://capstone-project-backend-m20u.onrender.com/api';
+/* ── Backend base URL ────────────────────────────────────────── */
+var API_BASE =
+  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5001/api'
+    : 'https://capstone-project-backend-m20u.onrender.com/api';
 
-// ── Token management ──────────────────────────────────────────
-const TokenStore = {
-  get()       { return localStorage.getItem('aiias_admin_token'); },
-  set(t)      { localStorage.setItem('aiias_admin_token', t); },
-  clear()     { localStorage.removeItem('aiias_admin_token'); },
-  isPresent() { return !!this.get(); },
+/* ── Token management ────────────────────────────────────────── */
+var TokenStore = {
+  get:       function()  { return localStorage.getItem('aiias_admin_token'); },
+  set:       function(t) { localStorage.setItem('aiias_admin_token', t); },
+  clear:     function()  { localStorage.removeItem('aiias_admin_token'); },
+  isPresent: function()  { return !!this.get(); }
 };
 
-// ── Connection state ──────────────────────────────────────────
-let _backendOnline = null; // null = not yet checked
+/* ── Connection state ────────────────────────────────────────── */
+var _backendOnline = null;
 
 async function isBackendOnline() {
   if (_backendOnline !== null) return _backendOnline;
-
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 2000);
-
-    const r = await fetch(`${API_BASE}/health`, { signal: ctrl.signal });
+    var ctrl  = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, 3000);
+    var r = await fetch(API_BASE + '/health', { signal: ctrl.signal });
     clearTimeout(timer);
-
     _backendOnline = r.ok;
   } catch (err) {
     _backendOnline = false;
   }
 
-  const badge = document.getElementById('connectionBadge');
+  var badge = document.getElementById('connectionBadge');
   if (badge) {
     badge.textContent = _backendOnline ? '🟢 API Connected' : '🟡 Offline Mode';
     badge.style.color = _backendOnline ? 'var(--success)' : 'var(--warning)';
   }
-
-  console.info(
-    _backendOnline
-      ? `✅ Backend API connected — ${API_BASE}`
-      : '⚠️ Backend offline — using LocalStorage mode'
-  );
-
+  console.info(_backendOnline
+    ? '✅ Backend API connected — ' + API_BASE
+    : '⚠️ Backend offline — using LocalStorage mode');
   return _backendOnline;
 }
 
-// ── Base HTTP helper ──────────────────────────────────────────
-async function apiRequest(method, path, body = null, isFormData = false) {
-  const headers = {};
+/* ── Base HTTP helper ────────────────────────────────────────── */
+async function apiRequest(method, path, body, isFormData) {
+  body        = body        || null;
+  isFormData  = isFormData  || false;
+  var headers = {};
+  if (!isFormData) headers['Content-Type'] = 'application/json';
+  if (TokenStore.isPresent()) headers['Authorization'] = 'Bearer ' + TokenStore.get();
 
-  if (!isFormData) {
-    headers['Content-Type'] = 'application/json';
-  }
+  var options = { method: method, headers: headers };
+  if (body) options.body = isFormData ? body : JSON.stringify(body);
 
-  if (TokenStore.isPresent()) {
-    headers['Authorization'] = `Bearer ${TokenStore.get()}`;
-  }
-
-  const options = { method, headers };
-
-  if (body) {
-    options.body = isFormData ? body : JSON.stringify(body);
-  }
-
-  const response = await fetch(`${API_BASE}${path}`, options);
-
-  let json = {};
-  try {
-    json = await response.json();
-  } catch (err) {
-    throw new Error(`Invalid JSON response from ${path}`);
-  }
+  var response = await fetch(API_BASE + path, options);
+  var json = {};
+  try { json = await response.json(); }
+  catch (err) { throw new Error('Invalid JSON response from ' + path); }
 
   if (!response.ok || !json.success) {
-    throw new Error(json.message || `API error ${response.status}`);
+    throw new Error(json.message || ('API error ' + response.status));
   }
-
   return json;
 }
 
-// ── Shorthand methods ─────────────────────────────────────────
-const http = {
-  get:      (path)           => apiRequest('GET', path),
-  post:     (path, body)     => apiRequest('POST', path, body),
-  put:      (path, body)     => apiRequest('PUT', path, body),
-  patch:    (path, body)     => apiRequest('PATCH', path, body),
-  del:      (path)           => apiRequest('DELETE', path),
-  postForm: (path, formData) => apiRequest('POST', path, formData, true),
-  putForm:  (path, formData) => apiRequest('PUT', path, formData, true),
+/* ── Shorthand methods ───────────────────────────────────────── */
+var http = {
+  get:      function(path)            { return apiRequest('GET',    path); },
+  post:     function(path, body)      { return apiRequest('POST',   path, body); },
+  put:      function(path, body)      { return apiRequest('PUT',    path, body); },
+  patch:    function(path, body)      { return apiRequest('PATCH',  path, body); },
+  del:      function(path)            { return apiRequest('DELETE', path); },
+  postForm: function(path, formData)  { return apiRequest('POST',   path, formData, true); },
+  putForm:  function(path, formData)  { return apiRequest('PUT',    path, formData, true); }
 };
 
 /* ============================================================
    STUDENTS API
    ============================================================ */
-const StudentsAPI = {
-  async getAll(params = {}) {
-    const qs = new URLSearchParams(
-      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))
+var StudentsAPI = {
+  async getAll(params) {
+    params = params || {};
+    var qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(function(e){ return e[1] !== '' && e[1] != null; }))
     ).toString();
-
-    const res = await http.get(`/students${qs ? '?' + qs : ''}`);
-    return res;
+    return await http.get('/students' + (qs ? '?' + qs : ''));
   },
-
   async getById(id) {
-    const res = await http.get(`/students/${id}`);
+    var res = await http.get('/students/' + id);
     return res.data;
   },
-
-  // PUBLIC student self-registration
   async register(payload) {
-    const res = payload instanceof FormData
+    var res = payload instanceof FormData
       ? await http.postForm('/students/register', payload)
       : await http.post('/students/register', payload);
     return res.data;
   },
-
-  // ADMIN creates student manually
   async create(payload) {
-    const res = payload instanceof FormData
+    var res = payload instanceof FormData
       ? await http.postForm('/students', payload)
       : await http.post('/students', payload);
     return res.data;
   },
-
   async update(id, payload) {
-    const res = payload instanceof FormData
-      ? await http.putForm(`/students/${id}`, payload)
-      : await http.put(`/students/${id}`, payload);
+    var res = payload instanceof FormData
+      ? await http.putForm('/students/' + id, payload)
+      : await http.put('/students/' + id, payload);
     return res.data;
   },
-
-  async delete(id) {
-    await http.del(`/students/${id}`);
-  },
-
-  async getRecommendations(id, topN = 10) {
-    const res = await http.get(`/students/${id}/recommendations?topN=${topN}`);
+  async delete(id) { await http.del('/students/' + id); },
+  async getRecommendations(id, topN) {
+    topN = topN || 10;
+    var res = await http.get('/students/' + id + '/recommendations?topN=' + topN);
     return res.data;
   },
-
   async getApplications(id) {
-    const res = await http.get(`/students/${id}/applications`);
+    var res = await http.get('/students/' + id + '/applications');
     return res.data;
   },
-
-  downloadResume(id) {
-    window.open(`${API_BASE}/students/${id}/resume`, '_blank');
-  },
+  downloadResume: function(id) {
+    window.open(API_BASE + '/students/' + id + '/resume', '_blank');
+  }
 };
 
 /* ============================================================
    INTERNSHIPS API
    ============================================================ */
-const InternshipsAPI = {
-  async getAll(params = {}) {
-    const qs = new URLSearchParams(
-      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))
+var InternshipsAPI = {
+  async getAll(params) {
+    params = params || {};
+    var qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(function(e){ return e[1] !== '' && e[1] != null; }))
     ).toString();
-
-    const res = await http.get(`/internships${qs ? '?' + qs : ''}`);
-    return res;
+    return await http.get('/internships' + (qs ? '?' + qs : ''));
   },
-
-  async getById(id) {
-    const res = await http.get(`/internships/${id}`);
-    return res.data;
-  },
-
-  async create(payload) {
-    const res = await http.post('/internships', payload);
-    return res.data;
-  },
-
-  async update(id, payload) {
-    const res = await http.put(`/internships/${id}`, payload);
-    return res.data;
-  },
-
-  async delete(id) {
-    await http.del(`/internships/${id}`);
-  },
-
-  async getFilterMeta() {
-    const res = await http.get('/internships/meta/filters');
-    return res.data;
-  },
-
-  async getApplications(id) {
-    const res = await http.get(`/internships/${id}/applications`);
-    return res.data;
-  },
+  async getById(id)      { var res = await http.get('/internships/' + id); return res.data; },
+  async create(payload)  { var res = await http.post('/internships', payload); return res.data; },
+  async update(id, p)    { var res = await http.put('/internships/' + id, p); return res.data; },
+  async delete(id)       { await http.del('/internships/' + id); },
+  async getFilterMeta()  { var res = await http.get('/internships/meta/filters'); return res.data; },
+  async getApplications(id) { var res = await http.get('/internships/' + id + '/applications'); return res.data; }
 };
 
 /* ============================================================
    APPLICATIONS API
    ============================================================ */
-const ApplicationsAPI = {
-  async create(studentId, internshipId, coverLetter = '') {
-    const res = await http.post('/applications', { studentId, internshipId, coverLetter });
+var ApplicationsAPI = {
+  async create(studentId, internshipId, coverLetter) {
+    coverLetter = coverLetter || '';
+    var res = await http.post('/applications', { studentId: studentId, internshipId: internshipId, coverLetter: coverLetter });
     return res.data;
   },
-
-  async getAll(params = {}) {
-    const qs = new URLSearchParams(
-      Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))
+  async getAll(params) {
+    params = params || {};
+    var qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(function(e){ return e[1] !== '' && e[1] != null; }))
     ).toString();
-
-    const res = await http.get(`/applications${qs ? '?' + qs : ''}`);
-    return res;
+    return await http.get('/applications' + (qs ? '?' + qs : ''));
   },
-
-  async getById(id) {
-    const res = await http.get(`/applications/${id}`);
+  async getById(id)   { var res = await http.get('/applications/' + id); return res.data; },
+  async updateStatus(id, status, adminNotes) {
+    adminNotes = adminNotes || '';
+    var res = await http.patch('/applications/' + id + '/status', { status: status, adminNotes: adminNotes });
     return res.data;
   },
-
-  async updateStatus(id, status, adminNotes = '') {
-    const res = await http.patch(`/applications/${id}/status`, { status, adminNotes });
-    return res.data;
-  },
-
-  async delete(id) {
-    await http.del(`/applications/${id}`);
-  },
-
-  async getAnalytics() {
-    const res = await http.get('/applications/analytics');
-    return res.data;
-  },
+  async delete(id)    { await http.del('/applications/' + id); },
+  async getAnalytics(){ var res = await http.get('/applications/analytics'); return res.data; }
 };
 
 /* ============================================================
    ADMIN API
    ============================================================ */
-const AdminAPI = {
+var AdminAPI = {
   async login(email, password) {
-    const res = await http.post('/auth/login', { email, password });
+    var res = await http.post('/auth/login', { email: email, password: password });
     TokenStore.set(res.data.token);
     return res.data;
   },
-
+  async studentLogin(email, password) {
+    var res = await http.post('/auth/student-login', { email: email, password: password });
+    TokenStore.set(res.data.token);
+    return res.data;
+  },
   async logout() {
-    try {
-      await http.post('/auth/logout');
-    } catch (err) {}
+    try { await http.post('/auth/logout'); } catch(e) {}
     TokenStore.clear();
   },
-
-  async getMe() {
-    const res = await http.get('/auth/me');
-    return res.data;
-  },
-
-  async getDashboard() {
-    const res = await http.get('/admin/dashboard');
-    return res.data;
-  },
-
-  async getAllocationReport() {
-    const res = await http.get('/admin/allocation');
-    return res.data;
-  },
-
-  async getStudentsReport() {
-    const res = await http.get('/admin/reports/students');
-    return res.data;
-  },
-
-  async getRecommendationsReport() {
-    const res = await http.get('/admin/reports/recommendations');
-    return res.data;
-  },
+  async getMe()                   { var res = await http.get('/auth/me');                        return res.data; },
+  async getDashboard()            { var res = await http.get('/admin/dashboard');                return res.data; },
+  async getAllocationReport()     { var res = await http.get('/admin/allocation');               return res.data; },
+  async getStudentsReport()       { var res = await http.get('/admin/reports/students');         return res.data; },
+  async getRecommendationsReport(){ var res = await http.get('/admin/reports/recommendations'); return res.data; }
 };
 
 /* ============================================================
-   LOCAL STORAGE STORE  (offline fallback)
+   NOTE: KEYS and Store are defined in script.js and loaded first.
+   Do NOT redefine them here — that was causing the session system
+   to break. We only define helpers not already in script.js.
    ============================================================ */
-const KEYS = {
-  STUDENTS: 'aiias_students',
-  INTERNSHIPS: 'aiias_internships',
-  APPLICATIONS: 'aiias_applications',
-};
 
-const Store = {
-  get(key) {
-    try {
-      return JSON.parse(localStorage.getItem(key)) || [];
-    } catch {
-      return [];
-    }
-  },
-
-  set(key, val) {
-    localStorage.setItem(key, JSON.stringify(val));
-  },
-
-  getOne(key, id) {
-    return this.get(key).find(i => (i._id || i.id) === id) || null;
-  },
-
-  save(key, item) {
-    const list = this.get(key);
-    const idx = list.findIndex(i => (i._id || i.id) === (item._id || item.id));
-    if (idx >= 0) list.splice(idx, 1, item);
-    else list.push(item);
-    this.set(key, list);
-  },
-
-  remove(key, id) {
-    this.set(key, this.get(key).filter(i => (i._id || i.id) !== id));
-  },
-};
-
-/* ============================================================
-   HELPERS
-   ============================================================ */
-function genId() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+function normalizeArr(v) {
+  if (Array.isArray(v)) return v;
+  return String(v || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
 }
 
-function normalizeArray(v) {
-  if (Array.isArray(v)) return v;
-  return (v || '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+function normalizeStudentRecord(raw, existing) {
+  var base = existing ? Object.assign({}, existing) : {};
+  var id   = (existing && (existing._id || existing.id)) || (typeof genId === 'function' ? genId() : Math.random().toString(36).slice(2));
+  var out  = Object.assign({}, base, raw, {
+    _id:             id,
+    id:              id,
+    technicalSkills: normalizeArr(raw.technicalSkills  !== undefined ? raw.technicalSkills  : base.technicalSkills),
+    softSkills:      normalizeArr(raw.softSkills       !== undefined ? raw.softSkills       : base.softSkills),
+    certifications:  normalizeArr(raw.certifications   !== undefined ? raw.certifications   : base.certifications),
+    areasOfInterest: normalizeArr(raw.areasOfInterest  !== undefined ? raw.areasOfInterest  : base.areasOfInterest),
+    updatedAt:       new Date().toISOString()
+  });
+  if (!existing) out.createdAt = new Date().toISOString();
+  if (out.rollNo)     out.rollNo     = String(out.rollNo).trim().toUpperCase();
+  if (out.email)      out.email      = String(out.email).trim().toLowerCase();
+  if (out.cgpa  !== undefined && out.cgpa  !== null && out.cgpa  !== '') out.cgpa       = parseFloat(out.cgpa);
+  if (out.percentage !== undefined && out.percentage !== null && out.percentage !== '') out.percentage = parseFloat(out.percentage);
+  return out;
 }
 
 /* ============================================================
    UNIFIED DataService
-   Auto-selects API or LocalStorage based on backend availability
    ============================================================ */
-const DataService = {
-  // ── Students ────────────────────────────────────────────────
-  async getStudents(params = {}) {
+var DataService = {
+
+  /* ── Students ─────────────────────────────────────────────── */
+  async getStudents(params) {
+    params = params || {};
     if (await isBackendOnline()) return StudentsAPI.getAll(params);
-
-    let data = Store.get(KEYS.STUDENTS);
-
+    var data = Store.get(KEYS.STUDENTS);
     if (params.search) {
-      const s = params.search.toLowerCase();
-      data = data.filter(st =>
-        (st.fullName || '').toLowerCase().includes(s) ||
-        (st.rollNo || '').toLowerCase().includes(s) ||
-        (st.department || '').toLowerCase().includes(s) ||
-        (st.technicalSkills || []).join(' ').toLowerCase().includes(s)
-      );
+      var s = params.search.toLowerCase();
+      data = data.filter(function(st){
+        return (st.fullName||'').toLowerCase().includes(s) ||
+               (st.rollNo||'').toLowerCase().includes(s)   ||
+               (st.department||'').toLowerCase().includes(s)||
+               normalizeArr(st.technicalSkills).join(' ').toLowerCase().includes(s);
+      });
     }
-
-    if (params.department) data = data.filter(st => st.department === params.department);
-    if (params.semester) data = data.filter(st => st.semester === params.semester);
-    if (params.preferredDomain) data = data.filter(st => st.preferredDomain === params.preferredDomain);
-
-    return { data, meta: { total: data.length, page: 1, totalPages: 1 } };
+    if (params.department)     data = data.filter(function(st){ return st.department     === params.department; });
+    if (params.semester)       data = data.filter(function(st){ return st.semester       === params.semester; });
+    if (params.preferredDomain)data = data.filter(function(st){ return st.preferredDomain=== params.preferredDomain; });
+    return { data: data, meta: { total: data.length, page: 1, totalPages: 1 } };
   },
 
   async getStudent(id) {
@@ -367,42 +257,26 @@ const DataService = {
   },
 
   async createStudent(payload) {
-    if (await isBackendOnline()) return StudentsAPI.register(payload);
-
-    const raw = payload instanceof FormData ? Object.fromEntries(payload) : { ...payload };
-
-    const student = {
-      ...raw,
-      _id: genId(),
-      id: genId(),
-      technicalSkills: normalizeArray(raw.technicalSkills),
-      softSkills: normalizeArray(raw.softSkills),
-      certifications: normalizeArray(raw.certifications),
-      areasOfInterest: normalizeArray(raw.areasOfInterest),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
+    if (await isBackendOnline()) return StudentsAPI.create(payload);
+    var raw     = payload instanceof FormData ? Object.fromEntries(payload.entries()) : Object.assign({}, payload);
+    var student = normalizeStudentRecord(raw, null);
+    if (raw.resume && typeof raw.resume === 'object') {
+      student.resumeOriginalName = raw.resume.name || 'resume';
+      student.resumeFile         = raw.resume.name || 'resume';
+    }
     Store.save(KEYS.STUDENTS, student);
     return student;
   },
 
   async updateStudent(id, payload) {
     if (await isBackendOnline()) return StudentsAPI.update(id, payload);
-
-    const existing = Store.getOne(KEYS.STUDENTS, id) || {};
-    const raw = payload instanceof FormData ? Object.fromEntries(payload) : { ...payload };
-
-    ['technicalSkills', 'softSkills', 'certifications', 'areasOfInterest'].forEach(f => {
-      if (raw[f] !== undefined) raw[f] = normalizeArray(raw[f]);
-    });
-
-    const updated = {
-      ...existing,
-      ...raw,
-      updatedAt: new Date().toISOString(),
-    };
-
+    var existing = Store.getOne(KEYS.STUDENTS, id) || {};
+    var raw      = payload instanceof FormData ? Object.fromEntries(payload.entries()) : Object.assign({}, payload);
+    var updated  = normalizeStudentRecord(raw, existing);
+    if (raw.resume && typeof raw.resume === 'object') {
+      updated.resumeOriginalName = raw.resume.name || existing.resumeOriginalName || 'resume';
+      updated.resumeFile         = raw.resume.name || existing.resumeFile         || 'resume';
+    }
     Store.save(KEYS.STUDENTS, updated);
     return updated;
   },
@@ -412,65 +286,36 @@ const DataService = {
     Store.remove(KEYS.STUDENTS, id);
   },
 
-  async getRecommendations(studentId, topN = 10) {
+  async getRecommendations(studentId, topN) {
+    topN = topN || 10;
     if (await isBackendOnline()) return StudentsAPI.getRecommendations(studentId, topN);
-
-    const student = Store.getOne(KEYS.STUDENTS, studentId);
-    const internships = Store.get(KEYS.INTERNSHIPS);
+    var student     = Store.getOne(KEYS.STUDENTS, studentId);
+    var internships = Store.get(KEYS.INTERNSHIPS);
     if (!student) return [];
-
     return internships
-      .map(i => {
-        const score = calcMatchScore(student, i);
-        return {
-          internship: i,
-          matchScore: score,
-          label: score >= 80
-            ? 'Excellent Match'
-            : score >= 60
-              ? 'Good Match'
-              : score >= 40
-                ? 'Fair Match'
-                : 'Low Match',
-          breakdown: {},
-        };
-      })
-      .sort((a, b) => b.matchScore - a.matchScore)
+      .map(function(i){ var score = calcMatchScore(student, i); return { internship: i, matchScore: score, label: score>=80?'Excellent Match':score>=60?'Good Match':score>=40?'Fair Match':'Low Match', breakdown:{} }; })
+      .sort(function(a, b){ return b.matchScore - a.matchScore; })
       .slice(0, topN);
   },
 
   async getStudentApplications(studentId) {
     if (await isBackendOnline()) return StudentsAPI.getApplications(studentId);
-
     return Store.get(KEYS.APPLICATIONS)
-      .filter(a => (a.studentId || a.student) === studentId)
-      .map(a => ({
-        ...a,
-        internship: Store.getOne(KEYS.INTERNSHIPS, a.internshipId || a.internship),
-      }));
+      .filter(function(a){ return (a.studentId || a.student) === studentId; })
+      .map(function(a){ return Object.assign({}, a, { internship: Store.getOne(KEYS.INTERNSHIPS, a.internshipId || a.internship) }); });
   },
 
-  // ── Internships ─────────────────────────────────────────────
-  async getInternships(params = {}) {
+  /* ── Internships ──────────────────────────────────────────── */
+  async getInternships(params) {
+    params = params || {};
     if (await isBackendOnline()) return InternshipsAPI.getAll(params);
-
-    let data = Store.get(KEYS.INTERNSHIPS);
-
-    if (params.search) {
-      const s = params.search.toLowerCase();
-      data = data.filter(i =>
-        (i.title || '').toLowerCase().includes(s) ||
-        (i.company || '').toLowerCase().includes(s) ||
-        (i.domain || '').toLowerCase().includes(s)
-      );
-    }
-
-    if (params.domain) data = data.filter(i => i.domain === params.domain);
-    if (params.location) data = data.filter(i => i.location === params.location);
-    if (params.duration) data = data.filter(i => i.duration === params.duration);
-    if (params.minCgpa) data = data.filter(i => parseFloat(i.minCgpa || 0) <= parseFloat(params.minCgpa));
-
-    return { data, meta: { total: data.length } };
+    var data = Store.get(KEYS.INTERNSHIPS);
+    if (params.search) { var s2 = params.search.toLowerCase(); data = data.filter(function(i){ return (i.title||'').toLowerCase().includes(s2)||(i.company||'').toLowerCase().includes(s2)||(i.domain||'').toLowerCase().includes(s2); }); }
+    if (params.domain)   data = data.filter(function(i){ return i.domain   === params.domain; });
+    if (params.location) data = data.filter(function(i){ return i.location === params.location; });
+    if (params.duration) data = data.filter(function(i){ return i.duration === params.duration; });
+    if (params.minCgpa)  data = data.filter(function(i){ return parseFloat(i.minCgpa||0) <= parseFloat(params.minCgpa); });
+    return { data: data, meta: { total: data.length } };
   },
 
   async getInternship(id) {
@@ -480,87 +325,61 @@ const DataService = {
 
   async getFilterMeta() {
     if (await isBackendOnline()) return InternshipsAPI.getFilterMeta();
-
-    const all = Store.get(KEYS.INTERNSHIPS);
+    var all = Store.get(KEYS.INTERNSHIPS);
     return {
-      domains: [...new Set(all.map(i => i.domain).filter(Boolean))],
-      locations: [...new Set(all.map(i => i.location).filter(Boolean))],
-      durations: [...new Set(all.map(i => i.duration).filter(Boolean))],
+      domains:   [...new Set(all.map(function(i){ return i.domain;   }).filter(Boolean))],
+      locations: [...new Set(all.map(function(i){ return i.location; }).filter(Boolean))],
+      durations: [...new Set(all.map(function(i){ return i.duration; }).filter(Boolean))]
     };
   },
 
-  // ── Applications ────────────────────────────────────────────
-  async applyForInternship(studentId, internshipId, coverLetter = '') {
+  /* ── Applications ─────────────────────────────────────────── */
+  async applyForInternship(studentId, internshipId, coverLetter) {
+    coverLetter = coverLetter || '';
     if (await isBackendOnline()) return ApplicationsAPI.create(studentId, internshipId, coverLetter);
-
-    const apps = Store.get(KEYS.APPLICATIONS);
-
-    if (apps.some(a =>
-      (a.studentId || a.student) === studentId &&
-      (a.internshipId || a.internship) === internshipId
-    )) {
+    var apps = Store.get(KEYS.APPLICATIONS);
+    if (apps.some(function(a){ return (a.studentId||a.student)===studentId && (a.internshipId||a.internship)===internshipId; })) {
       throw new Error('You have already applied for this internship');
     }
-
-    const student = Store.getOne(KEYS.STUDENTS, studentId);
-    const internship = Store.getOne(KEYS.INTERNSHIPS, internshipId);
-    const score = calcMatchScore(student, internship);
-
-    const app = {
-      _id: genId(),
-      id: genId(),
-      studentId,
-      internshipId,
-      student: {
-        fullName: student?.fullName,
-        rollNo: student?.rollNo,
-        department: student?.department
-      },
-      internship: {
-        title: internship?.title,
-        company: internship?.company,
-        domain: internship?.domain
-      },
-      studentName: student?.fullName || '',
-      rollNo: student?.rollNo || '',
-      matchScore: score,
-      coverLetter,
+    var student    = Store.getOne(KEYS.STUDENTS, studentId);
+    var internship = Store.getOne(KEYS.INTERNSHIPS, internshipId);
+    var score      = calcMatchScore(student, internship);
+    var appId      = (typeof genId === 'function' ? genId() : Math.random().toString(36).slice(2));
+    var app = {
+      _id: appId, id: appId,
+      studentId: studentId, internshipId: internshipId,
+      student:    { fullName: student && student.fullName,    rollNo: student && student.rollNo,    department: student && student.department },
+      internship: { title:    internship && internship.title, company: internship && internship.company, domain: internship && internship.domain },
+      studentName: (student && student.fullName) || '',
+      rollNo:      (student && student.rollNo)   || '',
+      matchScore: score, coverLetter: coverLetter,
       status: 'Pending',
-      appliedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
+      appliedAt: new Date().toISOString(), createdAt: new Date().toISOString()
     };
-
     Store.save(KEYS.APPLICATIONS, app);
     return app;
   },
 
-  async getApplications(params = {}) {
+  async getApplications(params) {
+    params = params || {};
     if (await isBackendOnline()) return ApplicationsAPI.getAll(params);
-
-    let data = Store.get(KEYS.APPLICATIONS);
-
-    if (params.status) data = data.filter(a => a.status === params.status);
-    if (params.studentId) {
-      data = data.filter(a => (a.studentId || a.student?._id || a.student) === params.studentId);
-    }
-    if (params.internshipId) {
-      data = data.filter(a => (a.internshipId || a.internship?._id || a.internship) === params.internshipId);
-    }
-
-    return { data, meta: { total: data.length } };
+    var data = Store.get(KEYS.APPLICATIONS);
+    if (params.status)       data = data.filter(function(a){ return a.status === params.status; });
+    if (params.studentId)    data = data.filter(function(a){ return (a.studentId||a.student) === params.studentId; });
+    if (params.internshipId) data = data.filter(function(a){ return (a.internshipId||a.internship) === params.internshipId; });
+    return { data: data, meta: { total: data.length } };
   },
 
-  async updateApplicationStatus(id, status, notes = '') {
+  async updateApplicationStatus(id, status, notes) {
+    notes = notes || '';
     if (await isBackendOnline()) return ApplicationsAPI.updateStatus(id, status, notes);
-
-    const apps = Store.get(KEYS.APPLICATIONS);
-    const idx = apps.findIndex(a => (a._id || a.id) === id);
-
+    var apps = Store.get(KEYS.APPLICATIONS);
+    var idx  = apps.findIndex(function(a){ return (a._id||a.id) === id; });
     if (idx >= 0) {
-      apps[idx].status = status;
+      apps[idx].status    = status;
+      apps[idx].updatedAt = new Date().toISOString();
       if (notes) apps[idx].adminNotes = notes;
     }
-
     Store.set(KEYS.APPLICATIONS, apps);
     return apps[idx];
   },
@@ -570,92 +389,52 @@ const DataService = {
     Store.remove(KEYS.APPLICATIONS, id);
   },
 
-  // ── Admin Dashboard ─────────────────────────────────────────
+  /* ── Admin Dashboard ──────────────────────────────────────── */
   async getAdminDashboard() {
     if (await isBackendOnline()) return AdminAPI.getDashboard();
-
-    const students = Store.get(KEYS.STUDENTS);
-    const internships = Store.get(KEYS.INTERNSHIPS);
-    const apps = Store.get(KEYS.APPLICATIONS);
-
-    const groupBy = (arr, key) =>
-      arr.reduce((m, i) => {
-        m[i[key]] = (m[i[key]] || 0) + 1;
-        return m;
-      }, {});
-
+    var students    = Store.get(KEYS.STUDENTS);
+    var internships = Store.get(KEYS.INTERNSHIPS);
+    var apps        = Store.get(KEYS.APPLICATIONS);
+    function groupBy(arr, key){ return arr.reduce(function(m,i){ m[i[key]]=(m[i[key]]||0)+1; return m; }, {}); }
     return {
       stats: {
-        totalStudents: students.length,
+        totalStudents:    students.length,
         totalInternships: internships.length,
-        totalApplications: apps.length,
-        accepted: apps.filter(a => a.status === 'Accepted').length,
-        pending: apps.filter(a => a.status === 'Pending').length,
-        shortlisted: apps.filter(a => a.status === 'Shortlisted').length,
-        rejected: apps.filter(a => a.status === 'Rejected').length,
+        totalApplications:apps.length,
+        accepted:    apps.filter(function(a){ return a.status==='Accepted';    }).length,
+        pending:     apps.filter(function(a){ return a.status==='Pending';     }).length,
+        shortlisted: apps.filter(function(a){ return a.status==='Shortlisted'; }).length,
+        rejected:    apps.filter(function(a){ return a.status==='Rejected';    }).length
       },
-      deptBreakdown: Object.entries(groupBy(students, 'department'))
-        .map(([_id, count]) => ({ _id, count }))
-        .sort((a, b) => b.count - a.count),
-
-      domainBreakdown: Object.entries(groupBy(students, 'preferredDomain'))
-        .map(([_id, count]) => ({ _id, count }))
-        .sort((a, b) => b.count - a.count),
-
-      cgpaStats: {
-        avgCgpa: students.length
-          ? (students.reduce((s, st) => s + (parseFloat(st.cgpa) || 0), 0) / students.length).toFixed(2)
-          : 0
-      },
-
-      recentStudents: [...students]
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 5),
-
-      recentApplications: [...apps]
-        .sort((a, b) => new Date(b.createdAt || b.appliedAt) - new Date(a.createdAt || a.appliedAt))
-        .slice(0, 5)
-        .map(a => ({
-          ...a,
-          student: {
-            fullName: a.studentName || a.student?.fullName,
-            rollNo: a.rollNo || a.student?.rollNo
-          },
-          internship: Store.getOne(KEYS.INTERNSHIPS, a.internshipId || a.internship),
-        })),
+      deptBreakdown:   Object.entries(groupBy(students,'department'))  .map(function(e){ return {_id:e[0],count:e[1]}; }).sort(function(a,b){ return b.count-a.count; }),
+      domainBreakdown: Object.entries(groupBy(students,'preferredDomain')).map(function(e){ return {_id:e[0],count:e[1]}; }).sort(function(a,b){ return b.count-a.count; }),
+      cgpaStats: { avgCgpa: students.length ? (students.reduce(function(s,st){ return s+(parseFloat(st.cgpa)||0); },0)/students.length).toFixed(2) : 0 },
+      recentStudents: students.slice().sort(function(a,b){ return new Date(b.createdAt)-new Date(a.createdAt); }).slice(0,5),
+      recentApplications: apps.slice()
+        .sort(function(a,b){ return new Date(b.createdAt||b.appliedAt)-new Date(a.createdAt||a.appliedAt); })
+        .slice(0,5)
+        .map(function(a){ return Object.assign({},a, { student: { fullName: a.studentName||((a.student||{}).fullName), rollNo: a.rollNo||((a.student||{}).rollNo) }, internship: Store.getOne(KEYS.INTERNSHIPS, a.internshipId||a.internship) }); })
     };
   },
 
   async getAllocationReport() {
     if (await isBackendOnline()) return AdminAPI.getAllocationReport();
-
-    const students = Store.get(KEYS.STUDENTS);
-    const internships = Store.get(KEYS.INTERNSHIPS);
-    const apps = Store.get(KEYS.APPLICATIONS);
-
-    return students.map(s => {
-      const scored = internships
-        .map(i => ({ internship: i, matchScore: calcMatchScore(s, i) }))
-        .sort((a, b) => b.matchScore - a.matchScore);
-
-      const bestApp = apps
-        .filter(a => ((a.studentId || a.student) === s._id) || a.studentId === s.id)
-        .sort((a, b) => b.matchScore - a.matchScore)[0];
-
-      return {
-        student: s,
-        bestMatch: scored[0]?.internship || null,
-        bestScore: scored[0]?.matchScore || 0,
-        applicationStatus: bestApp?.status || 'Not Applied',
-      };
+    var students    = Store.get(KEYS.STUDENTS);
+    var internships = Store.get(KEYS.INTERNSHIPS);
+    var apps        = Store.get(KEYS.APPLICATIONS);
+    return students.map(function(s){
+      var scored = internships.map(function(i){ return { internship:i, matchScore: calcMatchScore(s,i) }; }).sort(function(a,b){ return b.matchScore-a.matchScore; });
+      var bestApp = apps.filter(function(a){ return (a.studentId||a.student)===s._id || (a.studentId||a.student)===s.id; }).sort(function(a,b){ return b.matchScore-a.matchScore; })[0];
+      return { student:s, bestMatch: scored[0] && scored[0].internship || null, bestScore: scored[0] && scored[0].matchScore || 0, applicationStatus: (bestApp&&bestApp.status)||'Not Applied' };
     });
-  },
+  }
 };
 
-// Optional global exposure if your frontend uses window.DataService etc.
-window.TokenStore = TokenStore;
-window.StudentsAPI = StudentsAPI;
-window.InternshipsAPI = InternshipsAPI;
+/* ── Expose globally ────────────────────────────────────────── */
+window.TokenStore      = TokenStore;
+window.StudentsAPI     = StudentsAPI;
+window.InternshipsAPI  = InternshipsAPI;
 window.ApplicationsAPI = ApplicationsAPI;
-window.AdminAPI = AdminAPI;
-window.DataService = DataService;
+window.AdminAPI        = AdminAPI;
+window.DataService     = DataService;
+window.isBackendOnline = isBackendOnline;

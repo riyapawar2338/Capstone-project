@@ -31,29 +31,25 @@ app.use(
 
 // ── CORS Configuration ────────────────────────────────────────
 const allowedOrigins = [
-  process.env.CLIENT_ORIGIN || 'http://127.0.0.1:5500',
-  'https://riyapawar2338.github.io',
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
   'http://localhost:3000',
-  'http://127.0.0.1:3000'
+  'http://localhost:3001',
+  'http://localhost:5000',
+  'http://localhost:5001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5500',
+  'http://localhost:5500',
+  'https://riyapawar2338.github.io',
+  'https://capstone-project-backend-m20u.onrender.com'
 ];
 
 app.use(cors({
-  origin: function(origin, callback) {
-    // allow requests with no origin (Postman, curl, mobile apps, same-origin)
+  origin(origin, callback) {
     if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    return callback(new Error(`CORS blocked for origin: ${origin}`));
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true
 }));
-
-app.options('*', cors());
 
 // ── Body parsers ──────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
@@ -104,6 +100,51 @@ app.use('/api/internships',  require('./internshipRoutes'));
 app.use('/api/applications', require('./applicationRoutes'));
 app.use('/api/admin',        require('./adminRoutes'));
 
+// ── Student login (separate from admin JWT login) ─────────────
+const Student = require('./Student');
+app.post('/api/auth/student-login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required.' });
+    }
+    const student = await Student.findOne({ email: email.toLowerCase().trim() }).select('+password');
+    if (!student) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+    }
+    const bcrypt = require('bcryptjs');
+    const match  = await bcrypt.compare(password, student.password);
+    if (!match) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+    }
+    if (!student.isActive) {
+      return res.status(403).json({ success: false, message: 'Account is disabled.' });
+    }
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { id: student._id, role: 'student', email: student.email },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRE || '7d' }
+    );
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        token,
+        student: {
+          id:       student._id,
+          fullName: student.fullName,
+          email:    student.email,
+          rollNo:   student.rollNo,
+          role:     'student'
+        }
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── Root route (optional, useful for Render test) ────────────
 app.get('/', (req, res) => {
   res.send('AI Internship Backend is running 🚀');
@@ -124,11 +165,12 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5001;
 
 const server = app.listen(PORT, () => {
+  const env = process.env.NODE_ENV || 'development';
   console.log('\n╔══════════════════════════════════════════════╗');
-  console.log('║  AI Internship Allocation System            ║');
+  console.log('║  AI Internship Allocation System             ║');
   console.log('╠══════════════════════════════════════════════╣');
-  console.log(`║  🚀 Server : Port ${PORT}                   ║`);
-  console.log(`║  🌿 Env    : ${process.env.NODE_ENV || 'development'}               ║`);
+  console.log(`║  🚀 Server  : http://localhost:${PORT}          ║`);
+  console.log(`║  🌿 Env     : ${env.padEnd(32)}║`);
   console.log('╚══════════════════════════════════════════════╝\n');
 });
 

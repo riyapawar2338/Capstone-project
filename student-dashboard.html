@@ -159,13 +159,23 @@ document.addEventListener('DOMContentLoaded', function() {
   var students = Store.get(KEYS.STUDENTS);
 
   if (session.role==='student') {
-    /* Match by roll number or email */
-    student = students.find(function(s){
-      return s.email && s.email.toLowerCase()===session.email.toLowerCase();
-    });
+    /* Match by session id (most reliable — set by registerUser) */
+    var sid = session.id || session._id;
+    if (sid) {
+      student = students.find(function(s){
+        return (s._id||s.id) === sid;
+      });
+    }
+    /* Fallback: match by email */
+    if (!student) {
+      student = students.find(function(s){
+        return s.email && s.email.toLowerCase()===session.email.toLowerCase();
+      });
+    }
+    /* Fallback: match by roll number */
     if (!student && session.rollNo) {
       student = students.find(function(s){
-        return s.rollNo && s.rollNo.toLowerCase()===session.rollNo.toLowerCase();
+        return s.rollNo && s.rollNo.toLowerCase()===(session.rollNo||'').toLowerCase();
       });
     }
   } else if (session.role==='admin') {
@@ -181,8 +191,9 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
+  var studentEditId = student._id || student.id;
   document.getElementById('dashActions').innerHTML =
-    '<a href="student-management.html" class="btn btn-outline btn-sm">✏️ Edit Profile</a>'+
+    '<a href="student-management.html" class="btn btn-outline btn-sm" onclick="sessionStorage.setItem('editStudentId',\''+studentEditId+'\')">✏️ Edit Profile</a>'+
     '<a href="recommendations.html" class="btn btn-primary btn-sm">🎯 Find Internships</a>';
 
   loadStudentDash(student);

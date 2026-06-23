@@ -118,14 +118,27 @@ const StudentSchema = new mongoose.Schema(
       default: '',
     },
 
-    // ── Resume ─────────────────────────────────────────────────
+        // ── Resume ─────────────────────────────────────────────────
     resumeFile: {
-      type: String,   // stored filename
+      type: String,
       default: '',
     },
     resumeOriginalName: {
       type: String,
       default: '',
+    },
+
+    // ── Authentication ────────────────────────────────────────
+    password: {
+      type: String,
+      required: [true, 'Password is required'],
+      minlength: [6, 'Password must be at least 6 characters'],
+      select: false,
+    },
+    role: {
+      type: String,
+      enum: ['student', 'admin'],
+      default: 'student',
     },
 
     // ── Profile completeness (computed on save) ──────────────
@@ -149,13 +162,27 @@ const StudentSchema = new mongoose.Schema(
   }
 );
 
+
 // ── Indexes ────────────────────────────────────────────────────
-StudentSchema.index({ rollNo: 1 });
-StudentSchema.index({ email: 1 });
 StudentSchema.index({ department: 1 });
 StudentSchema.index({ preferredDomain: 1 });
 StudentSchema.index({ cgpa: -1 });
 StudentSchema.index({ fullName: 'text', rollNo: 'text' }); // text search
+
+// ── Pre-save: hash password ────────────────────────────────────
+const bcrypt = require('bcryptjs');
+
+StudentSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+// ── Instance method: compare password ─────────────────────────
+StudentSchema.methods.matchPassword = async function (enteredPassword) {
+  return bcrypt.compare(enteredPassword, this.password);
+};
 
 // ── Pre-save: compute profile completeness ─────────────────────
 StudentSchema.pre('save', function (next) {

@@ -14,7 +14,8 @@
 .sc-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem}
 .sc-av{width:44px;height:44px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:800;font-size:1.1rem;color:var(--navy)}
 .sc-mt{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.85rem}
-.sc-mt .l{font-size:.7rem;color:var(--muted)}.sc-mt .v{font-size:.82rem;color:var(--white-2);font-weight:500}
+.sc-mt .l{font-size:.7rem;color:var(--muted)}
+.sc-mt .v{font-size:.82rem;color:var(--white-2);font-weight:500}
 .sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(282px,1fr));gap:1.25rem}
 .empty{text-align:center;padding:4rem 2rem;color:var(--muted)}
 .fe{font-size:.78rem;color:var(--danger);margin-top:.3rem;display:none}
@@ -26,7 +27,10 @@
 <div class="bg-grid"></div>
 
 <nav class="navbar">
-  <a href="index.html" class="nav-brand"><div class="brand-icon">🤖</div><span>AI Internship System</span></a>
+  <a href="index.html" class="nav-brand">
+    <div class="brand-icon">🤖</div>
+    <span>AI Internship System</span>
+  </a>
   <div class="nav-links">
     <a href="index.html">Home</a>
     <a href="student-dashboard.html">Dashboard</a>
@@ -42,9 +46,16 @@
 <div class="page-wrapper">
   <div class="page-hero">
     <div class="container">
-      <div class="breadcrumb"><a href="index.html">Home</a><span class="sep">›</span><span>Student Management</span></div>
+      <div class="breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">›</span>
+        <span>Student Management</span>
+      </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
-        <div><h1>Student Management</h1><p>Add, edit, and delete student profiles.</p></div>
+        <div>
+          <h1>Student Management</h1>
+          <p>Add, edit, and delete student profiles.</p>
+        </div>
         <span class="badge badge-cyan" id="totalBadge">0 Students</span>
       </div>
     </div>
@@ -52,15 +63,18 @@
 
   <section>
     <div class="container">
+      <!-- Not logged in banner -->
       <div id="loginBanner" class="hidden" style="background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.3);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
-        <span style="color:var(--warning)">⚠️ You are not logged in. Data may save to browser only. <a href="login.html" style="color:var(--cyan)">Login →</a></span>
+        <span style="color:var(--warning)">⚠️ You are not logged in. Admin login is required for backend student management. <a href="login.html" style="color:var(--cyan)">Login →</a></span>
       </div>
 
       <div class="mgmt-layout">
         <!-- FORM -->
         <div class="fp">
           <div class="card">
-            <div class="card-header"><h3 id="formTitle">➕ Add New Student</h3></div>
+            <div class="card-header">
+              <h3 id="formTitle">➕ Add New Student</h3>
+            </div>
             <div class="card-body">
               <input type="hidden" id="sid"/>
 
@@ -96,8 +110,14 @@
                   <label class="form-label">Semester <span class="req">*</span></label>
                   <select class="form-control" id="sSem">
                     <option value="">Select Sem</option>
-                    <option>Semester 1</option><option>Semester 2</option><option>Semester 3</option>
-                    <option>Semester 4</option><option>Semester 5</option><option>Semester 6</option>
+                    <option>Semester 1</option>
+                    <option>Semester 2</option>
+                    <option>Semester 3</option>
+                    <option>Semester 4</option>
+                    <option>Semester 5</option>
+                    <option>Semester 6</option>
+                    <option>Semester 7</option>
+                    <option>Semester 8</option>
                   </select>
                   <div class="fe" id="e-sSem"></div>
                 </div>
@@ -117,7 +137,9 @@
 
               <div class="form-group">
                 <label class="form-label">Technical Skills <span class="req">*</span></label>
-                <div class="tags-input-wrapper" id="wTech"><input class="tags-input" placeholder="Type skill + Enter…"/></div>
+                <div class="tags-input-wrapper" id="wTech">
+                  <input class="tags-input" placeholder="Type skill + Enter…"/>
+                </div>
                 <input type="hidden" id="sTech"/>
                 <div class="form-hint">e.g. Python, React, SQL — press Enter after each</div>
                 <div class="fe" id="e-sTech"></div>
@@ -125,13 +147,17 @@
 
               <div class="form-group">
                 <label class="form-label">Soft Skills</label>
-                <div class="tags-input-wrapper" id="wSoft"><input class="tags-input" placeholder="e.g. Communication…"/></div>
+                <div class="tags-input-wrapper" id="wSoft">
+                  <input class="tags-input" placeholder="e.g. Communication…"/>
+                </div>
                 <input type="hidden" id="sSoft"/>
               </div>
 
               <div class="form-group">
                 <label class="form-label">Certifications</label>
-                <div class="tags-input-wrapper" id="wCert"><input class="tags-input" placeholder="e.g. AWS Practitioner…"/></div>
+                <div class="tags-input-wrapper" id="wCert">
+                  <input class="tags-input" placeholder="e.g. AWS Practitioner…"/>
+                </div>
                 <input type="hidden" id="sCert"/>
               </div>
 
@@ -142,7 +168,9 @@
 
               <div class="form-group">
                 <label class="form-label">Areas of Interest</label>
-                <div class="tags-input-wrapper" id="wInt"><input class="tags-input" placeholder="e.g. AI, Web Dev…"/></div>
+                <div class="tags-input-wrapper" id="wInt">
+                  <input class="tags-input" placeholder="e.g. AI, Web Dev…"/>
+                </div>
                 <input type="hidden" id="sInt"/>
               </div>
 
@@ -150,11 +178,16 @@
                 <label class="form-label">Preferred Domain <span class="req">*</span></label>
                 <select class="form-control" id="sDom">
                   <option value="">Select Domain</option>
-                  <option>Artificial Intelligence</option><option>Web Development</option>
-                  <option>Data Science</option><option>Mobile Development</option>
-                  <option>Cybersecurity</option><option>Cloud Computing</option>
-                  <option>UI/UX Design</option><option>Internet of Things</option>
-                  <option>Embedded Systems</option><option>DevOps</option>
+                  <option>Artificial Intelligence</option>
+                  <option>Web Development</option>
+                  <option>Data Science</option>
+                  <option>Mobile Development</option>
+                  <option>Cybersecurity</option>
+                  <option>Cloud Computing</option>
+                  <option>UI/UX Design</option>
+                  <option>Internet of Things</option>
+                  <option>Embedded Systems</option>
+                  <option>DevOps</option>
                 </select>
                 <div class="fe" id="e-sDom"></div>
               </div>
@@ -216,8 +249,14 @@
               </select>
               <select id="fSem" onchange="renderList()">
                 <option value="">All Semesters</option>
-                <option>Semester 1</option><option>Semester 2</option><option>Semester 3</option>
-                <option>Semester 4</option><option>Semester 5</option><option>Semester 6</option>
+                <option>Semester 1</option>
+                <option>Semester 2</option>
+                <option>Semester 3</option>
+                <option>Semester 4</option>
+                <option>Semester 5</option>
+                <option>Semester 6</option>
+                <option>Semester 7</option>
+                <option>Semester 8</option>
               </select>
             </div>
           </div>
@@ -240,23 +279,25 @@
           </div>
 
           <div id="tView" class="hidden">
-            <div class="card"><div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Name</th>
-                    <th>Roll No.</th>
-                    <th>Department</th>
-                    <th>Sem</th>
-                    <th>CGPA</th>
-                    <th>Domain</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="sTbl"></tbody>
-              </table>
-            </div></div>
+            <div class="card">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Name</th>
+                      <th>Roll No.</th>
+                      <th>Department</th>
+                      <th>Sem</th>
+                      <th>CGPA</th>
+                      <th>Domain</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sTbl"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -265,7 +306,9 @@
 
   <footer>
     <div class="container">
-      <div class="footer-bottom"><p>© 2025 AI Internship Allocation &amp; Recommendation System</p></div>
+      <div class="footer-bottom">
+        <p>© 2025 AI Internship Allocation &amp; Recommendation System</p>
+      </div>
     </div>
   </footer>
 </div>
@@ -294,13 +337,17 @@
 <script>
 var tTech, tSoft, tCert, tInt;
 var pendingDel = null;
-var currentStudents = [];
+var studentsCache = [];
+var currentSession = null;
 
-document.addEventListener('DOMContentLoaded', async function () {
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', async function() {
   try {
-    var session = Auth.getSession ? Auth.getSession() : null;
+    currentSession = (window.Auth && Auth.getSession) ? Auth.getSession() : null;
 
-    if (!session) {
+    if (!currentSession) {
       var lb = document.getElementById('loginBanner');
       if (lb) {
         lb.classList.remove('hidden');
@@ -309,7 +356,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     } else {
       var lb2 = document.getElementById('loginBanner');
       if (lb2) lb2.classList.add('hidden');
-      if (session.role === 'admin') {
+
+      if (currentSession.role === 'admin') {
         var navAdmin = document.getElementById('navAdmin');
         if (navAdmin) navAdmin.classList.remove('hidden');
       }
@@ -320,18 +368,22 @@ document.addEventListener('DOMContentLoaded', async function () {
     tCert = initTagsInput('wCert', 'sCert');
     tInt  = initTagsInput('wInt', 'sInt');
 
-    initFileUpload('resumeArea');
+    if (typeof initFileUpload === 'function') {
+      initFileUpload('resumeArea');
+    }
 
-    document.getElementById('delOk').addEventListener('click', async function () {
+    document.getElementById('delOk').addEventListener('click', async function() {
       if (!pendingDel) return;
+
       try {
         await DataService.deleteStudent(pendingDel);
         pendingDel = null;
         closeModal('delModal');
-        showToast('Student deleted.', 'success');
+        showToast('Student deleted.', 'info');
         await renderList();
       } catch (err) {
-        showToast(err.message || 'Delete failed.', 'error');
+        console.error(err);
+        showToast(err.message || 'Failed to delete student.', 'error');
       }
     });
 
@@ -339,26 +391,29 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (editId) {
       sessionStorage.removeItem('editStudentId');
       await loadEdit(editId);
-    }
-
-    if (session && session.role === 'student' && !document.getElementById('sid').value) {
-      document.getElementById('sEmail').value = session.email || '';
-      if (session.name) document.getElementById('sName').value = session.name;
-      if (session.rollNo) document.getElementById('sRoll').value = session.rollNo;
+    } else if (currentSession && currentSession.role === 'student') {
+      /* Auto-load the logged-in student's own profile */
+      var sid = currentSession.id || currentSession._id;
+      if (sid) await loadEdit(sid);
     }
 
     await renderList();
   } catch (err) {
     console.error(err);
-    showToast(err.message || 'Page load failed.', 'error');
+    showToast(err.message || 'Failed to initialize page.', 'error');
   }
 });
 
+/* ============================================================
+   HELPERS
+   ============================================================ */
 function fe(id, msg) {
   var el = document.getElementById('e-' + id);
   if (!el) return;
+
   el.textContent = msg || '';
   var inp = document.getElementById(id);
+
   if (msg) {
     el.classList.add('show');
     if (inp) inp.classList.add('error');
@@ -369,50 +424,121 @@ function fe(id, msg) {
 }
 
 function clearErr() {
-  ['sName','sRoll','sDept','sSem','sCgpa','sEmail','sDom','sTech','sPhone'].forEach(function(id){
+  ['sName','sRoll','sDept','sSem','sCgpa','sEmail','sDom','sTech','sPhone'].forEach(function(id) {
     fe(id, '');
   });
 }
 
-function setBusy(btn, busy, text) {
-  if (!btn) return;
-  btn.disabled = !!busy;
-  if (busy) {
-    btn.dataset.oldText = btn.textContent;
-    btn.textContent = text || 'Saving...';
-  } else if (btn.dataset.oldText) {
-    btn.textContent = btn.dataset.oldText;
-  }
+function safeArray(v) {
+  if (Array.isArray(v)) return v;
+  if (!v) return [];
+  return String(v).split(',').map(function(s) { return s.trim(); }).filter(Boolean);
 }
 
-function buildStudentPayload() {
-  var fd = new FormData();
-
-  fd.append('fullName', (document.getElementById('sName').value || '').trim());
-  fd.append('rollNo', (document.getElementById('sRoll').value || '').trim().toUpperCase());
-  fd.append('department', document.getElementById('sDept').value || '');
-  fd.append('semester', document.getElementById('sSem').value || '');
-  fd.append('cgpa', document.getElementById('sCgpa').value || '');
-  fd.append('percentage', document.getElementById('sPct').value || '');
-  fd.append('preferredDomain', document.getElementById('sDom').value || '');
-  fd.append('email', (document.getElementById('sEmail').value || '').trim());
-  fd.append('phone', (document.getElementById('sPhone').value || '').trim());
-  fd.append('city', (document.getElementById('sCity').value || '').trim());
-  fd.append('projects', (document.getElementById('sProj').value || '').trim());
-
-  tTech.getTags().forEach(function (tag) { fd.append('technicalSkills', tag); });
-  tSoft.getTags().forEach(function (tag) { fd.append('softSkills', tag); });
-  tCert.getTags().forEach(function (tag) { fd.append('certifications', tag); });
-  tInt.getTags().forEach(function (tag) { fd.append('areasOfInterest', tag); });
-
-  var fileInput = document.getElementById('resumeFile');
-  if (fileInput && fileInput.files && fileInput.files[0]) {
-    fd.append('resume', fileInput.files[0]);
-  }
-
-  return fd;
+function getStudentId(student) {
+  return student && (student._id || student.id) ? (student._id || student.id) : '';
 }
 
+function inits(n) {
+  return (n || '??')
+    .split(' ')
+    .map(function(x) { return x[0] || ''; })
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || '??';
+}
+
+function setView(v, btn) {
+  document.querySelectorAll('.vb').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+
+  document.getElementById('gView').classList.toggle('hidden', v !== 'grid');
+  document.getElementById('tView').classList.toggle('hidden', v !== 'table');
+}
+
+function goDash(id) {
+  sessionStorage.setItem('viewStudentId', id);
+  window.location.href = 'student-dashboard.html';
+}
+
+function delPrompt(id) {
+  var s = studentsCache.find(function(st) { return getStudentId(st) === id; });
+  if (!s) return;
+  pendingDel = id;
+  document.getElementById('delName').textContent = s.fullName || 'this student';
+  openModal('delModal');
+}
+
+function buildStudentPayload(existId) {
+  var fn = (document.getElementById('sName').value || '').trim();
+  var rn = (document.getElementById('sRoll').value || '').trim().toUpperCase();
+  var dp = document.getElementById('sDept').value;
+  var sm = document.getElementById('sSem').value;
+  var cg = document.getElementById('sCgpa').value;
+  var pct = document.getElementById('sPct').value;
+  var em = (document.getElementById('sEmail').value || '').trim();
+  var dm = document.getElementById('sDom').value;
+  var ph = (document.getElementById('sPhone').value || '').trim();
+  var city = (document.getElementById('sCity').value || '').trim();
+  var proj = (document.getElementById('sProj').value || '').trim();
+
+  var resumeInput = document.getElementById('resumeFile');
+  var resumeFile = resumeInput && resumeInput.files ? resumeInput.files[0] : null;
+
+  if (resumeFile) {
+    var fd = new FormData();
+    fd.append('fullName', fn);
+    fd.append('rollNo', rn);
+    fd.append('department', dp);
+    fd.append('semester', sm);
+    fd.append('cgpa', parseFloat(cg));
+    fd.append('percentage', pct ? parseFloat(pct) : '');
+    fd.append('technicalSkills', tTech.getTags().join(','));
+    fd.append('softSkills', tSoft.getTags().join(','));
+    fd.append('certifications', tCert.getTags().join(','));
+    fd.append('areasOfInterest', tInt.getTags().join(','));
+    fd.append('projects', proj);
+    fd.append('preferredDomain', dm);
+    fd.append('email', em);
+    fd.append('phone', ph);
+    fd.append('city', city);
+    fd.append('resume', resumeFile);
+
+    if (!existId) {
+      fd.append('password', 'student123');
+    }
+
+    return fd;
+  }
+
+  var payload = {
+    fullName: fn,
+    rollNo: rn,
+    department: dp,
+    semester: sm,
+    cgpa: parseFloat(cg),
+    percentage: pct ? parseFloat(pct) : null,
+    technicalSkills: tTech.getTags(),
+    softSkills: tSoft.getTags(),
+    certifications: tCert.getTags(),
+    areasOfInterest: tInt.getTags(),
+    projects: proj,
+    preferredDomain: dm,
+    email: em,
+    phone: ph,
+    city: city
+  };
+
+  if (!existId) {
+    payload.password = 'student123';
+  }
+
+  return payload;
+}
+
+/* ============================================================
+   SAVE STUDENT
+   ============================================================ */
 async function saveStudent() {
   clearErr();
 
@@ -451,75 +577,95 @@ async function saveStudent() {
   }
 
   var existId = document.getElementById('sid').value;
-  var saveBtn = document.getElementById('saveBtn');
 
   try {
-    setBusy(saveBtn, true, existId ? 'Updating...' : 'Saving...');
-
-    var payload = buildStudentPayload();
+    var payload = buildStudentPayload(existId);
+    var saved;
 
     if (existId) {
-      await DataService.updateStudent(existId, payload);
-      showToast('✅ Student updated successfully!', 'success');
+      saved = await DataService.updateStudent(existId, payload);
+      showToast('✅ ' + (saved.fullName || 'Student') + ' updated successfully!', 'success');
     } else {
-      await DataService.createStudent(payload);
-      showToast('✅ Student saved to database successfully!', 'success');
+      saved = await DataService.createStudent(payload);
+      showToast('✅ ' + (saved.fullName || 'Student') + ' added successfully!', 'success');
     }
 
+    /* Sync user record with updated name/email so login still works */
+    if (typeof Store !== 'undefined' && typeof KEYS !== 'undefined') {
+      var users = Store.get(KEYS.USERS);
+      var savedId = saved._id || saved.id;
+      var uIdx = users.findIndex(function(u){ return (u.id||u._id) === savedId; });
+      if (uIdx >= 0) {
+        if (saved.fullName) users[uIdx].name  = saved.fullName;
+        if (saved.email)    users[uIdx].email = saved.email;
+        if (saved.rollNo)   users[uIdx].rollNo= saved.rollNo;
+        Store.set(KEYS.USERS, users);
+      }
+    }
     resetForm();
     await renderList();
   } catch (err) {
-    console.error('Save student error:', err);
+    console.error(err);
     showToast(err.message || 'Failed to save student.', 'error');
-  } finally {
-    setBusy(saveBtn, false);
   }
 }
 
+/* ============================================================
+   LOAD EDIT
+   ============================================================ */
 async function loadEdit(id) {
   try {
     var s = await DataService.getStudent(id);
-    if (!s) return;
+    if (!s) {
+      showToast('Student not found.', 'error');
+      return;
+    }
 
-    document.getElementById('sid').value = s._id || s.id || '';
+    document.getElementById('sid').value = getStudentId(s);
     document.getElementById('sName').value = s.fullName || '';
     document.getElementById('sRoll').value = s.rollNo || '';
     document.getElementById('sDept').value = s.department || '';
     document.getElementById('sSem').value = s.semester || '';
-    document.getElementById('sCgpa').value = s.cgpa || '';
-    document.getElementById('sPct').value = s.percentage || '';
+    document.getElementById('sCgpa').value = s.cgpa != null ? s.cgpa : '';
+    document.getElementById('sPct').value = s.percentage != null ? s.percentage : '';
     document.getElementById('sProj').value = s.projects || '';
     document.getElementById('sDom').value = s.preferredDomain || '';
     document.getElementById('sEmail').value = s.email || '';
     document.getElementById('sPhone').value = s.phone || '';
     document.getElementById('sCity').value = s.city || '';
 
-    var ta = function(v){
-      return Array.isArray(v) ? v : (v || '').split(',').map(function(t){ return t.trim(); }).filter(Boolean);
-    };
+    tTech.setTags(safeArray(s.technicalSkills));
+    tSoft.setTags(safeArray(s.softSkills));
+    tCert.setTags(safeArray(s.certifications));
+    tInt.setTags(safeArray(s.areasOfInterest));
 
-    tTech.setTags(ta(s.technicalSkills));
-    tSoft.setTags(ta(s.softSkills));
-    tCert.setTags(ta(s.certifications));
-    tInt.setTags(ta(s.areasOfInterest));
-
-    if (s.resumeOriginalName || s.resumeFile) {
-      document.getElementById('resumeName').textContent = '📎 ' + (s.resumeOriginalName || s.resumeFile);
-    } else {
-      document.getElementById('resumeName').textContent = '';
-    }
+    document.getElementById('resumeName').textContent =
+      (s.resumeOriginalName || s.resumeFile)
+        ? ('📎 ' + (s.resumeOriginalName || s.resumeFile))
+        : '';
 
     document.getElementById('formTitle').textContent = '✏️ Edit Profile';
     document.getElementById('saveBtn').textContent = '💾 Update Profile';
-    document.querySelector('.fp').scrollIntoView({ behavior:'smooth', block:'start' });
+
+    /* Hide delete button for student self-edit */
+    if (currentSession && currentSession.role === 'student') {
+      var delBtns = document.querySelectorAll('[onclick^="delPrompt"]');
+      delBtns.forEach(function(b){ b.style.display='none'; });
+    }
+
+    var fp = document.querySelector('.fp');
+    if (fp) fp.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
     console.error(err);
     showToast(err.message || 'Failed to load student.', 'error');
   }
 }
 
+/* ============================================================
+   RESET FORM
+   ============================================================ */
 function resetForm() {
-  ['sName','sRoll','sCgpa','sPct','sProj','sEmail','sPhone','sCity'].forEach(function(id){
+  ['sName','sRoll','sCgpa','sPct','sProj','sEmail','sPhone','sCity'].forEach(function(id) {
     document.getElementById(id).value = '';
   });
 
@@ -527,12 +673,13 @@ function resetForm() {
   document.getElementById('sSem').value = '';
   document.getElementById('sDom').value = '';
   document.getElementById('sid').value = '';
+  document.getElementById('resumeName').textContent = '';
 
   var rf = document.getElementById('resumeFile');
   if (rf) rf.value = '';
 
-  document.getElementById('resumeName').textContent = '';
-  document.getElementById('resumeArea').dataset.fileName = '';
+  var ra = document.getElementById('resumeArea');
+  if (ra) ra.dataset.fileName = '';
 
   tTech.setTags([]);
   tSoft.setTags([]);
@@ -545,54 +692,48 @@ function resetForm() {
   clearErr();
 }
 
-function delPrompt(id) {
-  var s = currentStudents.find(function(x){
-    return (x._id || x.id) === id;
-  });
-  if (!s) return;
-  pendingDel = id;
-  document.getElementById('delName').textContent = s.fullName || 'this student';
-  openModal('delModal');
-}
-
-function goDash(id) {
-  sessionStorage.setItem('viewStudentId', id);
-  window.location.href = 'student-dashboard.html';
-}
-
-function inits(n) {
-  return (n || '??')
-    .split(' ')
-    .map(function(x){ return x[0] || ''; })
-    .join('')
-    .toUpperCase()
-    .slice(0,2) || '??';
-}
-
-function setView(v, btn) {
-  document.querySelectorAll('.vb').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  document.getElementById('gView').classList.toggle('hidden', v !== 'grid');
-  document.getElementById('tView').classList.toggle('hidden', v !== 'table');
-}
-
+/* ============================================================
+   RENDER LIST
+   ============================================================ */
 async function renderList() {
   try {
-    var params = {};
+    var res = await DataService.getStudents();
+    var all = Array.isArray(res)
+      ? res
+      : Array.isArray(res.data)
+        ? res.data
+        : [];
+
+    /* If student role, only show own record */
+    if (currentSession && currentSession.role === 'student') {
+      var myId = currentSession.id || currentSession._id;
+      all = all.filter(function(s){
+        return (s._id||s.id) === myId ||
+               (s.email && s.email.toLowerCase() === (currentSession.email||'').toLowerCase());
+      });
+    }
+
+    studentsCache = all.slice();
+
+    var q = (document.getElementById('sQ').value || '').toLowerCase();
     var dept = document.getElementById('fDept').value;
-    var sem  = document.getElementById('fSem').value;
-    var q    = (document.getElementById('sQ').value || '').trim();
+    var sem = document.getElementById('fSem').value;
 
-    if (dept) params.department = dept;
-    if (sem) params.semester = sem;
-    if (q) params.search = q;
+    var list = all.filter(function(s) {
+      var sk = safeArray(s.technicalSkills).join(' ');
+      var mq = !q ||
+        (s.fullName || '').toLowerCase().indexOf(q) !== -1 ||
+        (s.rollNo || '').toLowerCase().indexOf(q) !== -1 ||
+        (s.department || '').toLowerCase().indexOf(q) !== -1 ||
+        sk.toLowerCase().indexOf(q) !== -1;
 
-    var res = await DataService.getStudents(params);
-    currentStudents = Array.isArray(res.data) ? res.data : [];
+      return mq &&
+        (!dept || s.department === dept) &&
+        (!sem || s.semester === sem);
+    });
 
-    var allCount = currentStudents.length;
-    document.getElementById('totalBadge').textContent = allCount + ' Student' + (allCount !== 1 ? 's' : '');
-    document.getElementById('rCnt').textContent = 'Showing ' + currentStudents.length + ' student' + (currentStudents.length !== 1 ? 's' : '');
+    document.getElementById('totalBadge').textContent = all.length + ' Student' + (all.length !== 1 ? 's' : '');
+    document.getElementById('rCnt').textContent = 'Showing ' + list.length + ' of ' + all.length + ' students';
 
     var grid = document.getElementById('sGrid');
     var tbody = document.getElementById('sTbl');
@@ -601,7 +742,7 @@ async function renderList() {
     grid.innerHTML = '';
     tbody.innerHTML = '';
 
-    if (!currentStudents.length) {
+    if (!list.length) {
       empty.classList.remove('hidden');
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">No students found.</td></tr>';
       return;
@@ -609,10 +750,11 @@ async function renderList() {
 
     empty.classList.add('hidden');
 
-    currentStudents.forEach(function(s, i) {
-      var sid = s._id || s.id;
-      var skills = Array.isArray(s.technicalSkills) ? s.technicalSkills : [];
-      var shown = skills.slice(0,4);
+    /* Grid */
+    list.forEach(function(s, i) {
+      var sid = getStudentId(s);
+      var skills = safeArray(s.technicalSkills);
+      var shown = skills.slice(0, 4);
       var extra = skills.length - shown.length;
       var cgpa = parseFloat(s.cgpa) || 0;
       var col = cgpa >= 8 ? 'var(--success)' : cgpa >= 6 ? 'var(--warning)' : 'var(--danger)';
@@ -624,8 +766,8 @@ async function renderList() {
           '<div style="display:flex;gap:.75rem;align-items:center">' +
             '<div class="sc-av">' + inits(s.fullName) + '</div>' +
             '<div>' +
-              '<div style="font-weight:700;font-size:.95rem">' + (s.fullName || '') + '</div>' +
-              '<div style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted)">' + (s.rollNo || '') + '</div>' +
+              '<div style="font-weight:700;font-size:.95rem">' + (s.fullName || '—') + '</div>' +
+              '<div style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted)">' + (s.rollNo || '—') + '</div>' +
             '</div>' +
           '</div>' +
           '<div style="display:flex;gap:.35rem">' +
@@ -634,39 +776,55 @@ async function renderList() {
             '<button class="btn btn-danger btn-icon btn-sm" title="Delete" onclick="delPrompt(\'' + sid + '\')">🗑️</button>' +
           '</div>' +
         '</div>' +
+
         '<div class="sc-mt">' +
           '<div><div class="l">Department</div><div class="v">' + (s.department || '—') + '</div></div>' +
           '<div><div class="l">Semester</div><div class="v">' + (s.semester || '—') + '</div></div>' +
           '<div><div class="l">CGPA</div><div class="v" style="color:' + col + '">' + cgpa + '</div></div>' +
           '<div><div class="l">Domain</div><div class="v">' + (s.preferredDomain || '—') + '</div></div>' +
         '</div>' +
+
         '<div style="display:flex;flex-wrap:wrap;gap:.35rem">' +
-          shown.map(function(sk){ return '<span class="chip">' + sk + '</span>'; }).join('') +
+          shown.map(function(sk) { return '<span class="chip">' + sk + '</span>'; }).join('') +
           (extra > 0 ? '<span class="chip" style="background:rgba(255,255,255,.05);color:var(--muted)">+' + extra + '</span>' : '') +
         '</div>';
 
       grid.appendChild(d);
+    });
 
+    /* Table */
+    list.forEach(function(s, i) {
+      var sid = getStudentId(s);
+      var cgpa = parseFloat(s.cgpa) || 0;
+      var col = cgpa >= 8 ? 'var(--success)' : cgpa >= 6 ? 'var(--warning)' : 'var(--danger)';
       var tr = document.createElement('tr');
+
       tr.innerHTML =
         '<td style="color:var(--muted);font-size:.78rem">' + (i + 1) + '</td>' +
-        '<td><strong>' + (s.fullName || '') + '</strong></td>' +
-        '<td><span style="font-family:var(--font-mono);font-size:.78rem">' + (s.rollNo || '') + '</span></td>' +
+        '<td><strong>' + (s.fullName || '—') + '</strong></td>' +
+        '<td><span style="font-family:var(--font-mono);font-size:.78rem">' + (s.rollNo || '—') + '</span></td>' +
         '<td>' + (s.department || '—') + '</td>' +
         '<td>' + (s.semester || '—') + '</td>' +
         '<td style="color:' + col + '"><strong>' + cgpa + '</strong></td>' +
         '<td>' + (s.preferredDomain || '—') + '</td>' +
-        '<td><div style="display:flex;gap:.35rem">' +
-          '<button class="btn btn-ghost btn-icon btn-sm" onclick="goDash(\'' + sid + '\')" title="View">👁️</button>' +
-          '<button class="btn btn-ghost btn-icon btn-sm" onclick="loadEdit(\'' + sid + '\')" title="Edit">✏️</button>' +
-          '<button class="btn btn-danger btn-icon btn-sm" onclick="delPrompt(\'' + sid + '\')" title="Delete">🗑️</button>' +
-        '</div></td>';
+        '<td>' +
+          '<div style="display:flex;gap:.35rem">' +
+            '<button class="btn btn-ghost btn-icon btn-sm" onclick="goDash(\'' + sid + '\')" title="View">👁️</button>' +
+            '<button class="btn btn-ghost btn-icon btn-sm" onclick="loadEdit(\'' + sid + '\')" title="Edit">✏️</button>' +
+            '<button class="btn btn-danger btn-icon btn-sm" onclick="delPrompt(\'' + sid + '\')" title="Delete">🗑️</button>' +
+          '</div>' +
+        '</td>';
 
       tbody.appendChild(tr);
     });
+
   } catch (err) {
-    console.error('Render students error:', err);
+    console.error(err);
     showToast(err.message || 'Failed to load students.', 'error');
+
+    document.getElementById('sGrid').innerHTML = '';
+    document.getElementById('sTbl').innerHTML =
+      '<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:2rem">Failed to load students.</td></tr>';
   }
 }
 </script>
