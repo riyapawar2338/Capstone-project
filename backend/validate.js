@@ -1,4 +1,4 @@
-// middleware/validate.js
+// /validate.js
 const { validationResult, body, param, query } = require('express-validator');
 
 // ── Run validations & return errors ──────────────────────────
