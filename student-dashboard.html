@@ -295,7 +295,7 @@ async function getLoggedInStudent() {
   }
 
   /* 2) localStorage fallback */
-  var students = Store.get(KEYS.STUDENTS);
+  var students = await getStudents();
 
   var student = null;
 

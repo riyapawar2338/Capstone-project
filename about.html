@@ -193,9 +193,18 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var session = Auth.getSession();
-  if (session && session.role === 'admin') document.getElementById('navAdmin').classList.remove('hidden');
+
+  var navAdmin = document.getElementById('navAdmin');
+  if (navAdmin && session && session.role === 'admin') {
+    navAdmin.classList.remove('hidden');
+  }
+
   var al = document.getElementById('navAuthLink');
-  if (al) al.innerHTML = !session ? '<a href="login.html" class="nav-cta btn">Login</a>' : '';
+  if (al) {
+    al.innerHTML = !session
+      ? '<a href="login.html" class="nav-cta btn">Login</a>'
+      : '';
+  }
 });
 </script>
 </body>
