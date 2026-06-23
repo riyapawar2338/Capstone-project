@@ -425,3 +425,143 @@ document.addEventListener('DOMContentLoaded', function () {
     navManage.classList.remove('hidden');
   }
 });
+
+/* =========================================================
+   TAGS INPUT — initTagsInput(wrapperId, hiddenInputId)
+   Returns object with getTags() / setTags(arr) / clear()
+   Used by student-management.html for skills, certs, etc.
+========================================================= */
+function initTagsInput(wrapperId, hiddenId) {
+  var wrapper = document.getElementById(wrapperId);
+  var hidden  = document.getElementById(hiddenId);
+  if (!wrapper) return { getTags: function(){ return []; }, setTags: function(){}, clear: function(){} };
+
+  // The input field inside the wrapper
+  var input = wrapper.querySelector('.tags-input');
+  var tags  = [];
+
+  function render() {
+    // Remove existing tag chips (keep the input element)
+    wrapper.querySelectorAll('.tag-item').forEach(function(el){ el.remove(); });
+
+    tags.forEach(function(tag, i) {
+      var chip = document.createElement('span');
+      chip.className = 'tag-item';
+      chip.innerHTML =
+        tag +
+        '<button type="button" class="tag-remove" data-i="' + i + '" title="Remove">✕</button>';
+      wrapper.insertBefore(chip, input);
+    });
+
+    if (hidden) hidden.value = tags.join(',');
+  }
+
+  function addTag(val) {
+    var v = (val || '').trim();
+    if (!v) return;
+    // Split by comma to allow bulk paste like "Python, JS, React"
+    v.split(',').forEach(function(part) {
+      var p = part.trim();
+      if (p && !tags.includes(p)) {
+        tags.push(p);
+      }
+    });
+    render();
+  }
+
+  function removeTag(i) {
+    tags.splice(i, 1);
+    render();
+  }
+
+  // Keyboard events on the text input
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(input.value);
+      input.value = '';
+    } else if (e.key === 'Backspace' && input.value === '' && tags.length) {
+      removeTag(tags.length - 1);
+    }
+  });
+
+  // Also add on blur (when user clicks away)
+  input.addEventListener('blur', function() {
+    if (input.value.trim()) {
+      addTag(input.value);
+      input.value = '';
+    }
+  });
+
+  // Click on remove button (event delegation on wrapper)
+  wrapper.addEventListener('click', function(e) {
+    var btn = e.target.closest('.tag-remove');
+    if (btn) {
+      removeTag(parseInt(btn.dataset.i, 10));
+    } else {
+      input.focus();
+    }
+  });
+
+  return {
+    getTags:  function() { return tags.slice(); },
+    setTags:  function(arr) {
+      tags = (arr || []).map(function(t){ return (t||'').trim(); }).filter(Boolean);
+      render();
+    },
+    addTag:   addTag,
+    clear:    function() { tags = []; render(); }
+  };
+}
+
+/* =========================================================
+   FILE UPLOAD AREA — initFileUpload(areaId)
+   Makes the drag-and-drop resume upload area work
+========================================================= */
+function initFileUpload(areaId) {
+  var area  = document.getElementById(areaId);
+  var input = document.getElementById('resumeFile');
+  var label = document.getElementById('resumeName');
+  if (!area || !input) return;
+
+  // Click anywhere on area triggers file dialog
+  area.addEventListener('click', function(e) {
+    if (e.target !== input) input.click();
+  });
+
+  // Show chosen filename
+  input.addEventListener('change', function() {
+    if (input.files && input.files[0]) {
+      var name = input.files[0].name;
+      if (label) label.textContent = '📎 ' + name;
+      area.dataset.fileName = name;
+    }
+  });
+
+  // Drag and drop support
+  area.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    area.style.borderColor = 'var(--cyan)';
+  });
+
+  area.addEventListener('dragleave', function() {
+    area.style.borderColor = '';
+  });
+
+  area.addEventListener('drop', function(e) {
+    e.preventDefault();
+    area.style.borderColor = '';
+    var files = e.dataTransfer.files;
+    if (files && files[0]) {
+      // Assign to file input via DataTransfer
+      try {
+        var dt = new DataTransfer();
+        dt.items.add(files[0]);
+        input.files = dt.files;
+      } catch(ex) { /* Safari fallback — can't set input.files */ }
+      var name = files[0].name;
+      if (label) label.textContent = '📎 ' + name;
+      area.dataset.fileName = name;
+    }
+  });
+}
