@@ -32,8 +32,10 @@ var Store = {
   },
 
   getOne: function (key, id) {
+    if (!id) return null;
     return this.get(key).find(function (item) {
-      return item.id === id || item._id === id;
+      return item.id === id || item._id === id ||
+             String(item.id) === String(id) || String(item._id) === String(id);
     }) || null;
   },
 
@@ -304,30 +306,47 @@ async function syncFromBackend() {
     var online = (typeof isBackendOnline === 'function') ? await isBackendOnline() : false;
     if (!online) return;
 
+    // Normalize helper: ensure every item has both id and _id set
+    function normalize(arr) {
+      return (arr || []).map(function(item) {
+        var copy = Object.assign({}, item);
+        if (!copy.id && copy._id) copy.id = copy._id;
+        if (!copy._id && copy.id) copy._id = copy.id;
+        return copy;
+      });
+    }
+
     // Sync students
     try {
       var res = await StudentsAPI.getAll();
-      var list = Array.isArray(res) ? res : (res.data || res.students || []);
+      var list = normalize(Array.isArray(res) ? res : (res.data || res.students || []));
       if (list.length) Store.set(KEYS.STUDENTS, list);
-    } catch (e) {}
+    } catch (e) { console.warn('sync students failed:', e.message); }
 
     // Sync internships
     try {
       var res2 = await InternshipsAPI.getAll();
-      var list2 = Array.isArray(res2) ? res2 : (res2.data || res2.internships || []);
+      var list2 = normalize(Array.isArray(res2) ? res2 : (res2.data || res2.internships || []));
       if (list2.length) Store.set(KEYS.INTERNSHIPS, list2);
-    } catch (e) {}
+    } catch (e) { console.warn('sync internships failed:', e.message); }
 
     // Sync applications
     try {
       var res3 = await ApplicationsAPI.getAll();
-      var list3 = Array.isArray(res3) ? res3 : (res3.data || res3.applications || []);
+      var list3 = normalize(Array.isArray(res3) ? res3 : (res3.data || res3.applications || []));
       if (list3.length) Store.set(KEYS.APPLICATIONS, list3);
-    } catch (e) {}
+    } catch (e) { console.warn('sync applications failed:', e.message); }
 
   } catch (e) {
     console.warn('syncFromBackend failed:', e.message);
   }
+}
+
+/* =========================================================
+   UNIQUE ID GENERATOR — used for offline application records
+========================================================= */
+function genId() {
+  return 'app_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
 }
 
 /* =========================================================

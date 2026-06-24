@@ -141,7 +141,12 @@ var ICONS={'Artificial Intelligence':'🤖','Web Development':'🌐','Data Scien
            'Cybersecurity':'🔒','Cloud Computing':'☁️','UI/UX Design':'🎨','Internet of Things':'🔌',
            'Embedded Systems':'🔧','DevOps':'⚙️'};
 
-document.addEventListener('DOMContentLoaded',function(){
+/* helper — get correct id from student (MongoDB _id or local id) */
+function getSid(s){ return s._id || s.id || null; }
+/* helper — generate unique ID for offline applications */
+function genId(){ return 'app_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+
+document.addEventListener('DOMContentLoaded', async function(){
   var session=Auth.getSession();
   if(session && session.role==='admin') document.getElementById('navAdmin').classList.remove('hidden');
 
@@ -149,12 +154,14 @@ document.addEventListener('DOMContentLoaded',function(){
     document.getElementById('loginPrompt').style.display='flex';
   } else {
     document.getElementById('aiBar').style.display='flex';
+    /* Pull latest data from MongoDB into Store */
+    await syncFromBackend();
     fillStudentSelector(session);
     /* Auto-select student whose email matches session */
     var students=Store.get(KEYS.STUDENTS);
     var mine=students.find(function(s){ return s.email&&s.email.toLowerCase()===session.email.toLowerCase(); });
     if(mine){
-      document.getElementById('stuSel').value=mine.id;
+      document.getElementById('stuSel').value= getSid(mine);
       selStudent=mine;
     }
   }
@@ -170,7 +177,7 @@ function fillStudentSelector(session){
     /* Students can only see themselves; admins see all */
     if(session.role==='admin'||(s.email&&s.email.toLowerCase()===session.email.toLowerCase())){
       var o=document.createElement('option');
-      o.value=s.id; o.textContent=s.fullName+' ('+s.rollNo+')';
+      o.value=getSid(s); o.textContent=s.fullName+' ('+s.rollNo+')';
       sel.appendChild(o);
     }
   });
@@ -179,6 +186,10 @@ function fillStudentSelector(session){
 function onStuChange(){
   var id=document.getElementById('stuSel').value;
   selStudent=id?Store.getOne(KEYS.STUDENTS,id):null;
+  /* Also try matching by _id since MongoDB uses _id */
+  if(!selStudent && id){
+    selStudent=Store.get(KEYS.STUDENTS).find(function(s){ return (s._id||s.id)===id; });
+  }
   render();
 }
 
@@ -239,7 +250,7 @@ function render(){
 
   list.forEach(function(i){
     var sc=i.score, isRec=sc!==null&&sc>=60;
-    var isApp=selStudent&&apps.some(function(a){return a.internshipId===i.id&&a.studentId===selStudent.id;});
+    var isApp=selStudent&&apps.some(function(a){return (a.internshipId===(i._id||i.id))&&(a.studentId===getSid(selStudent));});
     var col=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--danger)';
     var R=22,circ=(2*Math.PI*R).toFixed(1),offset=sc!==null?(parseFloat(circ)-(sc/100)*parseFloat(circ)).toFixed(1):circ;
     var skills=Array.isArray(i.requiredSkills)?i.requiredSkills:(i.requiredSkills||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
@@ -265,7 +276,7 @@ function render(){
     } else if(!selStudent){
       applyHtml='<a href="student-management.html" class="btn btn-outline btn-sm">Fill Profile First</a>';
     } else {
-      applyHtml='<button class="btn btn-primary btn-sm" onclick="openApply(\''+i.id+'\')">Apply Now →</button>';
+      applyHtml='<button class="btn btn-primary btn-sm" onclick="openApply(\''+(i._id||i.id)+'\')">Apply Now →</button>';
     }
 
     var card=document.createElement('div');
@@ -296,8 +307,10 @@ function render(){
 }
 
 function openApply(iid){
-  if(!selStudent){showToast('Please select your student profile first.','warning');return;}
-  var i=Store.getOne(KEYS.INTERNSHIPS,iid); if(!i) return;
+  if(!selStudent){showToast('Please fill your student profile first — go to Students page.','warning');return;}
+  var i=Store.getOne(KEYS.INTERNSHIPS,iid);
+  if(!i) i=Store.get(KEYS.INTERNSHIPS).find(function(x){return (x._id||x.id)===iid;});
+  if(!i){showToast('Internship not found. Try refreshing the page.','error');return;}
   pendingIid=iid;
   var sc=calcMatchScore(selStudent,i);
   document.getElementById('applyInfo').innerHTML=
@@ -312,21 +325,62 @@ function openApply(iid){
   openModal('applyModal');
 }
 
-function doApply(){
-  if(!pendingIid||!selStudent) return;
-  var apps=Store.get(KEYS.APPLICATIONS);
-  if(apps.some(function(a){return a.internshipId===pendingIid&&a.studentId===selStudent.id;})){
-    showToast('Already applied for this internship.','warning');closeModal('applyModal');return;
+async function doApply(){
+  if(!pendingIid||!selStudent){showToast('Missing student or internship data.','error');return;}
+
+  var stuId = getSid(selStudent);
+  var apps = Store.get(KEYS.APPLICATIONS);
+
+  /* Prevent duplicate applications */
+  var alreadyApplied = apps.some(function(a){
+    return (a.internshipId===pendingIid) && (a.studentId===stuId);
+  });
+  if(alreadyApplied){
+    showToast('You already applied for this internship.','warning');
+    closeModal('applyModal');
+    return;
   }
-  var i=Store.getOne(KEYS.INTERNSHIPS,pendingIid);
-  apps.push({id:genId(),internshipId:pendingIid,studentId:selStudent.id,
-    studentName:selStudent.fullName,rollNo:selStudent.rollNo,
-    matchScore:calcMatchScore(selStudent,i),
-    coverLetter:document.getElementById('cover').value,
-    status:'Pending',appliedAt:new Date().toISOString(),createdAt:new Date().toISOString()});
-  Store.set(KEYS.APPLICATIONS,apps);
+
+  var internship = Store.getOne(KEYS.INTERNSHIPS, pendingIid);
+  if(!internship) internship = Store.get(KEYS.INTERNSHIPS).find(function(x){return (x._id||x.id)===pendingIid;});
+
+  var appData = {
+    internshipId: pendingIid,
+    studentId: stuId,
+    studentName: selStudent.fullName,
+    rollNo: selStudent.rollNo,
+    matchScore: calcMatchScore(selStudent, internship),
+    coverLetter: document.getElementById('cover').value,
+    status: 'Pending',
+    appliedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString()
+  };
+
+  /* Try saving to MongoDB first */
+  var savedToBackend = false;
+  try {
+    var online = (typeof isBackendOnline === 'function') ? await isBackendOnline() : false;
+    if(online){
+      var result = await ApplicationsAPI.create(appData);
+      appData.id = result._id || result.id || result.data?._id || ('app_'+Date.now());
+      savedToBackend = true;
+    }
+  } catch(e){
+    console.warn('Backend application save failed, saving locally:', e.message);
+  }
+
+  /* Always mirror to localStorage so dashboard/admin shows it */
+  if(!appData.id) appData.id = 'app_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+  apps.push(appData);
+  Store.set(KEYS.APPLICATIONS, apps);
+
   closeModal('applyModal');
-  showToast('🎉 Application submitted!','success');
+  showToast(
+    savedToBackend
+      ? '🎉 Application submitted and saved to database!'
+      : '🎉 Application submitted! (saved locally — backend offline)',
+    'success'
+  );
   render();
 }
 </script>

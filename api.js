@@ -30,7 +30,13 @@ async function apiRequest(endpoint, method, data, requiresAuth) {
   method = method || 'GET';
   requiresAuth = requiresAuth !== false; // default true
 
-  var headers = { 'Content-Type': 'application/json' };
+  var isFormData = (typeof FormData !== 'undefined' && data instanceof FormData);
+
+  var headers = {};
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+  // Never set Content-Type for FormData — browser sets it with boundary automatically
 
   if (requiresAuth) {
     var token = TokenStore.get();
@@ -41,7 +47,7 @@ async function apiRequest(endpoint, method, data, requiresAuth) {
     var res = await fetch(API_BASE + endpoint, {
       method: method,
       headers: headers,
-      body: data ? JSON.stringify(data) : null
+      body: isFormData ? data : (data ? JSON.stringify(data) : null)
     });
 
     var result = await res.json();
@@ -116,11 +122,16 @@ var StudentsAPI = {
   },
 
   create: async function (data) {
-    return apiRequest('/students', 'POST', data, true);
+    var isFormData = (typeof FormData !== 'undefined' && data instanceof FormData);
+    // For FormData (resume upload), use multipart endpoint
+    var endpoint = isFormData ? '/students/upload' : '/students';
+    return apiRequest(endpoint, 'POST', data, true);
   },
 
   update: async function (id, data) {
-    return apiRequest('/students/' + id, 'PUT', data, true);
+    var isFormData = (typeof FormData !== 'undefined' && data instanceof FormData);
+    var endpoint = isFormData ? '/students/' + id + '/upload' : '/students/' + id;
+    return apiRequest(endpoint, 'PUT', data, true);
   },
 
   remove: async function (id) {
@@ -204,22 +215,42 @@ var DataService = {
   },
 
   createStudent: async function (data) {
-    try {
-      var online = await isBackendOnline();
-      if (online) {
+    var online = false;
+    try { online = await isBackendOnline(); } catch(e){}
+
+    if (online) {
+      try {
         var res = await StudentsAPI.create(data);
         var saved = res.data || res.student || res;
-        // Also mirror to local store so dashboards still work offline
+        // Normalize: ensure both id and _id exist
+        if (!saved.id && saved._id) saved.id = saved._id;
+        if (!saved._id && saved.id) saved._id = saved.id;
+        // Mirror to local Store
         var list = Store.get(KEYS.STUDENTS);
-        list.push(saved);
+        var idx = list.findIndex(function(s){ return (s._id||s.id) === (saved._id||saved.id); });
+        if (idx >= 0) list[idx] = saved; else list.push(saved);
         Store.set(KEYS.STUDENTS, list);
         return saved;
+      } catch (e) {
+        console.warn('DataService.createStudent backend failed:', e.message);
+        showToast('Backend error: ' + (e.message || 'Could not save to database.') + ' Saving locally.', 'warning');
       }
-    } catch (e) {
-      console.warn('DataService.createStudent backend failed, using local Store');
     }
-    // Offline fallback
-    var student = Object.assign({ id: 'stu_' + Date.now(), createdAt: new Date().toISOString() }, data);
+
+    // Offline fallback — save to localStorage only
+    var isFormData = (typeof FormData !== 'undefined' && data instanceof FormData);
+    var localData = isFormData ? {} : data;
+    if (isFormData) {
+      // Extract fields from FormData for localStorage
+      for (var pair of data.entries()) {
+        if (pair[0] !== 'resume') localData[pair[0]] = pair[1];
+      }
+    }
+    var student = Object.assign({
+      id: 'stu_' + Date.now(),
+      _id: 'stu_' + Date.now(),
+      createdAt: new Date().toISOString()
+    }, localData);
     var list = Store.get(KEYS.STUDENTS);
     list.push(student);
     Store.set(KEYS.STUDENTS, list);
@@ -227,29 +258,42 @@ var DataService = {
   },
 
   updateStudent: async function (id, data) {
-    try {
-      var online = await isBackendOnline();
-      if (online) {
+    var online = false;
+    try { online = await isBackendOnline(); } catch(e){}
+
+    if (online) {
+      try {
         var res = await StudentsAPI.update(id, data);
         var saved = res.data || res.student || res;
-        // Mirror update to local store
+        if (!saved.id && saved._id) saved.id = saved._id;
+        if (!saved._id && saved.id) saved._id = saved.id;
+        // Mirror update to local Store
         var list = Store.get(KEYS.STUDENTS);
-        var idx = list.findIndex(function (s) { return (s._id || s.id) === id; });
+        var idx = list.findIndex(function(s){ return (s._id||s.id) === id; });
         if (idx >= 0) { list[idx] = Object.assign(list[idx], saved); Store.set(KEYS.STUDENTS, list); }
         return saved;
+      } catch (e) {
+        console.warn('DataService.updateStudent backend failed:', e.message);
+        showToast('Backend error: ' + (e.message || 'Could not update database.') + ' Saving locally.', 'warning');
       }
-    } catch (e) {
-      console.warn('DataService.updateStudent backend failed, using local Store');
     }
+
     // Offline fallback
+    var isFormData = (typeof FormData !== 'undefined' && data instanceof FormData);
+    var localData = isFormData ? {} : data;
+    if (isFormData) {
+      for (var pair of data.entries()) {
+        if (pair[0] !== 'resume') localData[pair[0]] = pair[1];
+      }
+    }
     var list = Store.get(KEYS.STUDENTS);
-    var idx = list.findIndex(function (s) { return (s._id || s.id) === id; });
+    var idx = list.findIndex(function(s){ return (s._id||s.id) === id; });
     if (idx >= 0) {
-      list[idx] = Object.assign(list[idx], data);
+      list[idx] = Object.assign(list[idx], localData);
       Store.set(KEYS.STUDENTS, list);
       return list[idx];
     }
-    throw new Error('Student not found');
+    throw new Error('Student not found in local store. Please refresh.');
   },
 
   deleteStudent: async function (id) {

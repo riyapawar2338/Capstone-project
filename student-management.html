@@ -361,6 +361,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         var navAdmin = document.getElementById('navAdmin');
         if (navAdmin) navAdmin.classList.remove('hidden');
       }
+
+      /* Sync MongoDB data into localStorage so list shows real students */
+      if (typeof syncFromBackend === 'function') await syncFromBackend();
     }
 
     tTech = initTagsInput('wTech', 'sTech');
