@@ -150,15 +150,24 @@ async function loginUser(email, password) {
         var stuData = await AdminAPI.studentLogin(email, password);
         if (typeof TokenStore !== 'undefined') TokenStore.set(stuData.token);
         var st = stuData.student || stuData.user || {};
+        var sid = st._id || st.id;
         var user = {
-          id: st._id || st.id,
-          _id: st._id || st.id,
+          id: sid,
+          _id: sid,
           name: st.fullName || st.name,
           email: st.email,
           role: 'student',
           rollNo: st.rollNo || ''
         };
         Auth.setSession(user);
+
+        // Mirror student profile into KEYS.STUDENTS so recommendations page finds it
+        var profile = Object.assign({}, st, { id: sid, _id: sid });
+        var sList = Store.get(KEYS.STUDENTS);
+        var sIdx = sList.findIndex(function(s){ return (s._id||s.id) === sid || (s.email||'').toLowerCase() === (st.email||'').toLowerCase(); });
+        if (sIdx >= 0) { sList[sIdx] = profile; } else { sList.push(profile); }
+        Store.set(KEYS.STUDENTS, sList);
+
         return { ok: true, user: user };
       } catch (stuErr) {
         // Both failed
@@ -211,15 +220,24 @@ async function registerUser(name, email, password, rollNo) {
       var stuData = await AdminAPI.studentLogin(email, password);
       if (typeof TokenStore !== 'undefined') TokenStore.set(stuData.token);
       var st = stuData.student || stuData.user || {};
+      var sid3 = st._id || st.id;
       var user = {
-        id: st._id || st.id,
-        _id: st._id || st.id,
+        id: sid3,
+        _id: sid3,
         name: st.fullName || st.name || name,
         email: st.email || email,
         role: 'student',
         rollNo: st.rollNo || rollNo || ''
       };
       Auth.setSession(user);
+
+      // Mirror into KEYS.STUDENTS so recommendations page can find this student
+      var profileR = Object.assign({}, st, { id: sid3, _id: sid3 });
+      var sListR = Store.get(KEYS.STUDENTS);
+      var sIdxR = sListR.findIndex(function(s){ return (s._id||s.id) === sid3 || (s.email||'').toLowerCase() === email.toLowerCase(); });
+      if (sIdxR >= 0) { sListR[sIdxR] = profileR; } else { sListR.push(profileR); }
+      Store.set(KEYS.STUDENTS, sListR);
+
       return { ok: true, user: user };
     }
   } catch (err) {

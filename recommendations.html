@@ -156,13 +156,42 @@ document.addEventListener('DOMContentLoaded', async function(){
     document.getElementById('aiBar').style.display='flex';
     /* Pull latest data from MongoDB into Store */
     await syncFromBackend();
+
+    /* If student not in Store yet, create a minimal profile from session so Apply works */
+    if(session.role === 'student') {
+      var students = Store.get(KEYS.STUDENTS);
+      var mine = students.find(function(s){
+        return (s.email && s.email.toLowerCase() === session.email.toLowerCase()) ||
+               (s._id||s.id) === (session._id||session.id);
+      });
+      if(!mine) {
+        mine = {
+          id: session.id || session._id,
+          _id: session._id || session.id,
+          fullName: session.name,
+          email: session.email,
+          rollNo: session.rollNo || '',
+          technicalSkills: [],
+          preferredDomain: '',
+          cgpa: 0,
+          department: '',
+          semester: ''
+        };
+        students.push(mine);
+        Store.set(KEYS.STUDENTS, students);
+      }
+    }
+
     fillStudentSelector(session);
     /* Auto-select student whose email matches session */
-    var students=Store.get(KEYS.STUDENTS);
-    var mine=students.find(function(s){ return s.email&&s.email.toLowerCase()===session.email.toLowerCase(); });
-    if(mine){
-      document.getElementById('stuSel').value= getSid(mine);
-      selStudent=mine;
+    var students2=Store.get(KEYS.STUDENTS);
+    var mine2=students2.find(function(s){
+      return (s.email&&s.email.toLowerCase()===session.email.toLowerCase()) ||
+             (s._id||s.id) === (session._id||session.id);
+    });
+    if(mine2){
+      document.getElementById('stuSel').value= getSid(mine2);
+      selStudent=mine2;
     }
   }
   buildFilters();
@@ -185,11 +214,10 @@ function fillStudentSelector(session){
 
 function onStuChange(){
   var id=document.getElementById('stuSel').value;
-  selStudent=id?Store.getOne(KEYS.STUDENTS,id):null;
-  /* Also try matching by _id since MongoDB uses _id */
-  if(!selStudent && id){
-    selStudent=Store.get(KEYS.STUDENTS).find(function(s){ return (s._id||s.id)===id; });
-  }
+  if(!id){ selStudent=null; render(); return; }
+  selStudent=Store.get(KEYS.STUDENTS).find(function(s){
+    return String(s._id||s.id)===String(id);
+  }) || null;
   render();
 }
 

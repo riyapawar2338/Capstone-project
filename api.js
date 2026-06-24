@@ -1,9 +1,16 @@
 'use strict';
 
 /* =========================================================
-   CONFIG — change this to your deployed backend URL
-   For GitHub Pages, set window.API_BASE before loading this file
-   e.g. <script>window.API_BASE = 'https://your-backend.onrender.com/api';</script>
+   CONFIG
+   -------------------------------------------------------
+   IMPORTANT: Set your deployed backend URL here.
+   Replace the string below with your Render / Railway /
+   Vercel backend URL.
+
+   Example: const API_BASE = 'https://my-backend.onrender.com/api';
+
+   If you have NO backend deployed yet, leave as localhost
+   and the app will run fully in localStorage (offline mode).
 ========================================================= */
 const API_BASE = window.API_BASE || 'http://localhost:5000/api';
 
@@ -64,11 +71,18 @@ async function apiRequest(endpoint, method, data, requiresAuth) {
    BACKEND HEALTH CHECK
 ========================================================= */
 async function isBackendOnline() {
+  // If using localhost, skip the check entirely — always offline on GitHub Pages
+  if (API_BASE.includes('localhost') || API_BASE.includes('127.0.0.1')) {
+    return false;
+  }
   try {
+    var controller = new AbortController();
+    var timer = setTimeout(function(){ controller.abort(); }, 2500);
     var res = await fetch(API_BASE + '/health', {
       method: 'GET',
-      signal: AbortSignal.timeout(3000)
+      signal: controller.signal
     });
+    clearTimeout(timer);
     return res.ok;
   } catch (e) {
     return false;
@@ -177,11 +191,23 @@ var ApplicationsAPI = {
   },
 
   create: async function (data) {
-    return apiRequest('/applications', 'POST', data, true);
+    // Normalize field names — some backends use internship/student, others internshipId/studentId
+    var payload = Object.assign({}, data, {
+      internship: data.internshipId || data.internship,
+      student: data.studentId || data.student,
+      internshipId: data.internshipId || data.internship,
+      studentId: data.studentId || data.student
+    });
+    return apiRequest('/applications', 'POST', payload, true);
   },
 
   updateStatus: async function (id, status, notes) {
-    return apiRequest('/applications/' + id + '/status', 'PUT', { status: status, notes: notes }, true);
+    // Try both common route patterns
+    try {
+      return await apiRequest('/applications/' + id + '/status', 'PUT', { status: status, notes: notes }, true);
+    } catch(e) {
+      return await apiRequest('/applications/' + id, 'PUT', { status: status, adminNotes: notes }, true);
+    }
   }
 };
 
