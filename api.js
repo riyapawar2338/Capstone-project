@@ -12,7 +12,7 @@
    If you have NO backend deployed yet, leave as localhost
    and the app will run fully in localStorage (offline mode).
 ========================================================= */
-const API_BASE = window.API_BASE || 'http://localhost:5000/api';
+const API_BASE = window.API_BASE || 'http://localhost:5001/api';
 
 /* =========================================================
    TOKEN STORE — stores JWT in localStorage
