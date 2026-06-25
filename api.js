@@ -2,35 +2,168 @@
 
 /* =========================================================
    CONFIG
-   IMPORTANT: Change this URL to your deployed backend.
-   For local testing: http://localhost:5001/api
-   For deployed backend (Render/Railway etc): https://your-backend.onrender.com/api
+   ─────────────────────────────────────────────────────────
+   HOW TO SET YOUR BACKEND URL (pick ONE method):
+
+   Option A — Edit this file: replace the URL below with your
+   deployed backend, e.g. https://my-app.onrender.com/api
+
+   Option B — Add ONE line in your HTML BEFORE api.js loads:
+   <script>window.BACKEND_URL = 'https://my-app.onrender.com/api';</script>
+
+   ► If no backend is deployed yet, the site works in OFFLINE
+     MODE — login/register use demo accounts, internships show
+     from built-in seed data.
 ========================================================= */
-var API_BASE = window.API_BASE || 'http://localhost:5001/api';
+var _DEPLOYED_BACKEND = '';   /* ← PASTE YOUR RENDER/RAILWAY URL HERE */
+
+var API_BASE = (function() {
+  if (window.BACKEND_URL)  return window.BACKEND_URL;
+  if (_DEPLOYED_BACKEND)   return _DEPLOYED_BACKEND;
+  /* localhost only works when running the site locally */
+  return 'http://localhost:5001/api';
+})();
+
+var OFFLINE_MODE = (
+  API_BASE.includes('localhost') ||
+  API_BASE.includes('127.0.0.1') ||
+  !_DEPLOYED_BACKEND
+);
 
 /* =========================================================
-   TOKEN STORE — JWT stored in sessionStorage (not localStorage)
-   Session only — clears when browser tab closes
+   DEMO / SEED DATA  — used when backend is not reachable
+========================================================= */
+var DEMO_INTERNSHIPS = [
+  { id:'i1', _id:'i1', title:'AI/ML Engineer Intern', company:'TechCorp India',
+    location:'Pune', domain:'Artificial Intelligence', duration:'3 months',
+    stipend:'₹15,000/mo', stipendAmount:15000, minCgpa:7.0, seats:5,
+    deadline:'2025-12-30', description:'Work on cutting-edge ML models and deployment pipelines.',
+    requiredSkills:['Python','Machine Learning','TensorFlow','NumPy','Pandas'],
+    tags:['AI','Python','ML'] },
+  { id:'i2', _id:'i2', title:'Full Stack Web Developer Intern', company:'InnovateTech Pvt Ltd',
+    location:'Mumbai', domain:'Web Development', duration:'6 months',
+    stipend:'₹12,000/mo', stipendAmount:12000, minCgpa:6.5, seats:8,
+    deadline:'2025-12-30', description:'Build responsive web applications using React and Node.js.',
+    requiredSkills:['React','Node.js','MongoDB','JavaScript','CSS'],
+    tags:['React','Node.js','Full Stack'] },
+  { id:'i3', _id:'i3', title:'Data Science Intern', company:'Analytics Hub',
+    location:'Bangalore', domain:'Data Science', duration:'3 months',
+    stipend:'₹18,000/mo', stipendAmount:18000, minCgpa:7.5, seats:4,
+    deadline:'2025-12-30', description:'Analyze large datasets and build predictive models.',
+    requiredSkills:['Python','Pandas','SQL','Data Visualization','Statistics'],
+    tags:['Data','Python','SQL'] },
+  { id:'i4', _id:'i4', title:'Cybersecurity Intern', company:'SecureNet Solutions',
+    location:'Hyderabad', domain:'Cybersecurity', duration:'4 months',
+    stipend:'₹12,000/mo', stipendAmount:12000, minCgpa:7.0, seats:2,
+    deadline:'2025-12-30', description:'Learn ethical hacking and network security.',
+    requiredSkills:['Networking','Linux','Ethical Hacking','Python'],
+    tags:['Security','Linux','Networking'] },
+  { id:'i5', _id:'i5', title:'Mobile App Developer Intern', company:'AppWorks Studio',
+    location:'Nagpur', domain:'Mobile Development', duration:'2 months',
+    stipend:'₹8,000/mo', stipendAmount:8000, minCgpa:6.0, seats:3,
+    deadline:'2025-12-30', description:'Build cross-platform mobile apps using Flutter.',
+    requiredSkills:['Flutter','Dart','Firebase','UI Design'],
+    tags:['Flutter','Mobile','Firebase'] },
+  { id:'i6', _id:'i6', title:'Cloud Computing Intern', company:'CloudBase Technologies',
+    location:'Chennai', domain:'Cloud Computing', duration:'3 months',
+    stipend:'₹20,000/mo', stipendAmount:20000, minCgpa:7.0, seats:4,
+    deadline:'2025-12-30', description:'Work with AWS services and containerized deployments.',
+    requiredSkills:['AWS','Docker','Linux','Kubernetes'],
+    tags:['AWS','Cloud','DevOps'] },
+  { id:'i7', _id:'i7', title:'UI/UX Design Intern', company:'DesignFirst Agency',
+    location:'Pune', domain:'UI/UX Design', duration:'2 months',
+    stipend:'₹10,000/mo', stipendAmount:10000, minCgpa:6.0, seats:3,
+    deadline:'2025-12-30', description:'Design user interfaces using Figma and conduct user research.',
+    requiredSkills:['Figma','User Research','Wireframing','Prototyping'],
+    tags:['Design','Figma','UX'] },
+  { id:'i8', _id:'i8', title:'IoT Developer Intern', company:'SmartSys Labs',
+    location:'Bangalore', domain:'Internet of Things', duration:'3 months',
+    stipend:'₹11,000/mo', stipendAmount:11000, minCgpa:6.5, seats:3,
+    deadline:'2025-12-30', description:'Build IoT solutions using Raspberry Pi and Arduino.',
+    requiredSkills:['Python','C++','Arduino','Raspberry Pi','MQTT'],
+    tags:['IoT','Embedded','Python'] }
+];
+
+var DEMO_USERS = [
+  { id:'admin001', _id:'admin001', email:'admin@aiias.edu', password:'Admin@1234',
+    name:'Admin', role:'admin' }
+];
+
+/* offline "database" stored in sessionStorage per-tab */
+var _offlineApps = [];
+
+/* =========================================================
+   TOKEN STORE — JWT in sessionStorage
 ========================================================= */
 var TokenStore = {
   _key: 'aiias_token',
-  get:   function()      { return sessionStorage.getItem(this._key) || null; },
-  set:   function(token) { if (token) sessionStorage.setItem(this._key, token); },
-  clear: function()      { sessionStorage.removeItem(this._key); }
+  get:   function() { return sessionStorage.getItem(this._key) || null; },
+  set:   function(t){ if (t) sessionStorage.setItem(this._key, t); },
+  clear: function() { sessionStorage.removeItem(this._key); }
 };
 
 /* =========================================================
+   OFFLINE STUDENT STORE — sessionStorage, tab-only
+========================================================= */
+var OfflineStudents = {
+  _key: 'aiias_offline_students',
+  getAll:  function() { try { return JSON.parse(sessionStorage.getItem(this._key)) || []; } catch(e){ return []; } },
+  save:    function(arr) { sessionStorage.setItem(this._key, JSON.stringify(arr)); },
+  getOne:  function(id)  {
+    return this.getAll().find(function(s){ return s.id===id||s._id===id; }) || null;
+  },
+  upsert:  function(s) {
+    var all = this.getAll();
+    var idx = all.findIndex(function(x){ return x.id===s.id||x._id===s._id; });
+    if (idx >= 0) all[idx] = s; else all.push(s);
+    this.save(all);
+    return s;
+  },
+  remove:  function(id) {
+    this.save(this.getAll().filter(function(s){ return s.id!==id&&s._id!==id; }));
+  }
+};
+
+var OfflineApps = {
+  _key: 'aiias_offline_apps',
+  getAll:      function()   { try { return JSON.parse(sessionStorage.getItem(this._key))||[]; } catch(e){ return []; } },
+  save:        function(arr){ sessionStorage.setItem(this._key, JSON.stringify(arr)); },
+  getByStudent:function(sid){ return this.getAll().filter(function(a){ return String(a.studentId)===String(sid); }); },
+  push:        function(app){ var all=this.getAll(); all.push(app); this.save(all); return app; },
+  update:      function(id,patch){
+    var all=this.getAll();
+    var idx=all.findIndex(function(a){ return a.id===id||a._id===id; });
+    if(idx>=0){ all[idx]=Object.assign(all[idx],patch); this.save(all); return all[idx]; }
+  }
+};
+
+/* =========================================================
+   BACKEND HEALTH CHECK
+========================================================= */
+async function isBackendOnline() {
+  if (OFFLINE_MODE) return false;
+  try {
+    var ctrl  = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, 3000);
+    var res   = await fetch(API_BASE.replace('/api','') + '/health', {
+      method:'GET', signal:ctrl.signal
+    });
+    clearTimeout(timer);
+    return res.ok;
+  } catch(e) {
+    return false;
+  }
+}
+
+/* =========================================================
    GENERIC API REQUEST
-   - Handles JSON and FormData
-   - Attaches Bearer token automatically
-   - Returns parsed JSON or throws Error with backend message
 ========================================================= */
 async function apiRequest(endpoint, method, data, requiresAuth) {
-  method      = method      || 'GET';
+  method       = method       || 'GET';
   requiresAuth = requiresAuth !== false;
 
   var isFormData = (typeof FormData !== 'undefined' && data instanceof FormData);
-  var headers   = {};
+  var headers    = {};
 
   if (!isFormData) headers['Content-Type'] = 'application/json';
   if (requiresAuth) {
@@ -38,195 +171,186 @@ async function apiRequest(endpoint, method, data, requiresAuth) {
     if (token) headers['Authorization'] = 'Bearer ' + token;
   }
 
-  try {
-    var res = await fetch(API_BASE + endpoint, {
-      method:  method,
-      headers: headers,
-      body:    isFormData ? data : (data ? JSON.stringify(data) : null)
-    });
-    var result = await res.json();
-    if (!res.ok) throw new Error(result.msg || result.message || result.error || 'Server error ' + res.status);
-    return result;
-  } catch (err) {
-    console.error('[API]', endpoint, err.message);
-    throw err;
-  }
-}
-
-/* =========================================================
-   BACKEND HEALTH CHECK — returns true only if backend responds
-   Returns false instantly for localhost (GitHub Pages)
-========================================================= */
-async function isBackendOnline() {
-  if (API_BASE.includes('localhost') || API_BASE.includes('127.0.0.1')) {
-    /* Running locally — assume backend is reachable if window.API_BASE was set */
-    if (window.API_BASE) return true;
-    return false;
-  }
-  try {
-    var ctrl  = new AbortController();
-    var timer = setTimeout(function() { ctrl.abort(); }, 3000);
-    var res   = await fetch(API_BASE.replace('/api', '') + '/health', {
-      method: 'GET', signal: ctrl.signal
-    });
-    clearTimeout(timer);
-    return res.ok;
-  } catch (e) {
-    return false;
-  }
+  var res    = await fetch(API_BASE + endpoint, {
+    method:  method,
+    headers: headers,
+    body:    isFormData ? data : (data ? JSON.stringify(data) : null)
+  });
+  var result = await res.json();
+  if (!res.ok) throw new Error(result.msg || result.message || result.error || 'Server error ' + res.status);
+  return result;
 }
 
 /* =========================================================
    AUTH APIs
 ========================================================= */
 var AuthAPI = {
-  adminLogin: async function(email, password) {
-    return apiRequest('/auth/login', 'POST', { email, password }, false);
+  adminLogin: function(email, password) {
+    return apiRequest('/auth/login', 'POST', { email:email, password:password }, false);
   },
-  studentLogin: async function(email, password) {
-    return apiRequest('/auth/student/login', 'POST', { email, password }, false);
-  },
-  studentRegister: async function(data) {
-    return apiRequest('/auth/student/register', 'POST', data, false);
+  studentLogin: function(email, password) {
+    return apiRequest('/auth/student/login', 'POST', { email:email, password:password }, false);
   }
 };
 
-/* keep old names working */
 var AdminAPI = {
-  login:        function(e, p) { return AuthAPI.adminLogin(e, p);   },
-  studentLogin: function(e, p) { return AuthAPI.studentLogin(e, p); }
+  login:        function(e,p){ return AuthAPI.adminLogin(e,p);   },
+  studentLogin: function(e,p){ return AuthAPI.studentLogin(e,p); }
 };
 
 /* =========================================================
    STUDENTS API
 ========================================================= */
 var StudentsAPI = {
-  register: async function(data) {
-    return apiRequest('/students/register', 'POST', data, false);
+  register: function(data){ return apiRequest('/students/register','POST',data,false); },
+  getAll:   function()    { return apiRequest('/students','GET',null,true);            },
+  getOne:   function(id)  { return apiRequest('/students/'+id,'GET',null,true);        },
+  create:   function(data){
+    var ep = (data instanceof FormData) ? '/students/upload' : '/students';
+    return apiRequest(ep,'POST',data,true);
   },
-  getAll: async function() {
-    return apiRequest('/students', 'GET', null, true);
+  update:   function(id,data){
+    var ep = (data instanceof FormData) ? '/students/'+id+'/upload' : '/students/'+id;
+    return apiRequest(ep,'PUT',data,true);
   },
-  getOne: async function(id) {
-    return apiRequest('/students/' + id, 'GET', null, true);
-  },
-  create: async function(data) {
-    var isForm   = data instanceof FormData;
-    var endpoint = isForm ? '/students/upload' : '/students';
-    return apiRequest(endpoint, 'POST', data, true);
-  },
-  update: async function(id, data) {
-    var isForm   = data instanceof FormData;
-    var endpoint = isForm ? '/students/' + id + '/upload' : '/students/' + id;
-    return apiRequest(endpoint, 'PUT', data, true);
-  },
-  remove: async function(id) {
-    return apiRequest('/students/' + id, 'DELETE', null, true);
-  }
+  remove:   function(id){ return apiRequest('/students/'+id,'DELETE',null,true); }
 };
 
 /* =========================================================
    INTERNSHIPS API
 ========================================================= */
 var InternshipsAPI = {
-  getAll: async function() {
-    return apiRequest('/internships', 'GET', null, false);
-  },
-  getOne: async function(id) {
-    return apiRequest('/internships/' + id, 'GET', null, false);
-  },
-  create: async function(data) {
-    return apiRequest('/internships', 'POST', data, true);
-  },
-  update: async function(id, data) {
-    return apiRequest('/internships/' + id, 'PUT', data, true);
-  },
-  remove: async function(id) {
-    return apiRequest('/internships/' + id, 'DELETE', null, true);
-  }
+  getAll:  function()    { return apiRequest('/internships','GET',null,false);       },
+  getOne:  function(id)  { return apiRequest('/internships/'+id,'GET',null,false);  },
+  create:  function(data){ return apiRequest('/internships','POST',data,true);       },
+  update:  function(id,d){ return apiRequest('/internships/'+id,'PUT',d,true);      },
+  remove:  function(id)  { return apiRequest('/internships/'+id,'DELETE',null,true);}
 };
 
 /* =========================================================
    APPLICATIONS API
 ========================================================= */
 var ApplicationsAPI = {
-  getAll: async function() {
-    return apiRequest('/applications', 'GET', null, true);
-  },
-  getByStudent: async function(studentId) {
-    return apiRequest('/applications/student/' + studentId, 'GET', null, true);
-  },
-  create: async function(data) {
-    return apiRequest('/applications', 'POST', data, true);
-  },
-  updateStatus: async function(id, status, notes) {
-    return apiRequest('/applications/' + id + '/status', 'PUT', { status, notes }, true);
-  }
+  getAll:        function()     { return apiRequest('/applications','GET',null,true);                             },
+  getByStudent:  function(sid)  { return apiRequest('/applications/student/'+sid,'GET',null,true);               },
+  create:        function(data) { return apiRequest('/applications','POST',data,true);                           },
+  updateStatus:  function(id,s,n){ return apiRequest('/applications/'+id+'/status','PUT',{status:s,notes:n},true);}
 };
 
 /* =========================================================
-   NOTIFICATIONS API (for Apply confirmation emails / alerts)
+   NOTIFICATIONS API
 ========================================================= */
 var NotificationsAPI = {
   send: async function(data) {
-    /* data: { type, studentId, internshipId, studentName, internshipTitle, email } */
-    try {
-      return apiRequest('/notifications/send', 'POST', data, true);
-    } catch(e) {
-      console.warn('Notification send failed (non-critical):', e.message);
-    }
+    try { return await apiRequest('/notifications/send','POST',data,true); }
+    catch(e){ console.warn('Notification non-critical:',e.message); }
   }
 };
 
 /* =========================================================
-   DATA SERVICE  — MongoDB only, NO localStorage fallback
-   All data goes straight to backend. If backend is offline,
-   a clear error is shown to the user.
+   DATA SERVICE — tries backend first, falls back to offline
 ========================================================= */
 var DataService = {
 
   getStudents: async function() {
-    var res  = await StudentsAPI.getAll();
-    return normalizeList(Array.isArray(res) ? res : (res.data || res.students || []));
+    if (!OFFLINE_MODE) {
+      try {
+        var res = await StudentsAPI.getAll();
+        return normalizeList(Array.isArray(res) ? res : (res.data||res.students||[]));
+      } catch(e){ console.warn('getStudents backend failed, offline mode'); }
+    }
+    return normalizeList(OfflineStudents.getAll());
   },
 
   getStudent: async function(id) {
-    var res = await StudentsAPI.getOne(id);
-    return normalize(res.data || res.student || res);
+    if (!OFFLINE_MODE) {
+      try {
+        var res = await StudentsAPI.getOne(id);
+        return normalize(res.data||res.student||res);
+      } catch(e){ console.warn('getStudent backend failed'); }
+    }
+    return normalize(OfflineStudents.getOne(id));
   },
 
   createStudent: async function(data) {
-    var res   = await StudentsAPI.create(data);
-    var saved = normalize(res.data || res.student || res);
-    return saved;
+    if (!OFFLINE_MODE) {
+      try {
+        var res   = await StudentsAPI.create(data);
+        var saved = normalize(res.data||res.student||res);
+        OfflineStudents.upsert(saved); /* mirror for offline use */
+        return saved;
+      } catch(e){
+        showToast('⚠️ Backend error: '+e.message+' — saved locally for this session.','warning');
+      }
+    }
+    /* offline fallback */
+    var isForm = (typeof FormData!=='undefined' && data instanceof FormData);
+    var plain  = isForm ? {} : (data||{});
+    if (isForm) { for(var p of data.entries()){ if(p[0]!=='resume') plain[p[0]]=p[1]; } }
+    var s = Object.assign({ id:'s_'+Date.now(), _id:'s_'+Date.now(), createdAt:new Date().toISOString() }, plain);
+    return normalize(OfflineStudents.upsert(s));
   },
 
   updateStudent: async function(id, data) {
-    var res   = await StudentsAPI.update(id, data);
-    var saved = normalize(res.data || res.student || res);
-    return saved;
+    if (!OFFLINE_MODE) {
+      try {
+        var res   = await StudentsAPI.update(id, data);
+        var saved = normalize(res.data||res.student||res);
+        OfflineStudents.upsert(saved);
+        return saved;
+      } catch(e){
+        showToast('⚠️ Backend error: '+e.message+' — updated locally.','warning');
+      }
+    }
+    var isForm = (typeof FormData!=='undefined' && data instanceof FormData);
+    var plain  = isForm ? {} : (data||{});
+    if (isForm) { for(var p of data.entries()){ if(p[0]!=='resume') plain[p[0]]=p[1]; } }
+    var existing = OfflineStudents.getOne(id) || { id:id, _id:id };
+    return normalize(OfflineStudents.upsert(Object.assign(existing, plain)));
   },
 
   deleteStudent: async function(id) {
-    return StudentsAPI.remove(id);
+    if (!OFFLINE_MODE) {
+      try { return await StudentsAPI.remove(id); } catch(e){}
+    }
+    OfflineStudents.remove(id);
   },
 
   getInternships: async function() {
-    var res = await InternshipsAPI.getAll();
-    return normalizeList(Array.isArray(res) ? res : (res.data || res.internships || []));
+    if (!OFFLINE_MODE) {
+      try {
+        var res = await InternshipsAPI.getAll();
+        return normalizeList(Array.isArray(res) ? res : (res.data||res.internships||[]));
+      } catch(e){ console.warn('getInternships backend failed, using seed data'); }
+    }
+    return normalizeList(DEMO_INTERNSHIPS);
   },
 
   getApplications: async function(studentId) {
-    var res  = studentId
-      ? await ApplicationsAPI.getByStudent(studentId)
-      : await ApplicationsAPI.getAll();
-    return normalizeList(Array.isArray(res) ? res : (res.data || res.applications || []));
+    if (!OFFLINE_MODE) {
+      try {
+        var res = studentId
+          ? await ApplicationsAPI.getByStudent(studentId)
+          : await ApplicationsAPI.getAll();
+        return normalizeList(Array.isArray(res) ? res : (res.data||res.applications||[]));
+      } catch(e){ console.warn('getApplications backend failed'); }
+    }
+    return normalizeList(studentId ? OfflineApps.getByStudent(studentId) : OfflineApps.getAll());
   },
 
   createApplication: async function(data) {
-    var res   = await ApplicationsAPI.create(data);
-    var saved = normalize(res.data || res.application || res);
-    return saved;
+    if (!OFFLINE_MODE) {
+      try {
+        var res   = await ApplicationsAPI.create(data);
+        var saved = normalize(res.data||res.application||res);
+        OfflineApps.push(saved);
+        return saved;
+      } catch(e){
+        showToast('⚠️ Backend error: '+e.message+' — application saved for this session.','warning');
+      }
+    }
+    var app = Object.assign({ id:'app_'+Date.now(), _id:'app_'+Date.now(), createdAt:new Date().toISOString() }, data);
+    return normalize(OfflineApps.push(app));
   }
 };
 
@@ -235,24 +359,18 @@ var DataService = {
 ========================================================= */
 function normalize(item) {
   if (!item) return item;
-  var copy = Object.assign({}, item);
-  if (!copy.id  && copy._id) copy.id  = String(copy._id);
-  if (!copy._id && copy.id)  copy._id = String(copy.id);
-  return copy;
+  var c = Object.assign({}, item);
+  if (!c.id  && c._id) c.id  = String(c._id);
+  if (!c._id && c.id)  c._id = String(c.id);
+  return c;
 }
-function normalizeList(arr) {
-  return (arr || []).map(normalize);
-}
-function getSid(s) {
-  return s ? (String(s._id || s.id || '')) : '';
-}
-function genId() {
-  return 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-}
+function normalizeList(arr) { return (arr||[]).map(normalize); }
+function getSid(s)  { return s ? String(s._id||s.id||'') : ''; }
+function genId()    { return 'tmp_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
 
 /* legacy wrappers */
 async function getStudents()        { return StudentsAPI.getAll();      }
-async function updateStudent(id, d) { return StudentsAPI.update(id, d); }
+async function updateStudent(id,d)  { return StudentsAPI.update(id,d);  }
 async function getInternships()     { return InternshipsAPI.getAll();   }
 async function addInternship(d)     { return InternshipsAPI.create(d);  }
 async function applyInternship(d)   { return ApplicationsAPI.create(d); }

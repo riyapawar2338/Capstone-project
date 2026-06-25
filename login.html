@@ -111,10 +111,16 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;bac
 </div>
 
 <div id="toastContainer" class="toast-container"></div>
-<script>window.API_BASE = window.API_BASE || "http://localhost:5001/api";</script>
 <script src="api.js"></script>
 <script src="script.js"></script>
 <script>
+/* Show offline banner if no backend configured */
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof OFFLINE_MODE !== 'undefined' && OFFLINE_MODE) {
+    document.getElementById('offlineBanner').style.display = 'block';
+  }
+});
+
 /* Redirect if already logged in */
 if (Auth.isLoggedIn()) {
   window.location.href = Auth.isAdmin() ? 'admin-dashboard.html' : 'student-dashboard.html';

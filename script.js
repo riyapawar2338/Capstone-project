@@ -28,65 +28,97 @@ var Auth = {
    LOGIN — tries admin then student endpoint on backend
 ========================================================= */
 async function loginUser(email, password) {
-  /* Try admin */
-  try {
-    var adminData = await AdminAPI.login(email, password);
-    var token = adminData.token;
-    TokenStore.set(token);
-    var u = adminData.admin || adminData.user || {};
-    var user = {
-      id: String(u._id || u.id || ''),
-      _id: String(u._id || u.id || ''),
-      name: u.username || u.name || u.fullName || 'Admin',
-      email: u.email,
-      role: 'admin'
-    };
-    Auth.setSession(user);
-    return { ok: true, user };
-  } catch(e) { /* not admin */ }
+  /* ── ONLINE: try backend ── */
+  if (!OFFLINE_MODE) {
+    /* Try admin login */
+    try {
+      var adminData = await AdminAPI.login(email, password);
+      TokenStore.set(adminData.token);
+      var u = adminData.admin || adminData.user || {};
+      var user = {
+        id: String(u._id||u.id||''), _id: String(u._id||u.id||''),
+        name: u.username||u.name||u.fullName||'Admin',
+        email: u.email, role: 'admin'
+      };
+      Auth.setSession(user);
+      return { ok:true, user:user };
+    } catch(e) { /* not admin or wrong creds */ }
 
-  /* Try student */
-  try {
-    var stuData = await AdminAPI.studentLogin(email, password);
-    var token2  = stuData.token;
-    TokenStore.set(token2);
-    var st = stuData.student || stuData.user || {};
-    var user2 = {
-      id:     String(st._id || st.id || ''),
-      _id:    String(st._id || st.id || ''),
-      name:   st.fullName || st.name || '',
-      email:  st.email    || email,
-      role:   'student',
-      rollNo: st.rollNo   || ''
-    };
-    Auth.setSession(user2);
-    return { ok: true, user: user2 };
-  } catch(e) {
-    return { ok: false, msg: e.message || 'Invalid email or password.' };
+    /* Try student login */
+    try {
+      var stuData = await AdminAPI.studentLogin(email, password);
+      TokenStore.set(stuData.token);
+      var st = stuData.student||stuData.user||{};
+      var user2 = {
+        id: String(st._id||st.id||''), _id: String(st._id||st.id||''),
+        name: st.fullName||st.name||'', email: st.email||email,
+        role: 'student', rollNo: st.rollNo||''
+      };
+      Auth.setSession(user2);
+      return { ok:true, user:user2 };
+    } catch(e) {
+      return { ok:false, msg: e.message||'Invalid email or password.' };
+    }
   }
+
+  /* ── OFFLINE MODE: check demo users + session-registered users ── */
+  var allUsers = (DEMO_USERS || []).concat(OfflineStudents.getAll());
+  var found = allUsers.find(function(u){
+    return (u.email||'').toLowerCase() === email.toLowerCase() && u.password === password;
+  });
+  if (!found) return { ok:false, msg:'Invalid email or password. (Offline mode — backend not connected)' };
+
+  var user3 = {
+    id: String(found._id||found.id||''), _id: String(found._id||found.id||''),
+    name: found.name||found.fullName||'User',
+    email: found.email, role: found.role||'student', rollNo: found.rollNo||''
+  };
+  Auth.setSession(user3);
+  return { ok:true, user:user3 };
 }
 
 /* =========================================================
    REGISTER — saves directly to MongoDB, no localStorage
 ========================================================= */
 async function registerUser(name, email, password, rollNo) {
-  /* Register in MongoDB */
-  await StudentsAPI.register({
-    fullName:        name,
-    email:           email,
-    password:        password,
-    rollNo:          rollNo || ('STU' + Date.now().toString().slice(-6)),
-    department:      'Computer Engineering',
-    semester:        'Semester 6',
-    cgpa:            7.0,
-    preferredDomain: 'Artificial Intelligence',
-    technicalSkills: []
-  });
+  var rn = rollNo || ('STU' + Date.now().toString().slice(-6));
 
-  /* Auto-login after register */
-  var res = await loginUser(email, password);
-  if (!res.ok) throw new Error('Registered but login failed: ' + res.msg);
-  return { ok: true, user: res.user };
+  /* ── ONLINE: save to MongoDB ── */
+  if (!OFFLINE_MODE) {
+    try {
+      await StudentsAPI.register({
+        fullName: name, email: email, password: password, rollNo: rn,
+        department: 'Computer Engineering', semester: 'Semester 6',
+        cgpa: 7.0, preferredDomain: 'Artificial Intelligence', technicalSkills: []
+      });
+      var res = await loginUser(email, password);
+      if (!res.ok) throw new Error('Registered but login failed: ' + res.msg);
+      return { ok:true, user:res.user };
+    } catch(e) {
+      var msg = (e.message||'').toLowerCase();
+      if (msg.includes('already')||msg.includes('duplicate')||msg.includes('exists')) {
+        throw new Error('Email already registered. Please login instead.');
+      }
+      /* backend unreachable — fall through to offline */
+      console.warn('Register backend failed, falling back to offline:', e.message);
+    }
+  }
+
+  /* ── OFFLINE fallback ── */
+  var all = (DEMO_USERS||[]).concat(OfflineStudents.getAll());
+  if (all.find(function(u){ return (u.email||'').toLowerCase()===email.toLowerCase(); })) {
+    throw new Error('Email already registered. Please login instead.');
+  }
+  var id  = 'stu_'+Date.now();
+  var stu = {
+    id:id, _id:id, name:name, fullName:name, email:email, password:password,
+    rollNo:rn, role:'student', department:'', semester:'', cgpa:0,
+    preferredDomain:'', technicalSkills:[], createdAt:new Date().toISOString()
+  };
+  OfflineStudents.upsert(stu);
+  var user = { id:id, _id:id, name:name, email:email, role:'student', rollNo:rn };
+  Auth.setSession(user);
+  return { ok:true, user:user };
 }
 
 /* =========================================================
