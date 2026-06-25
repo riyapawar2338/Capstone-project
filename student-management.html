@@ -395,6 +395,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (editId) { sessionStorage.removeItem('editStudentId'); await loadEdit(editId); }
 
     await renderList();
+
+    /* Warn user if backend not configured */
+    if (!window.BACKEND_URL && !window._DEPLOYED_BACKEND) {
+      var bc = typeof _DEPLOYED_BACKEND !== 'undefined' ? _DEPLOYED_BACKEND : '';
+      if (!bc) {
+        showToast('ℹ️ Running in offline mode — set window.BACKEND_URL to save to MongoDB.', 'info', 8000);
+      }
+    }
   } catch(err) {
     console.error('Init error:', err);
     showToast('Page init failed: ' + err.message, 'error');
@@ -528,10 +536,13 @@ async function saveStudent() {
     var saved;
     if (existId) {
       saved = await DataService.updateStudent(existId, payload);
-      showToast('✅ ' + (saved.fullName||'Student') + ' updated in database!','success');
+      var wasOffline = saved && (String(saved.id||'').startsWith('offline_') || String(saved.id||'').startsWith('stu_'));
+      if (!wasOffline) showToast('✅ ' + (saved.fullName||'Student') + ' updated in database!','success');
+      /* else updateStudent already showed appropriate toast */
     } else {
       saved = await DataService.createStudent(payload);
-      showToast('✅ ' + (saved.fullName||'Student') + ' saved to database!','success');
+      var wasOffline2 = saved && (String(saved.id||'').startsWith('offline_'));
+      if (!wasOffline2) showToast('✅ ' + (saved.fullName||'Student') + ' saved to database!','success');
     }
     resetForm();
     await renderList();

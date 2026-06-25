@@ -15,20 +15,35 @@
      MODE — login/register use demo accounts, internships show
      from built-in seed data.
 ========================================================= */
-var _DEPLOYED_BACKEND = 'https://capstone-project-backend-m20u.onrender.com';   /* ← PASTE YOUR RENDER/RAILWAY URL HERE */
+/* ──────────────────────────────────────────────────────────────
+   ► STEP 1: Paste your deployed backend URL here (Render/Railway)
+   ► Example: 'https://capstone-backend.onrender.com/api'
+   ► Leave empty '' to run in offline/demo mode
+   ────────────────────────────────────────────────────────────── */
+var _DEPLOYED_BACKEND = 'https://capstone-project-backend-m20u.onrender.com';   /* ← PASTE YOUR BACKEND URL HERE */
 
-var API_BASE = (function() {
-  if (window.BACKEND_URL)  return window.BACKEND_URL;
-  if (_DEPLOYED_BACKEND)   return _DEPLOYED_BACKEND;
-  /* localhost only works when running the site locally */
+/* ──────────────────────────────────────────────────────────────
+   API_BASE resolution order:
+   1. window.BACKEND_URL  (set in HTML before api.js loads)
+   2. _DEPLOYED_BACKEND   (set above)
+   3. localhost:5001       (local development only)
+   ────────────────────────────────────────────────────────────── */
+function _getApiBase() {
+  if (window.BACKEND_URL && window.BACKEND_URL.trim()) return window.BACKEND_URL.trim();
+  if (_DEPLOYED_BACKEND  && _DEPLOYED_BACKEND.trim())  return _DEPLOYED_BACKEND.trim();
   return 'http://localhost:5001/api';
-})();
+}
+var API_BASE = _getApiBase();
 
+/* OFFLINE_MODE = true only when no real backend URL is configured */
 var OFFLINE_MODE = (
-  API_BASE.includes('localhost') ||
-  API_BASE.includes('127.0.0.1') ||
-  !_DEPLOYED_BACKEND
+  !window.BACKEND_URL &&
+  !_DEPLOYED_BACKEND  &&
+  (API_BASE.includes('localhost') || API_BASE.includes('127.0.0.1'))
 );
+
+/* Re-read API_BASE dynamically in case window.BACKEND_URL is set after load */
+function getApiBase() { return _getApiBase(); }
 
 /* =========================================================
    DEMO / SEED DATA  — used when backend is not reachable
@@ -141,11 +156,15 @@ var OfflineApps = {
    BACKEND HEALTH CHECK
 ========================================================= */
 async function isBackendOnline() {
-  if (OFFLINE_MODE) return false;
+  /* Re-check OFFLINE_MODE each time in case window.BACKEND_URL was set after load */
+  var base = getApiBase();
+  var offlineNow = !window.BACKEND_URL && !_DEPLOYED_BACKEND &&
+    (base.includes('localhost') || base.includes('127.0.0.1'));
+  if (offlineNow) return false;
   try {
     var ctrl  = new AbortController();
     var timer = setTimeout(function(){ ctrl.abort(); }, 3000);
-    var res   = await fetch(API_BASE.replace('/api','') + '/health', {
+    var res   = await fetch(getApiBase().replace('/api','') + '/health', {
       method:'GET', signal:ctrl.signal
     });
     clearTimeout(timer);
@@ -171,7 +190,7 @@ async function apiRequest(endpoint, method, data, requiresAuth) {
     if (token) headers['Authorization'] = 'Bearer ' + token;
   }
 
-  var res    = await fetch(API_BASE + endpoint, {
+  var res    = await fetch(getApiBase() + endpoint, {
     method:  method,
     headers: headers,
     body:    isFormData ? data : (data ? JSON.stringify(data) : null)
@@ -253,93 +272,149 @@ var NotificationsAPI = {
 var DataService = {
 
   getStudents: async function() {
-    if (!OFFLINE_MODE) {
+    var bc = !!(window.BACKEND_URL || _DEPLOYED_BACKEND);
+    if (bc) {
       try {
         var res = await StudentsAPI.getAll();
-        return normalizeList(Array.isArray(res) ? res : (res.data||res.students||[]));
-      } catch(e){ console.warn('getStudents backend failed, offline mode'); }
+        var list = normalizeList(Array.isArray(res) ? res : (res.data||res.students||[]));
+        list.forEach(function(s){ OfflineStudents.upsert(s); });
+        return list;
+      } catch(e){ console.warn('getStudents backend failed:', e.message); }
     }
     return normalizeList(OfflineStudents.getAll());
   },
 
   getStudent: async function(id) {
-    if (!OFFLINE_MODE) {
+    var bc = !!(window.BACKEND_URL || _DEPLOYED_BACKEND);
+    var isOffId = id && (String(id).startsWith('offline_')||String(id).startsWith('stu_')||String(id).startsWith('tmp_'));
+    if (bc && !isOffId) {
       try {
         var res = await StudentsAPI.getOne(id);
-        return normalize(res.data||res.student||res);
-      } catch(e){ console.warn('getStudent backend failed'); }
+        var s = normalize(res.data||res.student||res);
+        OfflineStudents.upsert(s);
+        return s;
+      } catch(e){ console.warn('getStudent backend failed:', e.message); }
     }
     return normalize(OfflineStudents.getOne(id));
   },
 
   createStudent: async function(data) {
-    if (!OFFLINE_MODE) {
+    var backendConfigured = !!(window.BACKEND_URL || _DEPLOYED_BACKEND);
+    if (backendConfigured) {
       try {
         var res   = await StudentsAPI.create(data);
         var saved = normalize(res.data||res.student||res);
-        OfflineStudents.upsert(saved); /* mirror for offline use */
+        OfflineStudents.upsert(saved);
         return saved;
-      } catch(e){
+      } catch(e) {
         showToast('⚠️ Backend error: '+e.message+' — saved locally for this session.','warning');
       }
     }
-    /* offline fallback */
+    /* Offline fallback — session-only storage with offline_ prefix so we know it's not real */
     var isForm = (typeof FormData!=='undefined' && data instanceof FormData);
     var plain  = isForm ? {} : (data||{});
     if (isForm) { for(var p of data.entries()){ if(p[0]!=='resume') plain[p[0]]=p[1]; } }
-    var s = Object.assign({ id:'s_'+Date.now(), _id:'s_'+Date.now(), createdAt:new Date().toISOString() }, plain);
+    var tempId = 'offline_'+Date.now();
+    var s = Object.assign({ id:tempId, _id:tempId, createdAt:new Date().toISOString() }, plain);
     return normalize(OfflineStudents.upsert(s));
   },
 
   updateStudent: async function(id, data) {
-    if (!OFFLINE_MODE) {
+    var isOfflineId = id && (String(id).startsWith('stu_') || String(id).startsWith('tmp_'));
+    var currentBase = getApiBase();
+    var backendConfigured = !!(window.BACKEND_URL || _DEPLOYED_BACKEND);
+
+    if (backendConfigured) {
+      /* If this student has an offline-generated ID, create them instead of updating */
+      if (isOfflineId) {
+        try {
+          var isForm2 = (typeof FormData !== 'undefined' && data instanceof FormData);
+          var plain2  = isForm2 ? {} : Object.assign({}, data);
+          if (isForm2) { for (var p2 of data.entries()) { if (p2[0]!=='resume') plain2[p2[0]]=p2[1]; } }
+          /* Remove the fake id so MongoDB generates a real one */
+          delete plain2.id; delete plain2._id;
+          var res2   = await StudentsAPI.create(data);
+          var saved2 = normalize(res2.data||res2.student||res2);
+          OfflineStudents.upsert(saved2);
+          showToast('✅ ' + (saved2.fullName||'Student') + ' saved to database!', 'success');
+          return saved2;
+        } catch(e2) {
+          showToast('⚠️ Could not save to database: ' + e2.message, 'warning');
+          var isForm3 = (typeof FormData !== 'undefined' && data instanceof FormData);
+          var plain3  = isForm3 ? {} : Object.assign({}, data);
+          if (isForm3) { for (var p3 of data.entries()) { if (p3[0]!=='resume') plain3[p3[0]]=p3[1]; } }
+          return normalize(OfflineStudents.upsert(Object.assign(OfflineStudents.getOne(id)||{id:id,_id:id}, plain3)));
+        }
+      }
+      /* Normal update with real MongoDB _id */
       try {
         var res   = await StudentsAPI.update(id, data);
         var saved = normalize(res.data||res.student||res);
         OfflineStudents.upsert(saved);
         return saved;
-      } catch(e){
-        showToast('⚠️ Backend error: '+e.message+' — updated locally.','warning');
+      } catch(e) {
+        /* 404 means student not in DB — try creating */
+        if (e.message && (e.message.includes('404') || e.message.includes('not found'))) {
+          try {
+            var resC  = await StudentsAPI.create(data);
+            var saveC = normalize(resC.data||resC.student||resC);
+            OfflineStudents.upsert(saveC);
+            showToast('✅ ' + (saveC.fullName||'Student') + ' saved to database!', 'success');
+            return saveC;
+          } catch(ec) {
+            showToast('⚠️ Could not save to database: ' + ec.message, 'warning');
+          }
+        } else {
+          showToast('⚠️ Backend error: ' + e.message, 'warning');
+        }
       }
     }
-    var isForm = (typeof FormData!=='undefined' && data instanceof FormData);
+    /* Offline fallback */
+    var isForm = (typeof FormData !== 'undefined' && data instanceof FormData);
     var plain  = isForm ? {} : (data||{});
-    if (isForm) { for(var p of data.entries()){ if(p[0]!=='resume') plain[p[0]]=p[1]; } }
+    if (isForm) { for (var p of data.entries()) { if (p[0]!=='resume') plain[p[0]]=p[1]; } }
     var existing = OfflineStudents.getOne(id) || { id:id, _id:id };
     return normalize(OfflineStudents.upsert(Object.assign(existing, plain)));
   },
 
   deleteStudent: async function(id) {
-    if (!OFFLINE_MODE) {
-      try { return await StudentsAPI.remove(id); } catch(e){}
+    var backendConfigured = !!(window.BACKEND_URL || _DEPLOYED_BACKEND);
+    var isOfflineId = id && (String(id).startsWith('offline_') || String(id).startsWith('tmp_') || String(id).startsWith('stu_'));
+    if (backendConfigured && !isOfflineId) {
+      try { return await StudentsAPI.remove(id); } catch(e) {
+        showToast('⚠️ Could not delete from database: '+e.message,'warning');
+      }
     }
     OfflineStudents.remove(id);
   },
 
   getInternships: async function() {
-    if (!OFFLINE_MODE) {
+    var bc = !!(window.BACKEND_URL || _DEPLOYED_BACKEND);
+    if (bc) {
       try {
         var res = await InternshipsAPI.getAll();
         return normalizeList(Array.isArray(res) ? res : (res.data||res.internships||[]));
-      } catch(e){ console.warn('getInternships backend failed, using seed data'); }
+      } catch(e){ console.warn('getInternships backend failed, using seed data:', e.message); }
     }
     return normalizeList(DEMO_INTERNSHIPS);
   },
 
   getApplications: async function(studentId) {
-    if (!OFFLINE_MODE) {
+    var bc = !!(window.BACKEND_URL || _DEPLOYED_BACKEND);
+    if (bc) {
       try {
         var res = studentId
           ? await ApplicationsAPI.getByStudent(studentId)
           : await ApplicationsAPI.getAll();
         return normalizeList(Array.isArray(res) ? res : (res.data||res.applications||[]));
-      } catch(e){ console.warn('getApplications backend failed'); }
+      } catch(e){ console.warn('getApplications backend failed:', e.message); }
     }
     return normalizeList(studentId ? OfflineApps.getByStudent(studentId) : OfflineApps.getAll());
   },
 
   createApplication: async function(data) {
-    if (!OFFLINE_MODE) {
+    var bc = !!(window.BACKEND_URL || _DEPLOYED_BACKEND);
+    if (bc) {
       try {
         var res   = await ApplicationsAPI.create(data);
         var saved = normalize(res.data||res.application||res);
