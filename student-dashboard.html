@@ -136,94 +136,78 @@
   <footer><div class="container"><div class="footer-bottom"><p>© 2025 AI Internship Allocation &amp; Recommendation System</p></div></div></footer>
 </div>
 <div id="toastContainer" class="toast-container"></div>
+<script>window.API_BASE = window.API_BASE || "http://localhost:5001/api";</script>
 <script src="api.js"></script>
 <script src="script.js"></script>
 <script>
+/* =========================================================
+   STUDENT DASHBOARD — loads everything from MongoDB directly
+========================================================= */
 document.addEventListener('DOMContentLoaded', async function() {
   var session = Auth.getSession();
+  renderNavUser();
 
   if (!session) {
     document.getElementById('notLoggedIn').classList.remove('hidden');
     return;
   }
 
-  /* Pull latest data from MongoDB so dashboard reflects real data */
-  await syncFromBackend();
-
-  /* Show/hide nav links based on role */
-  if (session.role==='admin') {
+  if (session.role === 'admin') {
     document.getElementById('navAdmin').classList.remove('hidden');
-    document.getElementById('navManage').classList.remove('hidden');
-    document.getElementById('dashHeading').textContent='Admin — Student Overview';
-    document.getElementById('dashSubtitle').textContent='Viewing student profiles as admin.';
-  }
-
-  /* Find student profile linked to this user */
-  var student = null;
-  var students = Store.get(KEYS.STUDENTS);
-
-  if (session.role==='student') {
-    /* Match by session id (most reliable — set by registerUser) */
-    var sid = session.id || session._id;
-    if (sid) {
-      student = students.find(function(s){
-        return (s._id||s.id) === sid;
-      });
-    }
-    /* Fallback: match by email */
-    if (!student) {
-      student = students.find(function(s){
-        return s.email && s.email.toLowerCase()===session.email.toLowerCase();
-      });
-    }
-    /* Fallback: match by roll number */
-    if (!student && session.rollNo) {
-      student = students.find(function(s){
-        return s.rollNo && s.rollNo.toLowerCase()===(session.rollNo||'').toLowerCase();
-      });
-    }
-  } else if (session.role==='admin') {
-    /* Admin sees first student or picks — show selector */
-    showAdminStudentView(students);
+    document.getElementById('dashHeading').textContent  = 'Admin — Student Overview';
+    document.getElementById('dashSubtitle').textContent = 'Viewing student profiles as admin.';
+    await showAdminStudentView();
     return;
   }
 
-  if (!student) {
+  /* Student: load their profile from MongoDB by session id */
+  var sid = session.id || session._id;
+  try {
+    var student = await DataService.getStudent(sid);
+    if (!student) throw new Error('Profile not found');
+    var studentEditId = getSid(student);
+    document.getElementById('dashActions').innerHTML =
+      '<a href="student-management.html" class="btn btn-outline btn-sm" ' +
+      'onclick="sessionStorage.setItem('editStudentId','' + studentEditId + '')">✏️ Edit Profile</a>' +
+      '<a href="recommendations.html" class="btn btn-primary btn-sm">🎯 Find Internships</a>';
+    await loadStudentDash(student);
+  } catch(e) {
     document.getElementById('noProfile').classList.remove('hidden');
     document.getElementById('dashActions').innerHTML =
       '<a href="student-management.html" class="btn btn-primary">➕ Fill My Profile</a>';
-    return;
   }
-
-  var studentEditId = student._id || student.id;
- document.getElementById('dashActions').innerHTML =
-  '<a href="student-management.html" class="btn btn-outline btn-sm" onclick="sessionStorage.setItem(&quot;editStudentId&quot;, \'' + studentEditId + '\')">✏️ Edit Profile</a>' +
-  '<a href="recommendations.html" class="btn btn-primary btn-sm">🎯 Find Internships</a>';
-  loadStudentDash(student);
 });
 
-function showAdminStudentView(students) {
+/* ── ADMIN: pick a student to view ── */
+async function showAdminStudentView() {
+  var students = [];
+  try { students = await DataService.getStudents(); } catch(e) {}
   document.getElementById('noProfile').classList.remove('hidden');
   document.getElementById('noProfile').innerHTML =
-    '<div style="font-size:3rem;margin-bottom:1rem">👑</div>'+
-    '<h2>Admin View</h2>'+
-    '<p style="color:var(--muted);margin:.75rem 0 1.5rem">You are logged in as Admin.<br>Select a student below to view their dashboard.</p>'+
-    '<select id="adminStuSel" class="form-control" style="max-width:320px;margin:0 auto" onchange="adminViewStudent(this.value)">'+
-      '<option value="">— Select a Student —</option>'+
-      students.map(function(s){ return '<option value="'+s.id+'">'+s.fullName+' ('+s.rollNo+')</option>'; }).join('')+
-    '</select>'+
+    '<div style="font-size:3rem;margin-bottom:1rem">👑</div>' +
+    '<h2>Admin View</h2>' +
+    '<p style="color:var(--muted);margin:.75rem 0 1.5rem">Select a student below to view their dashboard.</p>' +
+    '<select id="adminStuSel" class="form-control" style="max-width:320px;margin:0 auto" onchange="adminViewStudent(this.value)">' +
+      '<option value="">— Select a Student —</option>' +
+      students.map(function(s){ return '<option value="' + getSid(s) + '">' + (s.fullName||'?') + ' (' + (s.rollNo||'—') + ')</option>'; }).join('') +
+    '</select>' +
     '<div style="margin-top:1.5rem"><a href="admin-dashboard.html" class="btn btn-primary">📊 Go to Admin Dashboard</a></div>';
 }
 
-function adminViewStudent(id) {
+async function adminViewStudent(id) {
   if (!id) return;
-  var s = Store.getOne(KEYS.STUDENTS, id);
-  if (!s) return;
-  document.getElementById('noProfile').classList.add('hidden');
-  loadStudentDash(s);
+  try {
+    var s = await DataService.getStudent(id);
+    if (!s) return;
+    document.getElementById('noProfile').classList.add('hidden');
+    await loadStudentDash(s);
+  } catch(e) {
+    showToast('Could not load student: ' + e.message, 'error');
+  }
 }
 
-function loadStudentDash(s) {
+/* ── MAIN DASHBOARD RENDER ── */
+async function loadStudentDash(s) {
   document.getElementById('dashContent').classList.remove('hidden');
   document.getElementById('noProfile').classList.add('hidden');
 
@@ -237,100 +221,121 @@ function loadStudentDash(s) {
   document.getElementById('pAv').textContent   = init;
   document.getElementById('pName').textContent = s.fullName;
   document.getElementById('pRoll').textContent = s.rollNo;
-  document.getElementById('pDept').textContent = (s.department||'—')+' · '+(s.semester||'—');
+  document.getElementById('pDept').textContent = (s.department||'—') + ' · ' + (s.semester||'—');
 
-  var fields=[s.fullName,s.rollNo,s.department,s.semester,s.cgpa,s.email,s.preferredDomain,skills.length,certs.length,s.projects,s.resumeFile];
-  var pct=Math.round(fields.filter(Boolean).length/fields.length*100);
-  document.getElementById('pBar').style.width=pct+'%';
-  document.getElementById('pPct').textContent=pct+'%';
+  var fields = [s.fullName,s.rollNo,s.department,s.semester,s.cgpa,s.email,s.preferredDomain,skills.length,certs.length,s.projects,s.resumeFile];
+  var pct    = Math.round(fields.filter(Boolean).length / fields.length * 100);
+  document.getElementById('pBar').style.width  = pct + '%';
+  document.getElementById('pPct').textContent  = pct + '%';
 
-  document.getElementById('pMeta').innerHTML=[
-    ['CGPA',s.cgpa||'—'],['Percentage',s.percentage?s.percentage+'%':'—'],
-    ['Domain',s.preferredDomain||'—'],['Email',s.email||'—'],
-    ['Added',fmtDate(s.createdAt)]
-  ].map(function(r){return '<div class="pm-row"><span style="color:var(--muted)">'+r[0]+'</span><span style="color:var(--white-2);font-weight:500;text-align:right">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('pMeta').innerHTML = [
+    ['CGPA', s.cgpa||'—'], ['Percentage', s.percentage ? s.percentage+'%' : '—'],
+    ['Domain', s.preferredDomain||'—'], ['Email', s.email||'—'], ['Added', fmtDate(s.createdAt)]
+  ].map(function(r){
+    return '<div class="pm-row"><span style="color:var(--muted)">'+r[0]+'</span>' +
+           '<span style="color:var(--white-2);font-weight:500;text-align:right">'+r[1]+'</span></div>';
+  }).join('');
 
   document.getElementById('pCerts').innerHTML = certs.length
-    ? certs.map(function(c){return '<div style="font-size:.82rem;color:var(--white-2);display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem"><span style="color:var(--success)">✓</span>'+c+'</div>';}).join('')
+    ? certs.map(function(cert){
+        return '<div style="font-size:.82rem;color:var(--white-2);display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem">' +
+               '<span style="color:var(--success)">✓</span>' + cert + '</div>';
+      }).join('')
     : '<div style="color:var(--muted);font-size:.82rem">No certifications added.</div>';
 
-  /* My applications */
-  var apps = Store.get(KEYS.APPLICATIONS).filter(function(a){ return a.studentId===s.id; });
-  var sBadge={Pending:'badge-yellow',Shortlisted:'badge-cyan',Accepted:'badge-green',Rejected:'badge-red'};
+  /* Applications — load from MongoDB */
+  var apps = [];
+  var internships = [];
+  try {
+    var stuId = getSid(s);
+    apps        = await DataService.getApplications(stuId);
+    internships = await DataService.getInternships();
+  } catch(e) {
+    console.warn('Could not load applications/internships:', e.message);
+  }
+
+  var sBadge = { Pending:'badge-yellow', Shortlisted:'badge-cyan', Accepted:'badge-green', Rejected:'badge-red' };
   document.getElementById('pApps').innerHTML = apps.length
-    ? apps.slice(0,4).map(function(a){
-        var i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--glass-border);font-size:.8rem">'+
-          '<span style="color:var(--white-2)">'+(i?i.title:'—')+'</span>'+
-          '<span class="badge '+(sBadge[a.status]||'badge-cyan')+'">'+a.status+'</span>'+
+    ? apps.slice(0,4).map(function(a) {
+        var intern = internships.find(function(x){ return String(x._id||x.id)===String(a.internshipId); });
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--glass-border);font-size:.8rem">' +
+          '<div>' +
+            '<div style="color:var(--white-2);font-weight:500">' + (intern ? intern.title : '—') + '</div>' +
+            '<div style="color:var(--muted);font-size:.75rem">' + (intern ? intern.company : '') + ' · ' + fmtDate(a.appliedAt) + '</div>' +
+          '</div>' +
+          '<span class="badge ' + (sBadge[a.status]||'badge-cyan') + '">' + (a.status||'Pending') + '</span>' +
         '</div>';
       }).join('')
-    : '<div style="color:var(--muted);font-size:.82rem">No applications yet.<br><a href="recommendations.html" style="color:var(--cyan)">Browse internships →</a></div>';
+    : '<div style="color:var(--muted);font-size:.82rem">No applications yet.<br>' +
+      '<a href="recommendations.html" style="color:var(--cyan)">Browse internships →</a></div>';
 
-  document.getElementById('dCgpa').textContent   = s.cgpa||'—';
+  document.getElementById('dCgpa').textContent   = s.cgpa  || '—';
   document.getElementById('dSkills').textContent = skills.length;
   document.getElementById('dCerts').textContent  = certs.length;
+  document.getElementById('skillBadge').textContent = skills.length + ' skills';
 
-  document.getElementById('skillBadge').textContent = skills.length+' skills';
-  document.getElementById('skillChips').innerHTML  = skills.map(function(sk){return '<span class="chip">'+sk+'</span>';}).join('');
+  document.getElementById('skillChips').innerHTML = skills.map(function(sk){
+    return '<span class="chip">' + sk + '</span>';
+  }).join('');
 
-  var prof=[92,85,78,88,72,65,80,70];
-  document.getElementById('skillBars').innerHTML = skills.slice(0,6).map(function(sk,i){
-    var p=prof[i%prof.length];
-    return '<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">'+
-      '<div style="width:130px;font-size:.82rem;color:var(--white-2);flex-shrink:0">'+sk+'</div>'+
-      '<div style="flex:1"><div class="progress-bar"><div class="progress-fill" data-t="'+p+'" style="width:0%"></div></div></div>'+
-      '<div style="font-family:var(--font-mono);font-size:.75rem;color:var(--cyan);width:30px;text-align:right">'+p+'%</div>'+
+  var prof = [92,85,78,88,72,65,80,70];
+  document.getElementById('skillBars').innerHTML = skills.slice(0,6).map(function(sk,i) {
+    var p = prof[i % prof.length];
+    return '<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">' +
+      '<div style="width:130px;font-size:.82rem;color:var(--white-2);flex-shrink:0">' + sk + '</div>' +
+      '<div style="flex:1"><div class="progress-bar"><div class="progress-fill" data-t="' + p + '" style="width:0%"></div></div></div>' +
+      '<div style="font-family:var(--font-mono);font-size:.75rem;color:var(--cyan);width:30px;text-align:right">' + p + '%</div>' +
     '</div>';
   }).join('');
-  setTimeout(function(){ document.querySelectorAll('#skillBars .progress-fill').forEach(function(el){ el.style.width=el.dataset.t+'%'; }); },120);
+  setTimeout(function(){
+    document.querySelectorAll('#skillBars .progress-fill').forEach(function(el){ el.style.width = el.dataset.t + '%'; });
+  }, 120);
 
   document.getElementById('softChips').innerHTML = soft.length
-    ? soft.map(function(sk){return '<span class="chip" style="background:rgba(124,77,255,.12);border-color:rgba(124,77,255,.25);color:var(--accent-2)">'+sk+'</span>';}).join('')
+    ? soft.map(function(sk){
+        return '<span class="chip" style="background:rgba(124,77,255,.12);border-color:rgba(124,77,255,.25);color:var(--accent-2)">' + sk + '</span>';
+      }).join('')
     : '<span style="color:var(--muted);font-size:.85rem">Not specified</span>';
 
   document.getElementById('intChips').innerHTML = ints.length
-    ? ints.map(function(i){return '<span class="chip" style="background:rgba(0,200,151,.1);border-color:rgba(0,200,151,.25);color:var(--success)">'+i+'</span>';}).join('')
+    ? ints.map(function(item){
+        return '<span class="chip" style="background:rgba(0,200,151,.1);border-color:rgba(0,200,151,.25);color:var(--success)">' + item + '</span>';
+      }).join('')
     : '<span style="color:var(--muted);font-size:.85rem">Not specified</span>';
 
   document.getElementById('pProjects').innerHTML = (s.projects||'').trim()
-    ? s.projects.split('\n').filter(Boolean).map(function(p){return '<div style="display:flex;gap:.5rem;margin-bottom:.4rem"><span style="color:var(--cyan)">▸</span><span>'+p+'</span></div>';}).join('')
+    ? s.projects.split('\n').filter(Boolean).map(function(p){
+        return '<div style="display:flex;gap:.5rem;margin-bottom:.4rem"><span style="color:var(--cyan)">▸</span><span>' + p + '</span></div>';
+      }).join('')
     : '<span style="color:var(--muted)">No projects listed.</span>';
 
-  /* AI Recommendations */
-  var internships = Store.get(KEYS.INTERNSHIPS);
-  var recs = internships.map(function(i){ return {i:i,sc:calcMatchScore(s,i)}; }).sort(function(a,b){return b.sc-a.sc;}).slice(0,6);
-  var top = recs.length ? recs[0].sc : 0;
-  document.getElementById('dBest').textContent = top+'%';
+  /* AI Recommendations from real internship data */
+  var recs  = internships.map(function(i){ return { i:i, sc:calcMatchScore(s,i) }; })
+                         .sort(function(a,b){ return b.sc - a.sc; }).slice(0,6);
+  var top   = recs.length ? recs[0].sc : 0;
+  document.getElementById('dBest').textContent = top + '%';
 
   document.getElementById('aiSummary').innerHTML =
-    '🤖 <strong>AI Analysis for '+s.fullName+':</strong> Based on skills in <em>'+(skills.slice(0,2).join(', ')||'your profile')+'</em>, '
-    +'CGPA of <strong>'+s.cgpa+'</strong> and preference for <strong>'+s.preferredDomain+'</strong>, '
-    +'our AI found <strong>'+recs.filter(function(r){return r.sc>=60;}).length+'</strong> matches ≥60%. '
-    +'Best match: <strong>'+(recs[0]?recs[0].i.title:'—')+'</strong> at <strong>'+(recs[0]?recs[0].i.company:'—')+'</strong> '
-    +'with <strong style="color:var(--success)">'+top+'%</strong> compatibility.';
+    '🤖 <strong>AI Analysis for ' + s.fullName + ':</strong> Based on skills in ' +
+    '<em>' + (skills.slice(0,2).join(', ')||'your profile') + '</em>, ' +
+    'your top match score is <strong style="color:var(--success)">' + top + '%</strong>. ' +
+    (top >= 70 ? 'You have strong matches available!' :
+     top >= 50 ? 'Consider updating your skills to improve matches.' :
+                 'Complete your profile to get better recommendations.');
 
-  var rc = document.getElementById('recCards'); rc.innerHTML='';
-  recs.forEach(function(r){
-    var i=r.i,sc=r.sc,col=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--danger)';
-    var R=22,circ=(2*Math.PI*R).toFixed(1),offset=(parseFloat(circ)-(sc/100)*parseFloat(circ)).toFixed(1);
-    var d=document.createElement('div'); d.className='mcard';
-    d.onclick=function(){ window.location.href='recommendations.html'; };
-    d.innerHTML=
-      '<div class="mring">'+
-        '<svg width="54" height="54" viewBox="0 0 54 54">'+
-          '<circle cx="27" cy="27" r="'+R+'" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="4"/>'+
-          '<circle cx="27" cy="27" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="4" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" stroke-linecap="round"/>'+
-        '</svg>'+
-        '<div class="mpct" style="color:'+col+'">'+sc+'%</div>'+
-      '</div>'+
-      '<div style="flex:1;min-width:0">'+
-        '<div style="font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+i.title+'</div>'+
-        '<div style="font-size:.75rem;color:var(--muted)">'+i.company+' · '+i.location+'</div>'+
-        '<div style="margin-top:.3rem"><span class="badge badge-cyan" style="font-size:.67rem">'+(sc>=80?'Excellent':sc>=60?'Good':sc>=40?'Fair':'Low')+' Match</span></div>'+
-      '</div>';
-    rc.appendChild(d);
-  });
+  document.getElementById('recCards').innerHTML = recs.map(function(r){
+    var col = r.sc>=70?'var(--success)':r.sc>=50?'var(--warning)':'var(--danger)';
+    return '<div class="card" style="padding:1rem;display:flex;justify-content:space-between;align-items:center;gap:1rem">' +
+      '<div>' +
+        '<div style="font-weight:600;font-size:.9rem">' + r.i.title + '</div>' +
+        '<div style="color:var(--muted);font-size:.8rem">' + r.i.company + ' · ' + r.i.domain + '</div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:.75rem">' +
+        '<span style="font-weight:700;color:' + col + ';font-size:1rem">' + r.sc + '%</span>' +
+        '<a href="recommendations.html" class="btn btn-primary btn-sm">Apply</a>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 </script>
 </body>

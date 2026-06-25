@@ -2,49 +2,37 @@
 
 /* =========================================================
    CONFIG
-   -------------------------------------------------------
-   IMPORTANT: Set your deployed backend URL here.
-   Replace the string below with your Render / Railway /
-   Vercel backend URL.
-
-   Example: const API_BASE = 'https://my-backend.onrender.com/api';
-
-   If you have NO backend deployed yet, leave as localhost
-   and the app will run fully in localStorage (offline mode).
+   IMPORTANT: Change this URL to your deployed backend.
+   For local testing: http://localhost:5001/api
+   For deployed backend (Render/Railway etc): https://your-backend.onrender.com/api
 ========================================================= */
-const API_BASE = window.API_BASE || 'http://localhost:5001/api';
+var API_BASE = window.API_BASE || 'http://localhost:5001/api';
 
 /* =========================================================
-   TOKEN STORE — stores JWT in localStorage
+   TOKEN STORE — JWT stored in sessionStorage (not localStorage)
+   Session only — clears when browser tab closes
 ========================================================= */
 var TokenStore = {
   _key: 'aiias_token',
-  get: function () {
-    return localStorage.getItem(this._key) || null;
-  },
-  set: function (token) {
-    if (token) localStorage.setItem(this._key, token);
-  },
-  clear: function () {
-    localStorage.removeItem(this._key);
-  }
+  get:   function()      { return sessionStorage.getItem(this._key) || null; },
+  set:   function(token) { if (token) sessionStorage.setItem(this._key, token); },
+  clear: function()      { sessionStorage.removeItem(this._key); }
 };
 
 /* =========================================================
-   GENERIC API CALL WRAPPER
+   GENERIC API REQUEST
+   - Handles JSON and FormData
+   - Attaches Bearer token automatically
+   - Returns parsed JSON or throws Error with backend message
 ========================================================= */
 async function apiRequest(endpoint, method, data, requiresAuth) {
-  method = method || 'GET';
-  requiresAuth = requiresAuth !== false; // default true
+  method      = method      || 'GET';
+  requiresAuth = requiresAuth !== false;
 
   var isFormData = (typeof FormData !== 'undefined' && data instanceof FormData);
+  var headers   = {};
 
-  var headers = {};
-  if (!isFormData) {
-    headers['Content-Type'] = 'application/json';
-  }
-  // Never set Content-Type for FormData — browser sets it with boundary automatically
-
+  if (!isFormData) headers['Content-Type'] = 'application/json';
   if (requiresAuth) {
     var token = TokenStore.get();
     if (token) headers['Authorization'] = 'Bearer ' + token;
@@ -52,35 +40,34 @@ async function apiRequest(endpoint, method, data, requiresAuth) {
 
   try {
     var res = await fetch(API_BASE + endpoint, {
-      method: method,
+      method:  method,
       headers: headers,
-      body: isFormData ? data : (data ? JSON.stringify(data) : null)
+      body:    isFormData ? data : (data ? JSON.stringify(data) : null)
     });
-
     var result = await res.json();
-    if (!res.ok) throw new Error(result.msg || result.message || 'API Error');
+    if (!res.ok) throw new Error(result.msg || result.message || result.error || 'Server error ' + res.status);
     return result;
-
   } catch (err) {
-    console.error('API Error [' + endpoint + ']:', err.message);
+    console.error('[API]', endpoint, err.message);
     throw err;
   }
 }
 
 /* =========================================================
-   BACKEND HEALTH CHECK
+   BACKEND HEALTH CHECK — returns true only if backend responds
+   Returns false instantly for localhost (GitHub Pages)
 ========================================================= */
 async function isBackendOnline() {
-  // If using localhost, skip the check entirely — always offline on GitHub Pages
   if (API_BASE.includes('localhost') || API_BASE.includes('127.0.0.1')) {
+    /* Running locally — assume backend is reachable if window.API_BASE was set */
+    if (window.API_BASE) return true;
     return false;
   }
   try {
-    var controller = new AbortController();
-    var timer = setTimeout(function(){ controller.abort(); }, 2500);
-    var res = await fetch(API_BASE + '/health', {
-      method: 'GET',
-      signal: controller.signal
+    var ctrl  = new AbortController();
+    var timer = setTimeout(function() { ctrl.abort(); }, 3000);
+    var res   = await fetch(API_BASE.replace('/api', '') + '/health', {
+      method: 'GET', signal: ctrl.signal
     });
     clearTimeout(timer);
     return res.ok;
@@ -90,65 +77,50 @@ async function isBackendOnline() {
 }
 
 /* =========================================================
-   AUTH APIs (no token required)
+   AUTH APIs
 ========================================================= */
-async function apiLogin(email, password) {
-  return apiRequest('/auth/login', 'POST', { email: email, password: password }, false);
-}
-
-async function apiRegister(name, email, password, rollNo) {
-  return apiRequest('/auth/register', 'POST', {
-    name: name, email: email, password: password, rollNo: rollNo
-  }, false);
-}
-
-/* =========================================================
-   ADMIN API — login + student login via admin routes
-========================================================= */
-var AdminAPI = {
-  login: async function (email, password) {
-    return apiRequest('/auth/admin/login', 'POST', { email: email, password: password }, false);
+var AuthAPI = {
+  adminLogin: async function(email, password) {
+    return apiRequest('/auth/login', 'POST', { email, password }, false);
   },
-
-  studentLogin: async function (email, password) {
-    return apiRequest('/auth/student/login', 'POST', { email: email, password: password }, false);
+  studentLogin: async function(email, password) {
+    return apiRequest('/auth/student/login', 'POST', { email, password }, false);
   },
-
-  getStats: async function () {
-    return apiRequest('/admin/stats', 'GET', null, true);
+  studentRegister: async function(data) {
+    return apiRequest('/auth/student/register', 'POST', data, false);
   }
 };
 
+/* keep old names working */
+var AdminAPI = {
+  login:        function(e, p) { return AuthAPI.adminLogin(e, p);   },
+  studentLogin: function(e, p) { return AuthAPI.studentLogin(e, p); }
+};
+
 /* =========================================================
-   STUDENTS API — full CRUD
+   STUDENTS API
 ========================================================= */
 var StudentsAPI = {
-  register: async function (data) {
+  register: async function(data) {
     return apiRequest('/students/register', 'POST', data, false);
   },
-
-  getAll: async function () {
+  getAll: async function() {
     return apiRequest('/students', 'GET', null, true);
   },
-
-  getOne: async function (id) {
+  getOne: async function(id) {
     return apiRequest('/students/' + id, 'GET', null, true);
   },
-
-  create: async function (data) {
-    var isFormData = (typeof FormData !== 'undefined' && data instanceof FormData);
-    // For FormData (resume upload), use multipart endpoint
-    var endpoint = isFormData ? '/students/upload' : '/students';
+  create: async function(data) {
+    var isForm   = data instanceof FormData;
+    var endpoint = isForm ? '/students/upload' : '/students';
     return apiRequest(endpoint, 'POST', data, true);
   },
-
-  update: async function (id, data) {
-    var isFormData = (typeof FormData !== 'undefined' && data instanceof FormData);
-    var endpoint = isFormData ? '/students/' + id + '/upload' : '/students/' + id;
+  update: async function(id, data) {
+    var isForm   = data instanceof FormData;
+    var endpoint = isForm ? '/students/' + id + '/upload' : '/students/' + id;
     return apiRequest(endpoint, 'PUT', data, true);
   },
-
-  remove: async function (id) {
+  remove: async function(id) {
     return apiRequest('/students/' + id, 'DELETE', null, true);
   }
 };
@@ -157,23 +129,19 @@ var StudentsAPI = {
    INTERNSHIPS API
 ========================================================= */
 var InternshipsAPI = {
-  getAll: async function () {
-    return apiRequest('/internships', 'GET', null, true);
+  getAll: async function() {
+    return apiRequest('/internships', 'GET', null, false);
   },
-
-  getOne: async function (id) {
-    return apiRequest('/internships/' + id, 'GET', null, true);
+  getOne: async function(id) {
+    return apiRequest('/internships/' + id, 'GET', null, false);
   },
-
-  create: async function (data) {
+  create: async function(data) {
     return apiRequest('/internships', 'POST', data, true);
   },
-
-  update: async function (id, data) {
+  update: async function(id, data) {
     return apiRequest('/internships/' + id, 'PUT', data, true);
   },
-
-  remove: async function (id) {
+  remove: async function(id) {
     return apiRequest('/internships/' + id, 'DELETE', null, true);
   }
 };
@@ -182,180 +150,109 @@ var InternshipsAPI = {
    APPLICATIONS API
 ========================================================= */
 var ApplicationsAPI = {
-  getAll: async function () {
+  getAll: async function() {
     return apiRequest('/applications', 'GET', null, true);
   },
-
-  getByStudent: async function (studentId) {
+  getByStudent: async function(studentId) {
     return apiRequest('/applications/student/' + studentId, 'GET', null, true);
   },
-
-  create: async function (data) {
-    // Normalize field names — some backends use internship/student, others internshipId/studentId
-    var payload = Object.assign({}, data, {
-      internship: data.internshipId || data.internship,
-      student: data.studentId || data.student,
-      internshipId: data.internshipId || data.internship,
-      studentId: data.studentId || data.student
-    });
-    return apiRequest('/applications', 'POST', payload, true);
+  create: async function(data) {
+    return apiRequest('/applications', 'POST', data, true);
   },
+  updateStatus: async function(id, status, notes) {
+    return apiRequest('/applications/' + id + '/status', 'PUT', { status, notes }, true);
+  }
+};
 
-  updateStatus: async function (id, status, notes) {
-    // Try both common route patterns
+/* =========================================================
+   NOTIFICATIONS API (for Apply confirmation emails / alerts)
+========================================================= */
+var NotificationsAPI = {
+  send: async function(data) {
+    /* data: { type, studentId, internshipId, studentName, internshipTitle, email } */
     try {
-      return await apiRequest('/applications/' + id + '/status', 'PUT', { status: status, notes: notes }, true);
+      return apiRequest('/notifications/send', 'POST', data, true);
     } catch(e) {
-      return await apiRequest('/applications/' + id, 'PUT', { status: status, adminNotes: notes }, true);
+      console.warn('Notification send failed (non-critical):', e.message);
     }
   }
 };
 
 /* =========================================================
-   DATA SERVICE — used by student-management.html
-   Tries MongoDB backend first, falls back to Store (localStorage)
+   DATA SERVICE  — MongoDB only, NO localStorage fallback
+   All data goes straight to backend. If backend is offline,
+   a clear error is shown to the user.
 ========================================================= */
 var DataService = {
-  getStudents: async function () {
-    try {
-      var online = await isBackendOnline();
-      if (online) {
-        var res = await StudentsAPI.getAll();
-        return Array.isArray(res) ? res : (res.data || res.students || []);
-      }
-    } catch (e) {
-      console.warn('DataService.getStudents backend failed, using local Store');
-    }
-    return Store.get(KEYS.STUDENTS);
+
+  getStudents: async function() {
+    var res  = await StudentsAPI.getAll();
+    return normalizeList(Array.isArray(res) ? res : (res.data || res.students || []));
   },
 
-  getStudent: async function (id) {
-    try {
-      var online = await isBackendOnline();
-      if (online) {
-        var res = await StudentsAPI.getOne(id);
-        return res.data || res.student || res;
-      }
-    } catch (e) {}
-    return Store.getOne(KEYS.STUDENTS, id);
+  getStudent: async function(id) {
+    var res = await StudentsAPI.getOne(id);
+    return normalize(res.data || res.student || res);
   },
 
-  createStudent: async function (data) {
-    var online = false;
-    try { online = await isBackendOnline(); } catch(e){}
-
-    if (online) {
-      try {
-        var res = await StudentsAPI.create(data);
-        var saved = res.data || res.student || res;
-        // Normalize: ensure both id and _id exist
-        if (!saved.id && saved._id) saved.id = saved._id;
-        if (!saved._id && saved.id) saved._id = saved.id;
-        // Mirror to local Store
-        var list = Store.get(KEYS.STUDENTS);
-        var idx = list.findIndex(function(s){ return (s._id||s.id) === (saved._id||saved.id); });
-        if (idx >= 0) list[idx] = saved; else list.push(saved);
-        Store.set(KEYS.STUDENTS, list);
-        return saved;
-      } catch (e) {
-        console.warn('DataService.createStudent backend failed:', e.message);
-        showToast('Backend error: ' + (e.message || 'Could not save to database.') + ' Saving locally.', 'warning');
-      }
-    }
-
-    // Offline fallback — save to localStorage only
-    var isFormData = (typeof FormData !== 'undefined' && data instanceof FormData);
-    var localData = isFormData ? {} : data;
-    if (isFormData) {
-      // Extract fields from FormData for localStorage
-      for (var pair of data.entries()) {
-        if (pair[0] !== 'resume') localData[pair[0]] = pair[1];
-      }
-    }
-    var student = Object.assign({
-      id: 'stu_' + Date.now(),
-      _id: 'stu_' + Date.now(),
-      createdAt: new Date().toISOString()
-    }, localData);
-    var list = Store.get(KEYS.STUDENTS);
-    list.push(student);
-    Store.set(KEYS.STUDENTS, list);
-    return student;
+  createStudent: async function(data) {
+    var res   = await StudentsAPI.create(data);
+    var saved = normalize(res.data || res.student || res);
+    return saved;
   },
 
-  updateStudent: async function (id, data) {
-    var online = false;
-    try { online = await isBackendOnline(); } catch(e){}
-
-    if (online) {
-      try {
-        var res = await StudentsAPI.update(id, data);
-        var saved = res.data || res.student || res;
-        if (!saved.id && saved._id) saved.id = saved._id;
-        if (!saved._id && saved.id) saved._id = saved.id;
-        // Mirror update to local Store
-        var list = Store.get(KEYS.STUDENTS);
-        var idx = list.findIndex(function(s){ return (s._id||s.id) === id; });
-        if (idx >= 0) { list[idx] = Object.assign(list[idx], saved); Store.set(KEYS.STUDENTS, list); }
-        return saved;
-      } catch (e) {
-        console.warn('DataService.updateStudent backend failed:', e.message);
-        showToast('Backend error: ' + (e.message || 'Could not update database.') + ' Saving locally.', 'warning');
-      }
-    }
-
-    // Offline fallback
-    var isFormData = (typeof FormData !== 'undefined' && data instanceof FormData);
-    var localData = isFormData ? {} : data;
-    if (isFormData) {
-      for (var pair of data.entries()) {
-        if (pair[0] !== 'resume') localData[pair[0]] = pair[1];
-      }
-    }
-    var list = Store.get(KEYS.STUDENTS);
-    var idx = list.findIndex(function(s){ return (s._id||s.id) === id; });
-    if (idx >= 0) {
-      list[idx] = Object.assign(list[idx], localData);
-      Store.set(KEYS.STUDENTS, list);
-      return list[idx];
-    }
-    throw new Error('Student not found in local store. Please refresh.');
+  updateStudent: async function(id, data) {
+    var res   = await StudentsAPI.update(id, data);
+    var saved = normalize(res.data || res.student || res);
+    return saved;
   },
 
-  deleteStudent: async function (id) {
-    try {
-      var online = await isBackendOnline();
-      if (online) {
-        await StudentsAPI.remove(id);
-      }
-    } catch (e) {
-      console.warn('DataService.deleteStudent backend failed, using local Store');
-    }
-    // Always remove from local store too
-    var list = Store.get(KEYS.STUDENTS).filter(function (s) { return (s._id || s.id) !== id; });
-    Store.set(KEYS.STUDENTS, list);
+  deleteStudent: async function(id) {
+    return StudentsAPI.remove(id);
+  },
+
+  getInternships: async function() {
+    var res = await InternshipsAPI.getAll();
+    return normalizeList(Array.isArray(res) ? res : (res.data || res.internships || []));
+  },
+
+  getApplications: async function(studentId) {
+    var res  = studentId
+      ? await ApplicationsAPI.getByStudent(studentId)
+      : await ApplicationsAPI.getAll();
+    return normalizeList(Array.isArray(res) ? res : (res.data || res.applications || []));
+  },
+
+  createApplication: async function(data) {
+    var res   = await ApplicationsAPI.create(data);
+    var saved = normalize(res.data || res.application || res);
+    return saved;
   }
 };
 
 /* =========================================================
-   LEGACY WRAPPERS (keep old code working)
+   HELPERS
 ========================================================= */
-async function getStudents() {
-  return StudentsAPI.getAll();
+function normalize(item) {
+  if (!item) return item;
+  var copy = Object.assign({}, item);
+  if (!copy.id  && copy._id) copy.id  = String(copy._id);
+  if (!copy._id && copy.id)  copy._id = String(copy.id);
+  return copy;
+}
+function normalizeList(arr) {
+  return (arr || []).map(normalize);
+}
+function getSid(s) {
+  return s ? (String(s._id || s.id || '')) : '';
+}
+function genId() {
+  return 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
 }
 
-async function updateStudent(id, data) {
-  return StudentsAPI.update(id, data);
-}
-
-async function getInternships() {
-  return InternshipsAPI.getAll();
-}
-
-async function addInternship(data) {
-  return InternshipsAPI.create(data);
-}
-
-async function applyInternship(data) {
-  return ApplicationsAPI.create(data);
-}
+/* legacy wrappers */
+async function getStudents()        { return StudentsAPI.getAll();      }
+async function updateStudent(id, d) { return StudentsAPI.update(id, d); }
+async function getInternships()     { return InternshipsAPI.getAll();   }
+async function addInternship(d)     { return InternshipsAPI.create(d);  }
+async function applyInternship(d)   { return ApplicationsAPI.create(d); }

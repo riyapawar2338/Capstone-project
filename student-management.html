@@ -331,311 +331,238 @@
 
 <div id="toastContainer" class="toast-container"></div>
 
+<script>window.API_BASE = window.API_BASE || "http://localhost:5001/api";</script>
 <script src="api.js"></script>
 <script src="script.js"></script>
-
 <script>
+/* =========================================================
+   STUDENT MANAGEMENT — all data saved directly to MongoDB
+========================================================= */
 var tTech, tSoft, tCert, tInt;
-var pendingDel = null;
-var studentsCache = [];
+var studentsCache  = [];
 var currentSession = null;
+var pendingDel     = null;
 
-/* ============================================================
-   INIT
-   ============================================================ */
 document.addEventListener('DOMContentLoaded', async function() {
   try {
-    currentSession = (window.Auth && Auth.getSession) ? Auth.getSession() : null;
+    currentSession = Auth.getSession();
+    renderNavUser();
 
     if (!currentSession) {
       var lb = document.getElementById('loginBanner');
-      if (lb) {
-        lb.classList.remove('hidden');
-        lb.style.display = 'flex';
-      }
-    } else {
-      var lb2 = document.getElementById('loginBanner');
-      if (lb2) lb2.classList.add('hidden');
-
-      if (currentSession.role === 'admin') {
-        var navAdmin = document.getElementById('navAdmin');
-        if (navAdmin) navAdmin.classList.remove('hidden');
-      }
-
-      /* Sync MongoDB data into localStorage so list shows real students */
-      if (typeof syncFromBackend === 'function') await syncFromBackend();
+      if (lb) { lb.classList.remove('hidden'); lb.style.display='flex'; }
+      return;
     }
 
-    tTech = initTagsInput('wTech', 'sTech');
-    tSoft = initTagsInput('wSoft', 'sSoft');
-    tCert = initTagsInput('wCert', 'sCert');
+    var lb2 = document.getElementById('loginBanner');
+    if (lb2) lb2.classList.add('hidden');
+
+    if (currentSession.role === 'admin') {
+      var na = document.getElementById('navAdmin');
+      if (na) na.classList.remove('hidden');
+    }
+
+    /* Init tag inputs */
+    tTech = initTagsInput('wTech','sTech');
+    tSoft = initTagsInput('wSoft','sSoft');
+    tCert = initTagsInput('wCert','sCert');
     tInt  = initTagsInput('wInt', 'sInt');
+    initFileUpload('resumeArea');
 
-    if (typeof initFileUpload === 'function') {
-      initFileUpload('resumeArea');
-    }
-
+    /* Delete confirm button */
     document.getElementById('delOk').addEventListener('click', async function() {
       if (!pendingDel) return;
-
       try {
         await DataService.deleteStudent(pendingDel);
         pendingDel = null;
         closeModal('delModal');
-        showToast('Student deleted.', 'info');
+        showToast('Student deleted.','info');
         await renderList();
-      } catch (err) {
-        console.error(err);
-        showToast(err.message || 'Failed to delete student.', 'error');
+      } catch(err) {
+        showToast(err.message || 'Failed to delete.','error');
       }
     });
 
-    var editId = sessionStorage.getItem('editStudentId');
-    if (editId) {
-      sessionStorage.removeItem('editStudentId');
-      await loadEdit(editId);
-    } else if (currentSession && currentSession.role === 'student') {
-      /* Auto-load the logged-in student's own profile */
+    /* Auto-load own profile for students */
+    if (currentSession.role === 'student') {
       var sid = currentSession.id || currentSession._id;
-      if (sid) await loadEdit(sid);
+      if (sid) {
+        try { await loadEdit(sid); } catch(e){}
+      }
     }
 
+    /* Auto-load from sessionStorage redirect */
+    var editId = sessionStorage.getItem('editStudentId');
+    if (editId) { sessionStorage.removeItem('editStudentId'); await loadEdit(editId); }
+
     await renderList();
-  } catch (err) {
-    console.error(err);
-    showToast(err.message || 'Failed to initialize page.', 'error');
+  } catch(err) {
+    console.error('Init error:', err);
+    showToast('Page init failed: ' + err.message, 'error');
   }
 });
 
-/* ============================================================
-   HELPERS
-   ============================================================ */
-function fe(id, msg) {
-  var el = document.getElementById('e-' + id);
-  if (!el) return;
-
-  el.textContent = msg || '';
-  var inp = document.getElementById(id);
-
-  if (msg) {
-    el.classList.add('show');
-    if (inp) inp.classList.add('error');
-  } else {
-    el.classList.remove('show');
-    if (inp) inp.classList.remove('error');
-  }
-}
-
+/* ── VALIDATION HELPERS ── */
 function clearErr() {
-  ['sName','sRoll','sDept','sSem','sCgpa','sEmail','sDom','sTech','sPhone'].forEach(function(id) {
-    fe(id, '');
-  });
+  document.querySelectorAll('.fe').forEach(function(el){ el.textContent=''; });
 }
-
+function fe(id, msg) {
+  var el = document.getElementById('e-' + id) || document.getElementById(id + '-err');
+  if (el) el.textContent = msg;
+}
 function safeArray(v) {
-  if (Array.isArray(v)) return v;
   if (!v) return [];
-  return String(v).split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+  if (Array.isArray(v)) return v.map(function(s){ return (s||'').trim(); }).filter(Boolean);
+  return String(v).split(',').map(function(s){ return s.trim(); }).filter(Boolean);
 }
-
-function getStudentId(student) {
-  return student && (student._id || student.id) ? (student._id || student.id) : '';
-}
-
-function inits(n) {
-  return (n || '??')
-    .split(' ')
-    .map(function(x) { return x[0] || ''; })
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || '??';
-}
-
+function getStudentId(s) { return getSid(s); }
+function inits(n) { return n ? n.split(' ')[0] : ''; }
+function goDash(id) { sessionStorage.setItem('editStudentId', id); window.location.reload(); }
+function delPrompt(id) { pendingDel = id; openModal('delModal'); }
 function setView(v, btn) {
-  document.querySelectorAll('.vb').forEach(function(b) { b.classList.remove('active'); });
-  if (btn) btn.classList.add('active');
-
-  document.getElementById('gView').classList.toggle('hidden', v !== 'grid');
-  document.getElementById('tView').classList.toggle('hidden', v !== 'table');
+  document.querySelectorAll('.vb').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('sGrid').style.display  = v==='grid'  ? '' : 'none';
+  var tbl = document.querySelector('.tbl-wrap');
+  if (tbl) tbl.style.display = v==='table' ? '' : 'none';
 }
 
-function goDash(id) {
-  sessionStorage.setItem('viewStudentId', id);
-  window.location.href = 'student-dashboard.html';
-}
-
-function delPrompt(id) {
-  var s = studentsCache.find(function(st) { return getStudentId(st) === id; });
-  if (!s) return;
-  pendingDel = id;
-  document.getElementById('delName').textContent = s.fullName || 'this student';
-  openModal('delModal');
-}
-
+/* ── BUILD PAYLOAD ── */
 function buildStudentPayload(existId) {
-  var fn = (document.getElementById('sName').value || '').trim();
-  var rn = (document.getElementById('sRoll').value || '').trim().toUpperCase();
-  var dp = document.getElementById('sDept').value;
-  var sm = document.getElementById('sSem').value;
-  var cg = document.getElementById('sCgpa').value;
-  var pct = document.getElementById('sPct').value;
-  var em = (document.getElementById('sEmail').value || '').trim();
-  var dm = document.getElementById('sDom').value;
-  var ph = (document.getElementById('sPhone').value || '').trim();
-  var city = (document.getElementById('sCity').value || '').trim();
-  var proj = (document.getElementById('sProj').value || '').trim();
+  var fn   = (document.getElementById('sName').value  || '').trim();
+  var rn   = (document.getElementById('sRoll').value  || '').trim().toUpperCase();
+  var dp   = document.getElementById('sDept').value;
+  var sm   = document.getElementById('sSem').value;
+  var cg   = document.getElementById('sCgpa').value;
+  var pct  = document.getElementById('sPct').value;
+  var em   = (document.getElementById('sEmail').value || '').trim();
+  var dm   = document.getElementById('sDom').value;
+  var ph   = (document.getElementById('sPhone').value || '').trim();
+  var city = (document.getElementById('sCity').value  || '').trim();
+  var proj = (document.getElementById('sProj').value  || '').trim();
 
   var resumeInput = document.getElementById('resumeFile');
-  var resumeFile = resumeInput && resumeInput.files ? resumeInput.files[0] : null;
+  var resumeFile  = resumeInput && resumeInput.files ? resumeInput.files[0] : null;
 
   if (resumeFile) {
     var fd = new FormData();
-    fd.append('fullName', fn);
-    fd.append('rollNo', rn);
-    fd.append('department', dp);
-    fd.append('semester', sm);
-    fd.append('cgpa', parseFloat(cg));
-    fd.append('percentage', pct ? parseFloat(pct) : '');
-    fd.append('technicalSkills', tTech.getTags().join(','));
-    fd.append('softSkills', tSoft.getTags().join(','));
+    fd.append('fullName',       fn);
+    fd.append('rollNo',         rn);
+    fd.append('department',     dp);
+    fd.append('semester',       sm);
+    fd.append('cgpa',           parseFloat(cg)||0);
+    fd.append('percentage',     pct ? parseFloat(pct) : '');
+    fd.append('technicalSkills',tTech.getTags().join(','));
+    fd.append('softSkills',     tSoft.getTags().join(','));
     fd.append('certifications', tCert.getTags().join(','));
-    fd.append('areasOfInterest', tInt.getTags().join(','));
-    fd.append('projects', proj);
-    fd.append('preferredDomain', dm);
-    fd.append('email', em);
-    fd.append('phone', ph);
-    fd.append('city', city);
-    fd.append('resume', resumeFile);
-
-    if (!existId) {
-      fd.append('password', 'student123');
-    }
-
+    fd.append('areasOfInterest',tInt.getTags().join(','));
+    fd.append('projects',       proj);
+    fd.append('preferredDomain',dm);
+    fd.append('email',          em);
+    fd.append('phone',          ph);
+    fd.append('city',           city);
+    fd.append('resume',         resumeFile);
+    if (!existId) fd.append('password','student123');
     return fd;
   }
 
   var payload = {
-    fullName: fn,
-    rollNo: rn,
-    department: dp,
-    semester: sm,
-    cgpa: parseFloat(cg),
-    percentage: pct ? parseFloat(pct) : null,
+    fullName:        fn,
+    rollNo:          rn,
+    department:      dp,
+    semester:        sm,
+    cgpa:            parseFloat(cg)||0,
+    percentage:      pct ? parseFloat(pct) : null,
     technicalSkills: tTech.getTags(),
-    softSkills: tSoft.getTags(),
-    certifications: tCert.getTags(),
+    softSkills:      tSoft.getTags(),
+    certifications:  tCert.getTags(),
     areasOfInterest: tInt.getTags(),
-    projects: proj,
+    projects:        proj,
     preferredDomain: dm,
-    email: em,
-    phone: ph,
-    city: city
+    email:           em,
+    phone:           ph,
+    city:            city
   };
-
-  if (!existId) {
-    payload.password = 'student123';
-  }
-
+  if (!existId) payload.password = 'student123';
   return payload;
 }
 
-/* ============================================================
-   SAVE STUDENT
-   ============================================================ */
+/* ── SAVE STUDENT (MongoDB only) ── */
 async function saveStudent() {
   clearErr();
+  var fn  = (document.getElementById('sName').value  || '').trim();
+  var rn  = (document.getElementById('sRoll').value  || '').trim();
+  var dp  = document.getElementById('sDept').value;
+  var sm  = document.getElementById('sSem').value;
+  var cg  = document.getElementById('sCgpa').value;
+  var em  = (document.getElementById('sEmail').value || '').trim();
+  var dm  = document.getElementById('sDom').value;
+  var ph  = (document.getElementById('sPhone').value || '').trim();
+  var ok  = true;
 
-  var fn = (document.getElementById('sName').value || '').trim();
-  var rn = (document.getElementById('sRoll').value || '').trim();
-  var dp = document.getElementById('sDept').value;
-  var sm = document.getElementById('sSem').value;
-  var cg = document.getElementById('sCgpa').value;
-  var em = (document.getElementById('sEmail').value || '').trim();
-  var dm = document.getElementById('sDom').value;
-  var ph = (document.getElementById('sPhone').value || '').trim();
-  var skills = tTech.getTags();
-  var ok = true;
-
-  if (!fn) { fe('sName', 'Full name is required.'); ok = false; }
-  if (!rn) { fe('sRoll', 'Roll number is required.'); ok = false; }
-  if (!dp) { fe('sDept', 'Select a department.'); ok = false; }
-  if (!sm) { fe('sSem', 'Select a semester.'); ok = false; }
-  if (!cg) { fe('sCgpa', 'CGPA is required.'); ok = false; }
-  else if (isNaN(parseFloat(cg)) || parseFloat(cg) < 0 || parseFloat(cg) > 10) {
-    fe('sCgpa', 'CGPA must be 0–10.'); ok = false;
+  if (!fn)  { fe('sName','Full name is required.');      ok=false; }
+  if (!rn)  { fe('sRoll','Roll number is required.');    ok=false; }
+  if (!dp)  { fe('sDept','Select a department.');        ok=false; }
+  if (!sm)  { fe('sSem', 'Select a semester.');          ok=false; }
+  if (!cg)  { fe('sCgpa','CGPA is required.');           ok=false; }
+  else if (isNaN(parseFloat(cg))||parseFloat(cg)<0||parseFloat(cg)>10) {
+    fe('sCgpa','CGPA must be 0–10.'); ok=false;
   }
-  if (!em) { fe('sEmail', 'Email is required.'); ok = false; }
+  if (!em)  { fe('sEmail','Email is required.');         ok=false; }
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
-    fe('sEmail', 'Enter a valid email.'); ok = false;
+    fe('sEmail','Enter a valid email.'); ok=false;
   }
-  if (!dm) { fe('sDom', 'Select a preferred domain.'); ok = false; }
-  if (!skills.length) { fe('sTech', 'Add at least one technical skill.'); ok = false; }
-  if (ph && !/^[0-9]{10}$/.test(ph.replace(/\s/g, ''))) {
-    fe('sPhone', 'Enter valid 10-digit number.'); ok = false;
+  if (!dm)  { fe('sDom','Select a preferred domain.');   ok=false; }
+  if (!tTech.getTags().length) { fe('sTech','Add at least one technical skill.'); ok=false; }
+  if (ph && !/^[0-9]{10}$/.test(ph.replace(/\s/g,''))) {
+    fe('sPhone','Enter valid 10-digit number.'); ok=false;
   }
-
-  if (!ok) {
-    showToast('Please fix the highlighted errors.', 'error');
-    return;
-  }
+  if (!ok) { showToast('Please fix the highlighted errors.','error'); return; }
 
   var existId = document.getElementById('sid').value;
+  var saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled    = true;
+  saveBtn.textContent = '⏳ Saving to database…';
 
   try {
     var payload = buildStudentPayload(existId);
     var saved;
-
     if (existId) {
       saved = await DataService.updateStudent(existId, payload);
-      showToast('✅ ' + (saved.fullName || 'Student') + ' updated successfully!', 'success');
+      showToast('✅ ' + (saved.fullName||'Student') + ' updated in database!','success');
     } else {
       saved = await DataService.createStudent(payload);
-      showToast('✅ ' + (saved.fullName || 'Student') + ' added successfully!', 'success');
-    }
-
-    /* Sync user record with updated name/email so login still works */
-    if (typeof Store !== 'undefined' && typeof KEYS !== 'undefined') {
-      var users = Store.get(KEYS.USERS);
-      var savedId = saved._id || saved.id;
-      var uIdx = users.findIndex(function(u){ return (u.id||u._id) === savedId; });
-      if (uIdx >= 0) {
-        if (saved.fullName) users[uIdx].name  = saved.fullName;
-        if (saved.email)    users[uIdx].email = saved.email;
-        if (saved.rollNo)   users[uIdx].rollNo= saved.rollNo;
-        Store.set(KEYS.USERS, users);
-      }
+      showToast('✅ ' + (saved.fullName||'Student') + ' saved to database!','success');
     }
     resetForm();
     await renderList();
-  } catch (err) {
+  } catch(err) {
     console.error(err);
-    showToast(err.message || 'Failed to save student.', 'error');
+    showToast('❌ ' + (err.message || 'Failed to save. Check backend connection.'),'error');
+  } finally {
+    saveBtn.disabled    = false;
+    saveBtn.textContent = existId ? '💾 Update Profile' : '💾 Save Profile';
   }
 }
 
-/* ============================================================
-   LOAD EDIT
-   ============================================================ */
+/* ── LOAD EDIT ── */
 async function loadEdit(id) {
   try {
     var s = await DataService.getStudent(id);
-    if (!s) {
-      showToast('Student not found.', 'error');
-      return;
-    }
+    if (!s) { showToast('Student not found.','error'); return; }
 
-    document.getElementById('sid').value = getStudentId(s);
-    document.getElementById('sName').value = s.fullName || '';
-    document.getElementById('sRoll').value = s.rollNo || '';
+    document.getElementById('sid').value   = getStudentId(s);
+    document.getElementById('sName').value = s.fullName   || '';
+    document.getElementById('sRoll').value = s.rollNo     || '';
     document.getElementById('sDept').value = s.department || '';
-    document.getElementById('sSem').value = s.semester || '';
-    document.getElementById('sCgpa').value = s.cgpa != null ? s.cgpa : '';
-    document.getElementById('sPct').value = s.percentage != null ? s.percentage : '';
-    document.getElementById('sProj').value = s.projects || '';
-    document.getElementById('sDom').value = s.preferredDomain || '';
-    document.getElementById('sEmail').value = s.email || '';
-    document.getElementById('sPhone').value = s.phone || '';
-    document.getElementById('sCity').value = s.city || '';
+    document.getElementById('sSem').value  = s.semester   || '';
+    document.getElementById('sCgpa').value = s.cgpa  != null ? s.cgpa  : '';
+    document.getElementById('sPct').value  = s.percentage != null ? s.percentage : '';
+    document.getElementById('sProj').value = s.projects   || '';
+    document.getElementById('sDom').value  = s.preferredDomain || '';
+    document.getElementById('sEmail').value= s.email      || '';
+    document.getElementById('sPhone').value= s.phone      || '';
+    document.getElementById('sCity').value = s.city       || '';
 
     tTech.setTags(safeArray(s.technicalSkills));
     tSoft.setTags(safeArray(s.softSkills));
@@ -643,192 +570,129 @@ async function loadEdit(id) {
     tInt.setTags(safeArray(s.areasOfInterest));
 
     document.getElementById('resumeName').textContent =
-      (s.resumeOriginalName || s.resumeFile)
-        ? ('📎 ' + (s.resumeOriginalName || s.resumeFile))
-        : '';
+      (s.resumeOriginalName||s.resumeFile) ? ('📎 '+(s.resumeOriginalName||s.resumeFile)) : '';
+    document.getElementById('formTitle').textContent  = '✏️ Edit Profile';
+    document.getElementById('saveBtn').textContent    = '💾 Update Profile';
 
-    document.getElementById('formTitle').textContent = '✏️ Edit Profile';
-    document.getElementById('saveBtn').textContent = '💾 Update Profile';
-
-    /* Hide delete button for student self-edit */
-    if (currentSession && currentSession.role === 'student') {
-      var delBtns = document.querySelectorAll('[onclick^="delPrompt"]');
-      delBtns.forEach(function(b){ b.style.display='none'; });
+    if (currentSession && currentSession.role==='student') {
+      document.querySelectorAll('[onclick^="delPrompt"]').forEach(function(b){ b.style.display='none'; });
     }
-
     var fp = document.querySelector('.fp');
-    if (fp) fp.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } catch (err) {
-    console.error(err);
-    showToast(err.message || 'Failed to load student.', 'error');
+    if (fp) fp.scrollIntoView({ behavior:'smooth', block:'start' });
+  } catch(err) {
+    showToast(err.message || 'Failed to load student.','error');
   }
 }
 
-/* ============================================================
-   RESET FORM
-   ============================================================ */
+/* ── RESET FORM ── */
 function resetForm() {
-  ['sName','sRoll','sCgpa','sPct','sProj','sEmail','sPhone','sCity'].forEach(function(id) {
+  ['sName','sRoll','sCgpa','sPct','sProj','sEmail','sPhone','sCity'].forEach(function(id){
     document.getElementById(id).value = '';
   });
-
-  document.getElementById('sDept').value = '';
-  document.getElementById('sSem').value = '';
-  document.getElementById('sDom').value = '';
-  document.getElementById('sid').value = '';
+  ['sDept','sSem','sDom','sid'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('resumeName').textContent = '';
-
-  var rf = document.getElementById('resumeFile');
-  if (rf) rf.value = '';
-
-  var ra = document.getElementById('resumeArea');
-  if (ra) ra.dataset.fileName = '';
-
-  tTech.setTags([]);
-  tSoft.setTags([]);
-  tCert.setTags([]);
-  tInt.setTags([]);
-
+  var rf = document.getElementById('resumeFile'); if(rf) rf.value='';
+  if(tTech) tTech.clear(); if(tSoft) tSoft.clear();
+  if(tCert) tCert.clear(); if(tInt)  tInt.clear();
   document.getElementById('formTitle').textContent = '➕ Add New Student';
-  document.getElementById('saveBtn').textContent = '💾 Save Profile';
-
+  document.getElementById('saveBtn').textContent   = '💾 Save Profile';
   clearErr();
 }
 
-/* ============================================================
-   RENDER LIST
-   ============================================================ */
+/* ── RENDER LIST from MongoDB ── */
 async function renderList() {
+  var badge = document.getElementById('stuCount');
+  if (badge) badge.textContent = '⏳';
+
   try {
     var res = await DataService.getStudents();
-    var all = Array.isArray(res)
-      ? res
-      : Array.isArray(res.data)
-        ? res.data
-        : [];
+    var all = Array.isArray(res) ? res : [];
 
-    /* If student role, only show own record */
     if (currentSession && currentSession.role === 'student') {
-      var myId = currentSession.id || currentSession._id;
+      var myId = String(currentSession.id || currentSession._id || '');
+      var myEmail = (currentSession.email||'').toLowerCase();
       all = all.filter(function(s){
-        return (s._id||s.id) === myId ||
-               (s.email && s.email.toLowerCase() === (currentSession.email||'').toLowerCase());
+        return String(s._id||s.id) === myId ||
+               (s.email||'').toLowerCase() === myEmail;
       });
     }
 
     studentsCache = all.slice();
+    if (badge) badge.textContent = all.length + ' Student' + (all.length!==1?'s':'');
 
-    var q = (document.getElementById('sQ').value || '').toLowerCase();
-    var dept = document.getElementById('fDept').value;
-    var sem = document.getElementById('fSem').value;
+    var q    = (document.getElementById('sQ')    ? document.getElementById('sQ').value    : '').toLowerCase();
+    var dept = (document.getElementById('fDept') ? document.getElementById('fDept').value : '');
+    var sem  = (document.getElementById('fSem')  ? document.getElementById('fSem').value  : '');
 
-    var list = all.filter(function(s) {
-      var sk = safeArray(s.technicalSkills).join(' ');
-      var mq = !q ||
-        (s.fullName || '').toLowerCase().indexOf(q) !== -1 ||
-        (s.rollNo || '').toLowerCase().indexOf(q) !== -1 ||
-        (s.department || '').toLowerCase().indexOf(q) !== -1 ||
-        sk.toLowerCase().indexOf(q) !== -1;
-
-      return mq &&
-        (!dept || s.department === dept) &&
-        (!sem || s.semester === sem);
+    var filtered = all.filter(function(s){
+      var mq = !q || (s.fullName||'').toLowerCase().includes(q) ||
+                     (s.rollNo||'').toLowerCase().includes(q) ||
+                     (s.department||'').toLowerCase().includes(q);
+      var md = !dept || s.department === dept;
+      var ms = !sem  || s.semester   === sem;
+      return mq && md && ms;
     });
 
-    document.getElementById('totalBadge').textContent = all.length + ' Student' + (all.length !== 1 ? 's' : '');
-    document.getElementById('rCnt').textContent = 'Showing ' + list.length + ' of ' + all.length + ' students';
-
-    var grid = document.getElementById('sGrid');
-    var tbody = document.getElementById('sTbl');
-    var empty = document.getElementById('emptyMsg');
-
-    grid.innerHTML = '';
-    tbody.innerHTML = '';
-
-    if (!list.length) {
-      empty.classList.remove('hidden');
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">No students found.</td></tr>';
-      return;
-    }
-
-    empty.classList.add('hidden');
-
-    /* Grid */
-    list.forEach(function(s, i) {
-      var sid = getStudentId(s);
-      var skills = safeArray(s.technicalSkills);
-      var shown = skills.slice(0, 4);
-      var extra = skills.length - shown.length;
-      var cgpa = parseFloat(s.cgpa) || 0;
-      var col = cgpa >= 8 ? 'var(--success)' : cgpa >= 6 ? 'var(--warning)' : 'var(--danger)';
-
-      var d = document.createElement('div');
-      d.className = 'sc';
-      d.innerHTML =
-        '<div class="sc-hd">' +
-          '<div style="display:flex;gap:.75rem;align-items:center">' +
-            '<div class="sc-av">' + inits(s.fullName) + '</div>' +
-            '<div>' +
-              '<div style="font-weight:700;font-size:.95rem">' + (s.fullName || '—') + '</div>' +
-              '<div style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted)">' + (s.rollNo || '—') + '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div style="display:flex;gap:.35rem">' +
-            '<button class="btn btn-ghost btn-icon btn-sm" title="View Dashboard" onclick="goDash(\'' + sid + '\')">👁️</button>' +
-            '<button class="btn btn-ghost btn-icon btn-sm" title="Edit" onclick="loadEdit(\'' + sid + '\')">✏️</button>' +
-            '<button class="btn btn-danger btn-icon btn-sm" title="Delete" onclick="delPrompt(\'' + sid + '\')">🗑️</button>' +
-          '</div>' +
-        '</div>' +
-
-        '<div class="sc-mt">' +
-          '<div><div class="l">Department</div><div class="v">' + (s.department || '—') + '</div></div>' +
-          '<div><div class="l">Semester</div><div class="v">' + (s.semester || '—') + '</div></div>' +
-          '<div><div class="l">CGPA</div><div class="v" style="color:' + col + '">' + cgpa + '</div></div>' +
-          '<div><div class="l">Domain</div><div class="v">' + (s.preferredDomain || '—') + '</div></div>' +
-        '</div>' +
-
-        '<div style="display:flex;flex-wrap:wrap;gap:.35rem">' +
-          shown.map(function(sk) { return '<span class="chip">' + sk + '</span>'; }).join('') +
-          (extra > 0 ? '<span class="chip" style="background:rgba(255,255,255,.05);color:var(--muted)">+' + extra + '</span>' : '') +
-        '</div>';
-
-      grid.appendChild(d);
-    });
-
-    /* Table */
-    list.forEach(function(s, i) {
-      var sid = getStudentId(s);
-      var cgpa = parseFloat(s.cgpa) || 0;
-      var col = cgpa >= 8 ? 'var(--success)' : cgpa >= 6 ? 'var(--warning)' : 'var(--danger)';
-      var tr = document.createElement('tr');
-
-      tr.innerHTML =
-        '<td style="color:var(--muted);font-size:.78rem">' + (i + 1) + '</td>' +
-        '<td><strong>' + (s.fullName || '—') + '</strong></td>' +
-        '<td><span style="font-family:var(--font-mono);font-size:.78rem">' + (s.rollNo || '—') + '</span></td>' +
-        '<td>' + (s.department || '—') + '</td>' +
-        '<td>' + (s.semester || '—') + '</td>' +
-        '<td style="color:' + col + '"><strong>' + cgpa + '</strong></td>' +
-        '<td>' + (s.preferredDomain || '—') + '</td>' +
-        '<td>' +
-          '<div style="display:flex;gap:.35rem">' +
-            '<button class="btn btn-ghost btn-icon btn-sm" onclick="goDash(\'' + sid + '\')" title="View">👁️</button>' +
-            '<button class="btn btn-ghost btn-icon btn-sm" onclick="loadEdit(\'' + sid + '\')" title="Edit">✏️</button>' +
-            '<button class="btn btn-danger btn-icon btn-sm" onclick="delPrompt(\'' + sid + '\')" title="Delete">🗑️</button>' +
-          '</div>' +
-        '</td>';
-
-      tbody.appendChild(tr);
-    });
-
-  } catch (err) {
+    renderGrid(filtered);
+    renderTable(filtered);
+  } catch(err) {
     console.error(err);
-    showToast(err.message || 'Failed to load students.', 'error');
-
-    document.getElementById('sGrid').innerHTML = '';
-    document.getElementById('sTbl').innerHTML =
-      '<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:2rem">Failed to load students.</td></tr>';
+    showToast('❌ Could not load students: ' + err.message,'error');
+    if (badge) badge.textContent = 'Error';
   }
+}
+
+function renderGrid(list) {
+  var grid = document.getElementById('sGrid'); if (!grid) return;
+  grid.innerHTML = '';
+  if (!list.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--muted)">No students found.</div>';
+    return;
+  }
+  list.forEach(function(s) {
+    var id     = getSid(s);
+    var skills = safeArray(s.technicalSkills).slice(0,3);
+    var card   = document.createElement('div');
+    card.className = 'sg-card';
+    card.innerHTML =
+      '<div class="sg-head">' +
+        '<div class="sg-av">' + (s.fullName||'?').split(' ').map(function(n){return n[0]||'';}).join('').toUpperCase().slice(0,2) + '</div>' +
+        '<div><div class="sg-name">' + (s.fullName||'—') + '</div>' +
+        '<div class="sg-roll">' + (s.rollNo||'—') + '</div></div>' +
+      '</div>' +
+      '<div class="sg-dept">' + (s.department||'—') + ' · ' + (s.semester||'—') + '</div>' +
+      '<div class="sg-cgpa">CGPA: <strong>' + (s.cgpa||'—') + '</strong></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin:.5rem 0">' +
+        skills.map(function(sk){ return '<span class="chip" style="font-size:.7rem">'+sk+'</span>'; }).join('') +
+      '</div>' +
+      '<div class="sg-actions">' +
+        '<button class="btn btn-ghost btn-sm" onclick="loadEdit(\'' + id + '\')">✏️ Edit</button>' +
+        (currentSession&&currentSession.role==='admin'
+          ? '<button class="btn btn-danger btn-sm" onclick="delPrompt(\'' + id + '\')">🗑️ Delete</button>'
+          : '') +
+      '</div>';
+    grid.appendChild(card);
+  });
+}
+
+function renderTable(list) {
+  var tbody = document.getElementById('sTbl'); if (!tbody) return;
+  if (!list.length) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted)">No students found.</td></tr>'; return; }
+  tbody.innerHTML = list.map(function(s){
+    var id = getSid(s);
+    return '<tr>' +
+      '<td>' + (s.fullName||'—')    + '</td>' +
+      '<td>' + (s.rollNo||'—')      + '</td>' +
+      '<td>' + (s.department||'—')  + '</td>' +
+      '<td>' + (s.cgpa||'—')        + '</td>' +
+      '<td>' + (s.preferredDomain||'—') + '</td>' +
+      '<td>' +
+        '<button class="btn btn-ghost btn-sm" onclick="loadEdit(\'' + id + '\')">✏️</button>' +
+        (currentSession&&currentSession.role==='admin'
+          ? '<button class="btn btn-danger btn-sm" onclick="delPrompt(\'' + id + '\')">🗑️</button>'
+          : '') +
+      '</td></tr>';
+  }).join('');
 }
 </script>
 </body>

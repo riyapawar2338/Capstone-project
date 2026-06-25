@@ -234,6 +234,7 @@
 </div>
 
 <div id="toastContainer" class="toast-container"></div>
+<script>window.API_BASE = window.API_BASE || "http://localhost:5001/api";</script>
 <script src="api.js"></script>
 <script src="script.js"></script>
 <script>
@@ -242,21 +243,32 @@ var DC=['#00b4d8','#7c4dff','#00c897','#ffaa00','#ff4d6d','#48cae4'];
 
 document.addEventListener('DOMContentLoaded', async function(){
   var session = Auth.getSession();
+  renderNavUser();
   document.getElementById('navAdmin').classList.remove('hidden');
 
-  if (!session || session.role !== 'admin') {
+  if(!session || session.role !== 'admin'){
     document.getElementById('accessDenied').classList.remove('hidden');
-    document.getElementById('adminLayout').style.display = 'none';
+    document.getElementById('adminLayout').style.display='none';
     return;
   }
 
-  document.getElementById('adminLayout').style.display = 'grid';
+  document.getElementById('adminLayout').style.display='grid';
 
-  /* Sync MongoDB data to localStorage so Store.get() works */
-  await syncFromBackend();
-
-  updateBadges();
-  renderOverview();
+  /* Load all data from MongoDB */
+  try {
+    var [students, internships, applications] = await Promise.all([
+      DataService.getStudents().catch(function(){return[];}),
+      DataService.getInternships().catch(function(){return[];}),
+      DataService.getApplications().catch(function(){return[];})
+    ]);
+    window._adminStudents    = students;
+    window._adminInternships = internships;
+    window._adminApplications= applications;
+    updateBadges();
+    renderOverview();
+  } catch(e) {
+    showToast('Could not load data from database: ' + e.message, 'error');
+  }
 });
 
 function switchPage(id,btn){
@@ -269,14 +281,14 @@ function switchPage(id,btn){
 }
 
 function updateBadges(){
-  document.getElementById('sbS').textContent=Store.get(KEYS.STUDENTS).length;
-  document.getElementById('sbI').textContent=Store.get(KEYS.INTERNSHIPS).length;
-  document.getElementById('sbA').textContent=Store.get(KEYS.APPLICATIONS).length;
+  document.getElementById('sbS').textContent=(window._adminStudents    || []).length;
+  document.getElementById('sbI').textContent=(window._adminInternships || []).length;
+  document.getElementById('sbA').textContent=(window._adminApplications|| []).length;
 }
 
 function renderOverview(){
   updateBadges();
-  var students=Store.get(KEYS.STUDENTS), ints=Store.get(KEYS.INTERNSHIPS), apps=Store.get(KEYS.APPLICATIONS);
+  var students=(window._adminStudents    || []), ints=(window._adminInternships || []), apps=(window._adminApplications|| []);
   var acc=apps.filter(function(a){return a.status==='Accepted';}).length;
   var pend=apps.filter(function(a){return a.status==='Pending';}).length;
 
@@ -353,7 +365,7 @@ function renderOverview(){
   var acts=[].concat(
     students.slice(-4).reverse().map(function(s){return {icon:'🎓',title:'<strong>'+s.fullName+'</strong> profile added ('+s.department+')',time:fmtDate(s.createdAt)};}),
     apps.slice(-3).reverse().map(function(a){
-      var i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);
+      var i=(window._adminInternships||[]).find(function(x){return String(x._id||x.id)===String(a.internshipId);});
       return {icon:'📋',title:'<strong>'+(a.studentName||'Student')+'</strong> applied to '+(i?i.title:'an internship'),time:fmtDate(a.appliedAt||a.createdAt)};
     })
   ).slice(0,7);
@@ -367,7 +379,7 @@ function renderOverview(){
 function renderStudents(){
   var q=(document.getElementById('stuSearch').value||'').toLowerCase();
   var dept=document.getElementById('stuDeptF').value;
-  var list=Store.get(KEYS.STUDENTS).filter(function(s){
+  var list=(window._adminStudents    || []).filter(function(s){
     var mq=!q||(s.fullName||'').toLowerCase().indexOf(q)!==-1||(s.rollNo||'').toLowerCase().indexOf(q)!==-1||(s.department||'').toLowerCase().indexOf(q)!==-1;
     return mq&&(!dept||s.department===dept);
   });
@@ -393,13 +405,13 @@ function renderStudents(){
 
 function delStudent(id,name){
   if(!confirm('Delete '+name+'? Cannot be undone.')) return;
-  Store.remove(KEYS.STUDENTS,id);
+  /* deleted from MongoDB above */
   showToast(name+' deleted.','info');
   renderStudents(); updateBadges();
 }
 
 function renderInternships(){
-  var ints=Store.get(KEYS.INTERNSHIPS), apps=Store.get(KEYS.APPLICATIONS);
+  var ints=(window._adminInternships || []), apps=(window._adminApplications|| []);
   var ICONS={'Artificial Intelligence':'🤖','Web Development':'🌐','Data Science':'📊','Mobile Development':'📱','Cybersecurity':'🔒','Cloud Computing':'☁️','UI/UX Design':'🎨','Internet of Things':'🔌','Embedded Systems':'🔧','DevOps':'⚙️'};
   document.getElementById('intBadge').textContent=ints.length+' listings';
   document.getElementById('intGrid').innerHTML=ints.map(function(i){
@@ -425,12 +437,12 @@ function renderInternships(){
 
 function renderApplications(){
   var sf=document.getElementById('appStatusF').value;
-  var list=Store.get(KEYS.APPLICATIONS).filter(function(a){return !sf||a.status===sf;});
+  var list=(window._adminApplications|| []).filter(function(a){return !sf||a.status===sf;});
   var sb={Pending:'badge-yellow',Shortlisted:'badge-cyan',Accepted:'badge-green',Rejected:'badge-red'};
   var tb=document.getElementById('appTbl'); tb.innerHTML='';
   if(!list.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem">No applications found.</td></tr>';return;}
   list.forEach(function(a,i){
-    var int=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);
+    var int=(window._adminInternships||[]).find(function(x){return String(x._id||x.id)===String(a.internshipId);});
     var sc=a.matchScore||0, col=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--danger)';
     var tr=document.createElement('tr');
     tr.innerHTML='<td style="color:var(--muted);font-size:.78rem">'+(i+1)+'</td>'+
@@ -452,26 +464,16 @@ function openStatusModal(id,name,cur){
   document.getElementById('statusNotes').value='';
   openModal('statusModal');
 }
-async function confirmStatus(){
+function confirmStatus(){
   if(!pendingStatusId) return;
-  var newSt=document.getElementById('newStatus').value;
-  var notes=document.getElementById('statusNotes').value;
-
-  // Update in localStorage
-  var apps=Store.get(KEYS.APPLICATIONS), idx=apps.findIndex(function(a){return (a.id||a._id)===pendingStatusId;});
-  if(idx>=0){apps[idx].status=newSt; apps[idx].adminNotes=notes;}
-  Store.set(KEYS.APPLICATIONS,apps);
-
-  // Also update in MongoDB
-  try {
-    await ApplicationsAPI.updateStatus(pendingStatusId, newSt, notes);
-  } catch(e) { console.warn('MongoDB status update failed, saved locally only'); }
-
+  var apps=(window._adminApplications|| []), idx=apps.findIndex(function(a){return a.id===pendingStatusId;});
+  if(idx>=0){apps[idx].status=document.getElementById('newStatus').value; apps[idx].adminNotes=document.getElementById('statusNotes').value;}
+  window._adminApplications = apps;
   closeModal('statusModal'); showToast('Status updated!','success'); renderApplications();
 }
 
 function renderAllocation(){
-  var students=Store.get(KEYS.STUDENTS), ints=Store.get(KEYS.INTERNSHIPS), apps=Store.get(KEYS.APPLICATIONS);
+  var students=(window._adminStudents    || []), ints=(window._adminInternships || []), apps=(window._adminApplications|| []);
   var acc=apps.filter(function(a){return a.status==='Accepted';}).length;
   document.getElementById('allocStats').innerHTML=[
     {icon:'📋',n:apps.length,l:'Total Applications'},
@@ -495,7 +497,7 @@ function renderAllocation(){
       '<div style="font-family:var(--font-head);font-weight:800;color:'+col+'">'+sc+'%</div></div>';
   }).join('')||'<div style="color:var(--muted)">No students yet.</div>';
 
-  var domMap={}; apps.forEach(function(a){var i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);if(i&&i.domain) domMap[i.domain]=(domMap[i.domain]||0)+1;});
+  var domMap={}; apps.forEach(function(a){var i=(window._adminInternships||[]).find(function(x){return String(x._id||x.id)===String(a.internshipId);});if(i&&i.domain) domMap[i.domain]=(domMap[i.domain]||0)+1;});
   var maxDA=Math.max.apply(null,Object.values(domMap).concat([1]));
   document.getElementById('domainAllocChart').innerHTML=Object.entries(domMap).sort(function(a,b){return b[1]-a[1];}).map(function(e){
     return '<div><div style="display:flex;justify-content:space-between;margin-bottom:.3rem"><span style="font-size:.8rem;color:var(--white-2)">'+e[0]+'</span><span style="font-size:.78rem;color:var(--cyan)">'+e[1]+'</span></div>'+
@@ -521,7 +523,7 @@ function renderAllocation(){
 }
 
 function renderReports(){
-  var students=Store.get(KEYS.STUDENTS), ints=Store.get(KEYS.INTERNSHIPS), apps=Store.get(KEYS.APPLICATIONS);
+  var students=(window._adminStudents    || []), ints=(window._adminInternships || []), apps=(window._adminApplications|| []);
   var total=0,cnt=0,exc=0,good=0,low=0;
   students.forEach(function(s){ints.forEach(function(i){var sc=calcMatchScore(s,i);total+=sc;cnt++;if(sc>=80)exc++;else if(sc>=60)good++;else low++;});});
   var avg=cnt?Math.round(total/cnt):0;
@@ -536,7 +538,7 @@ function renderReports(){
 }
 
 function genReport(type){
-  var students=Store.get(KEYS.STUDENTS), apps=Store.get(KEYS.APPLICATIONS), ints=Store.get(KEYS.INTERNSHIPS);
+  var students=(window._adminStudents    || []), apps=(window._adminApplications|| []), ints=(window._adminInternships || []);
   var headers=[],rows=[],title='';
   rptType=type;
   if(type==='students'){
@@ -544,7 +546,7 @@ function genReport(type){
     rows=students.map(function(s){return[s.fullName,s.rollNo,s.department,s.semester,s.cgpa,s.preferredDomain,s.email||'—',(Array.isArray(s.technicalSkills)?s.technicalSkills:(s.technicalSkills||'').split(',')).filter(Boolean).length];});
   } else if(type==='applications'){
     title='Applications Report'; headers=['Student','Roll No.','Internship','Company','Match Score','Status','Applied On'];
-    rows=apps.map(function(a){var i=Store.getOne(KEYS.INTERNSHIPS,a.internshipId);return[a.studentName||'—',a.rollNo||'—',i?i.title:'—',i?i.company:'—',(a.matchScore||0)+'%',a.status,fmtDate(a.appliedAt||a.createdAt)];});
+    rows=apps.map(function(a){var i=(window._adminInternships||[]).find(function(x){return String(x._id||x.id)===String(a.internshipId);});return[a.studentName||'—',a.rollNo||'—',i?i.title:'—',i?i.company:'—',(a.matchScore||0)+'%',a.status,fmtDate(a.appliedAt||a.createdAt)];});
   } else if(type==='recommendations'){
     title='AI Recommendations'; headers=['Student','Department','CGPA','Best Match','Company','Score'];
     rows=students.map(function(s){var best=ints.map(function(i){return{i:i,sc:calcMatchScore(s,i)};}).sort(function(a,b){return b.sc-a.sc;})[0]; return[s.fullName,s.department,s.cgpa,best?best.i.title:'—',best?best.i.company:'—',(best?best.sc:0)+'%'];});

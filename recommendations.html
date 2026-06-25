@@ -127,289 +127,428 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('applyModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="doApply()">✅ Submit Application</button>
+      <button class="btn btn-primary" id="submitApplyBtn" onclick="doApply()">✅ Submit Application</button>
     </div>
   </div>
 </div>
 
 <div id="toastContainer" class="toast-container"></div>
+<script>window.API_BASE = window.API_BASE || "http://localhost:5001/api";</script>
 <script src="api.js"></script>
 <script src="script.js"></script>
 <script>
-var selStudent=null, pendingIid=null;
-var ICONS={'Artificial Intelligence':'🤖','Web Development':'🌐','Data Science':'📊','Mobile Development':'📱',
-           'Cybersecurity':'🔒','Cloud Computing':'☁️','UI/UX Design':'🎨','Internet of Things':'🔌',
-           'Embedded Systems':'🔧','DevOps':'⚙️'};
+/* =========================================================
+   INTERNSHIP LISTINGS + APPLY — MongoDB only, no localStorage
+========================================================= */
+var selStudent = null;
+var pendingIid = null;
+var allInternships = [];
 
-/* helper — get correct id from student (MongoDB _id or local id) */
-function getSid(s){ return s._id || s.id || null; }
-/* helper — generate unique ID for offline applications */
-function genId(){ return 'app_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+var ICONS = {
+  'Artificial Intelligence':'🤖','Web Development':'🌐','Data Science':'📊',
+  'Mobile Development':'📱','Cybersecurity':'🔒','Cloud Computing':'☁️',
+  'UI/UX Design':'🎨','Internet of Things':'🔌','Embedded Systems':'🔧','DevOps':'⚙️'
+};
 
-document.addEventListener('DOMContentLoaded', async function(){
-  var session=Auth.getSession();
-  if(session && session.role==='admin') document.getElementById('navAdmin').classList.remove('hidden');
-
-  if(!session){
-    document.getElementById('loginPrompt').style.display='flex';
-  } else {
-    document.getElementById('aiBar').style.display='flex';
-    /* Pull latest data from MongoDB into Store */
-    await syncFromBackend();
-
-    /* If student not in Store yet, create a minimal profile from session so Apply works */
-    if(session.role === 'student') {
-      var students = Store.get(KEYS.STUDENTS);
-      var mine = students.find(function(s){
-        return (s.email && s.email.toLowerCase() === session.email.toLowerCase()) ||
-               (s._id||s.id) === (session._id||session.id);
-      });
-      if(!mine) {
-        mine = {
-          id: session.id || session._id,
-          _id: session._id || session.id,
-          fullName: session.name,
-          email: session.email,
-          rollNo: session.rollNo || '',
-          technicalSkills: [],
-          preferredDomain: '',
-          cgpa: 0,
-          department: '',
-          semester: ''
-        };
-        students.push(mine);
-        Store.set(KEYS.STUDENTS, students);
-      }
-    }
-
-    fillStudentSelector(session);
-    /* Auto-select student whose email matches session */
-    var students2=Store.get(KEYS.STUDENTS);
-    var mine2=students2.find(function(s){
-      return (s.email&&s.email.toLowerCase()===session.email.toLowerCase()) ||
-             (s._id||s.id) === (session._id||session.id);
-    });
-    if(mine2){
-      document.getElementById('stuSel').value= getSid(mine2);
-      selStudent=mine2;
-    }
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', async function() {
+  var session = Auth.getSession();
+  if (session && session.role === 'admin') {
+    var na = document.getElementById('navAdmin');
+    if (na) na.classList.remove('hidden');
   }
-  buildFilters();
+  renderNavUser();
+
+  /* Show login prompt for guests */
+  if (!session) {
+    document.getElementById('loginPrompt').style.display = 'flex';
+  } else {
+    document.getElementById('aiBar').style.display = 'flex';
+  }
+
+  /* Load internships from MongoDB */
+  showLoading(true);
+  try {
+    allInternships = await DataService.getInternships();
+    buildFilters(allInternships);
+  } catch(e) {
+    showToast('Could not load internships: ' + e.message, 'error');
+    allInternships = [];
+  } finally {
+    showLoading(false);
+  }
+
+  /* If logged in as student, load their profile from MongoDB */
+  if (session && session.role === 'student') {
+    try {
+      var stuId = session.id || session._id;
+      var stu   = await DataService.getStudent(stuId);
+      if (stu) {
+        selStudent = stu;
+        fillStudentSelector(session, [stu]);
+        document.getElementById('stuSel').value = getSid(stu);
+      }
+    } catch(e) {
+      /* Student profile not found — show "Fill Profile" message */
+      fillStudentSelector(session, []);
+    }
+  } else if (session && session.role === 'admin') {
+    /* Admin: load all students */
+    try {
+      var allStus = await DataService.getStudents();
+      fillStudentSelector(session, allStus);
+    } catch(e) { fillStudentSelector(session, []); }
+  }
+
   render();
 });
 
-function fillStudentSelector(session){
-  var sel=document.getElementById('stuSel');
-  while(sel.options.length>1) sel.remove(1);
-  var students=Store.get(KEYS.STUDENTS);
-  students.forEach(function(s){
-    /* Students can only see themselves; admins see all */
-    if(session.role==='admin'||(s.email&&s.email.toLowerCase()===session.email.toLowerCase())){
-      var o=document.createElement('option');
-      o.value=getSid(s); o.textContent=s.fullName+' ('+s.rollNo+')';
-      sel.appendChild(o);
-    }
-  });
+/* ── LOADING INDICATOR ── */
+function showLoading(on) {
+  var grid = document.getElementById('iGrid');
+  if (!grid) return;
+  if (on) {
+    grid.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--muted)">' +
+      '<div style="font-size:2rem;margin-bottom:1rem;animation:pulse 1s infinite">⏳</div>' +
+      '<p>Loading internships from database…</p></div>';
+  }
 }
 
-function onStuChange(){
-  var id=document.getElementById('stuSel').value;
-  if(!id){ selStudent=null; render(); return; }
-  selStudent=Store.get(KEYS.STUDENTS).find(function(s){
-    return String(s._id||s.id)===String(id);
-  }) || null;
+/* ── STUDENT SELECTOR ── */
+function fillStudentSelector(session, students) {
+  var sel = document.getElementById('stuSel');
+  while (sel.options.length > 1) sel.remove(1);
+  (students || []).forEach(function(s) {
+    var o = document.createElement('option');
+    o.value       = getSid(s);
+    o.textContent = (s.fullName || s.name || 'Student') + ' (' + (s.rollNo || '—') + ')';
+    sel.appendChild(o);
+  });
+  /* Auto-select if only one student */
+  if (students && students.length === 1) {
+    sel.value  = getSid(students[0]);
+    selStudent = students[0];
+  }
+}
+
+async function onStuChange() {
+  var id = document.getElementById('stuSel').value;
+  if (!id) { selStudent = null; render(); return; }
+  try {
+    selStudent = await DataService.getStudent(id);
+    render();
+  } catch(e) {
+    showToast('Could not load student profile.', 'error');
+    selStudent = null;
+    render();
+  }
+}
+
+/* ── FILTERS ── */
+function buildFilters(list) {
+  function uniq(arr, key) {
+    var seen = {};
+    return arr.map(function(i){ return i[key]; }).filter(function(v){
+      if (!v || seen[v]) return false; seen[v]=true; return true;
+    });
+  }
+  function makeList(divId, items) {
+    var div = document.getElementById(divId); if (!div) return;
+    div.innerHTML = items.map(function(item) {
+      var sid = 'f_' + item.replace(/[^a-zA-Z0-9]/g,'_');
+      return '<div class="fcr"><input type="checkbox" id="' + sid + '" value="' + item +
+             '" class="flt" onchange="render()"/><label for="' + sid + '">' + item + '</label></div>';
+    }).join('');
+  }
+  makeList('fDomain',   uniq(list, 'domain'));
+  makeList('fLocation', uniq(list, 'location'));
+  makeList('fDuration', uniq(list, 'duration'));
+}
+
+function clearFilters() {
+  document.querySelectorAll('.flt,.sc').forEach(function(c){ c.checked=false; });
+  document.getElementById('iSearch').value = '';
   render();
 }
 
-function buildFilters(){
-  var all=Store.get(KEYS.INTERNSHIPS);
-  function uniq(arr,key){var seen={};return arr.map(function(i){return i[key];}).filter(function(v){if(!v||seen[v])return false;seen[v]=true;return true;});}
-  function makeList(divId,items){
-    var div=document.getElementById(divId);if(!div)return;
-    div.innerHTML=items.map(function(item){
-      var sid='f_'+item.replace(/[^a-zA-Z0-9]/g,'_');
-      return '<div class="fcr"><input type="checkbox" id="'+sid+'" value="'+item+'" class="flt" onchange="render()"/><label for="'+sid+'">'+item+'</label></div>';
-    }).join('');
-  }
-  makeList('fDomain',uniq(all,'domain'));
-  makeList('fLocation',uniq(all,'location'));
-  makeList('fDuration',uniq(all,'duration'));
+function stipNum(s) {
+  if (!s) return 0;
+  var m = String(s).replace(/,/g,'').match(/\d+/);
+  return m ? parseInt(m[0]) : 0;
 }
 
-function checked(cls){return Array.from(document.querySelectorAll('.'+cls+':checked')).map(function(el){return el.value;});}
-function clearFilters(){document.querySelectorAll('.flt,.sc').forEach(function(c){c.checked=false;});document.getElementById('iSearch').value='';render();}
-function stipNum(s){if(!s)return 0;var m=String(s).replace(/,/g,'').match(/\d+/);return m?parseInt(m[0]):0;}
+/* ── RENDER CARDS ── */
+function render() {
+  var q       = (document.getElementById('iSearch').value || '').toLowerCase();
+  var selDoms = Array.from(document.querySelectorAll('#fDomain .flt:checked')).map(function(e){ return e.value; });
+  var selLocs = Array.from(document.querySelectorAll('#fLocation .flt:checked')).map(function(e){ return e.value; });
+  var selDurs = Array.from(document.querySelectorAll('#fDuration .flt:checked')).map(function(e){ return e.value; });
+  var stipChk = Array.from(document.querySelectorAll('.sc:checked'));
+  var minStip = 0; stipChk.forEach(function(c){ var v=parseInt(c.value)||0; if(v>minStip) minStip=v; });
 
-function render(){
-  var q=(document.getElementById('iSearch').value||'').toLowerCase();
-  var selDoms=Array.from(document.querySelectorAll('#fDomain .flt:checked')).map(function(e){return e.value;});
-  var selLocs=Array.from(document.querySelectorAll('#fLocation .flt:checked')).map(function(e){return e.value;});
-  var selDurs=Array.from(document.querySelectorAll('#fDuration .flt:checked')).map(function(e){return e.value;});
-  var stipChk=Array.from(document.querySelectorAll('.sc:checked'));
-  var minStip=0; stipChk.forEach(function(c){var v=parseInt(c.value)||0;if(v>minStip)minStip=v;});
-
-  var list=Store.get(KEYS.INTERNSHIPS).filter(function(i){
-    var sq=!q||(i.title||'').toLowerCase().indexOf(q)!==-1||(i.company||'').toLowerCase().indexOf(q)!==-1||(i.domain||'').toLowerCase().indexOf(q)!==-1;
-    var sd=!selDoms.length||selDoms.indexOf(i.domain)!==-1;
-    var sl=!selLocs.length||selLocs.indexOf(i.location)!==-1;
-    var du=!selDurs.length||selDurs.indexOf(i.duration)!==-1;
-    var st=!minStip||(i.stipendAmount||stipNum(i.stipend))>=minStip;
-    return sq&&sd&&sl&&du&&st;
+  var list = allInternships.filter(function(i) {
+    var sq = !q || (i.title||'').toLowerCase().indexOf(q)!==-1 ||
+                   (i.company||'').toLowerCase().indexOf(q)!==-1 ||
+                   (i.domain||'').toLowerCase().indexOf(q)!==-1;
+    var sd = !selDoms.length || selDoms.indexOf(i.domain)!==-1;
+    var sl = !selLocs.length || selLocs.indexOf(i.location)!==-1;
+    var du = !selDurs.length || selDurs.indexOf(i.duration)!==-1;
+    var st = !minStip || (i.stipendAmount || stipNum(i.stipend)) >= minStip;
+    return sq && sd && sl && du && st;
   });
 
-  list=list.map(function(i){return Object.assign({},i,{score:selStudent?calcMatchScore(selStudent,i):null});});
+  list = list.map(function(i){
+    return Object.assign({}, i, { score: selStudent ? calcMatchScore(selStudent, i) : null });
+  });
 
-  var by=document.getElementById('sortSel').value;
-  if(by==='match'&&selStudent) list.sort(function(a,b){return b.score-a.score;});
-  else if(by==='stipend') list.sort(function(a,b){return(b.stipendAmount||stipNum(b.stipend))-(a.stipendAmount||stipNum(a.stipend));});
-  else if(by==='deadline') list.sort(function(a,b){return new Date(a.deadline)-new Date(b.deadline);});
-  else if(by==='seats') list.sort(function(a,b){return(b.seats||0)-(a.seats||0);});
+  var by = document.getElementById('sortSel').value;
+  if      (by === 'match'   && selStudent) list.sort(function(a,b){ return b.score - a.score; });
+  else if (by === 'stipend')               list.sort(function(a,b){ return (stipNum(b.stipend)) - (stipNum(a.stipend)); });
+  else if (by === 'deadline')              list.sort(function(a,b){ return new Date(a.deadline) - new Date(b.deadline); });
+  else if (by === 'seats')                 list.sort(function(a,b){ return (b.seats||0) - (a.seats||0); });
 
-  document.getElementById('rCount').textContent=list.length+' internship'+(list.length!==1?'s':'')+' found';
+  document.getElementById('rCount').textContent = list.length + ' internship' + (list.length!==1?'s':'') + ' found';
 
-  var apps=Store.get(KEYS.APPLICATIONS);
-  var grid=document.getElementById('iGrid'); grid.innerHTML='';
-  var session=Auth.getSession();
+  var grid    = document.getElementById('iGrid'); grid.innerHTML = '';
+  var session = Auth.getSession();
 
-  if(!list.length){
-    grid.innerHTML='<div style="text-align:center;padding:4rem;color:var(--muted)"><div style="font-size:3rem;margin-bottom:1rem">🔍</div><p>No internships match your filters.</p><button class="btn btn-ghost" onclick="clearFilters()" style="margin-top:1rem">Clear Filters</button></div>';
+  if (!list.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:4rem;color:var(--muted)">' +
+      '<div style="font-size:3rem;margin-bottom:1rem">🔍</div>' +
+      '<p>No internships match your filters.</p>' +
+      '<button class="btn btn-ghost" onclick="clearFilters()" style="margin-top:1rem">Clear Filters</button></div>';
     return;
   }
 
-  list.forEach(function(i){
-    var sc=i.score, isRec=sc!==null&&sc>=60;
-    var isApp=selStudent&&apps.some(function(a){return (a.internshipId===(i._id||i.id))&&(a.studentId===getSid(selStudent));});
-    var col=sc>=80?'var(--success)':sc>=60?'var(--warning)':'var(--danger)';
-    var R=22,circ=(2*Math.PI*R).toFixed(1),offset=sc!==null?(parseFloat(circ)-(sc/100)*parseFloat(circ)).toFixed(1):circ;
-    var skills=Array.isArray(i.requiredSkills)?i.requiredSkills:(i.requiredSkills||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
-    var tags=Array.isArray(i.tags)?i.tags:(i.tags||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+  list.forEach(function(i) {
+    var sc     = i.score;
+    var isRec  = sc !== null && sc >= 60;
+    var col    = sc >= 80 ? 'var(--success)' : sc >= 60 ? 'var(--warning)' : 'var(--danger)';
+    var R      = 22, circ = (2*Math.PI*R).toFixed(1);
+    var offset = sc !== null ? (parseFloat(circ)-(sc/100)*parseFloat(circ)).toFixed(1) : circ;
+    var iid    = getSid(i);
 
-    var scoreHtml='';
-    if(sc!==null){
-      scoreHtml='<div style="display:flex;align-items:center;gap:.75rem">'+
-        '<div class="mring"><svg width="56" height="56" viewBox="0 0 56 56">'+
-        '<circle cx="28" cy="28" r="'+R+'" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="4"/>'+
-        '<circle cx="28" cy="28" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="4" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" stroke-linecap="round"/>'+
-        '</svg><div class="mpct" style="color:'+col+'">'+sc+'%</div></div>'+
-        '<div style="line-height:1.3"><div style="font-weight:700;color:'+col+';font-size:.8rem">'+(sc>=80?'Excellent':sc>=60?'Good':sc>=40?'Fair':'Low')+'</div>'+
-        '<div style="font-size:.72rem;color:var(--muted)">Match</div></div></div>';
+    var skills = Array.isArray(i.requiredSkills)
+      ? i.requiredSkills
+      : (i.requiredSkills||'').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+    var tags = Array.isArray(i.tags)
+      ? i.tags
+      : (i.tags||'').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+
+    var scoreHtml = '';
+    if (sc !== null) {
+      scoreHtml =
+        '<div style="display:flex;align-items:center;gap:.75rem">' +
+          '<div class="mring"><svg width="56" height="56" viewBox="0 0 56 56">' +
+            '<circle cx="28" cy="28" r="' + R + '" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="4"/>' +
+            '<circle cx="28" cy="28" r="' + R + '" fill="none" stroke="' + col + '" stroke-width="4" ' +
+              'stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '" stroke-linecap="round"/>' +
+          '</svg><div class="mpct" style="color:' + col + '">' + sc + '%</div></div>' +
+          '<div style="line-height:1.3">' +
+            '<div style="font-weight:700;color:' + col + ';font-size:.8rem">' +
+              (sc>=80?'Excellent':sc>=60?'Good':sc>=40?'Fair':'Low') +
+            '</div>' +
+            '<div style="font-size:.72rem;color:var(--muted)">Match</div>' +
+          '</div>' +
+        '</div>';
     }
 
-    /* Apply button logic */
-    var applyHtml='';
-    if(!session){
-      applyHtml='<a href="login.html" class="btn btn-outline btn-sm">Login to Apply</a>';
-    } else if(isApp){
-      applyHtml='<span class="btn btn-success btn-sm" style="cursor:default;pointer-events:none">✅ Applied</span>';
-    } else if(!selStudent){
-      applyHtml='<a href="student-management.html" class="btn btn-outline btn-sm">Fill Profile First</a>';
+    /* Apply button */
+    var applyHtml = '';
+    if (!session) {
+      applyHtml = '<a href="login.html" class="btn btn-outline btn-sm">Login to Apply</a>';
+    } else if (!selStudent) {
+      applyHtml = '<a href="student-management.html" class="btn btn-outline btn-sm">📝 Fill Profile to Apply</a>';
     } else {
-      applyHtml='<button class="btn btn-primary btn-sm" onclick="openApply(\''+(i._id||i.id)+'\')">Apply Now →</button>';
+      applyHtml = '<button class="btn btn-primary btn-sm" id="applyBtn_' + iid +
+        '" onclick="openApply(\'' + iid + '\')">Apply Now →</button>';
     }
 
-    var card=document.createElement('div');
-    card.className='ic'+(isRec?' rec':'');
-    card.innerHTML=
-      (isApp?'<span class="applied-stamp">✅ Applied</span>':'')+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">'+
-        '<div style="display:flex;gap:.75rem;align-items:center">'+
-          '<div class="clogo">'+(ICONS[i.domain]||'🏢')+'</div>'+
-          '<div><div class="ititle">'+i.title+'</div><div style="font-size:.82rem;color:var(--muted)">'+i.company+'</div></div>'+
-        '</div>'+scoreHtml+
-      '</div>'+
-      '<div class="imeta">'+
-        '<span>📍 '+i.location+'</span><span>⏱️ '+i.duration+'</span>'+
-        '<span>💰 '+i.stipend+'</span><span>🎓 Min CGPA: '+(i.minCgpa||'0')+'</span>'+
-        '<span>👥 '+(i.seats||'—')+' Seats</span><span>📅 '+fmtDate(i.deadline)+'</span>'+
-      '</div>'+
-      '<p style="font-size:.875rem;color:var(--white-2);line-height:1.7;margin-bottom:1rem">'+i.description+'</p>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:1rem">'+
-        skills.map(function(s){return '<span class="chip" style="font-size:.72rem">'+s+'</span>';}).join('')+
-      '</div>'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">'+
-        '<div style="display:flex;gap:.35rem;flex-wrap:wrap">'+tags.slice(0,3).map(function(t){return '<span class="badge badge-cyan">'+t+'</span>';}).join('')+'</div>'+
-        '<div>'+applyHtml+'</div>'+
+    var card = document.createElement('div');
+    card.className = 'ic' + (isRec ? ' rec' : '');
+    card.dataset.iid = iid;
+    card.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">' +
+        '<div style="display:flex;gap:.75rem;align-items:center">' +
+          '<div class="clogo">' + (ICONS[i.domain]||'🏢') + '</div>' +
+          '<div><div class="ititle">' + i.title + '</div>' +
+          '<div style="font-size:.82rem;color:var(--muted)">' + i.company + '</div></div>' +
+        '</div>' + scoreHtml +
+      '</div>' +
+      '<div class="imeta">' +
+        '<span>📍 ' + i.location + '</span>' +
+        '<span>⏱️ ' + i.duration + '</span>' +
+        '<span>💰 ' + i.stipend  + '</span>' +
+        '<span>🎓 Min CGPA: ' + (i.minCgpa||'0') + '</span>' +
+        '<span>👥 ' + (i.seats||'—') + ' Seats</span>' +
+        '<span>📅 ' + fmtDate(i.deadline) + '</span>' +
+      '</div>' +
+      '<p style="font-size:.875rem;color:var(--white-2);line-height:1.7;margin-bottom:1rem">' + (i.description||'') + '</p>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:1rem">' +
+        skills.map(function(s){ return '<span class="chip" style="font-size:.72rem">' + s + '</span>'; }).join('') +
+      '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">' +
+        '<div style="display:flex;gap:.35rem;flex-wrap:wrap">' +
+          tags.slice(0,3).map(function(t){ return '<span class="badge badge-cyan">' + t + '</span>'; }).join('') +
+        '</div>' +
+        '<div>' + applyHtml + '</div>' +
       '</div>';
     grid.appendChild(card);
   });
+
+  /* After render, check applied status from MongoDB */
+  if (session && selStudent) checkAppliedStatus();
 }
 
-function openApply(iid){
-  if(!selStudent){showToast('Please fill your student profile first — go to Students page.','warning');return;}
-  var i=Store.getOne(KEYS.INTERNSHIPS,iid);
-  if(!i) i=Store.get(KEYS.INTERNSHIPS).find(function(x){return (x._id||x.id)===iid;});
-  if(!i){showToast('Internship not found. Try refreshing the page.','error');return;}
-  pendingIid=iid;
-  var sc=calcMatchScore(selStudent,i);
-  document.getElementById('applyInfo').innerHTML=
-    '<p style="color:var(--muted);margin-bottom:1rem">Applying for:</p>'+
-    '<div class="card" style="padding:1rem;margin-bottom:.75rem">'+
-      '<div style="font-weight:700">'+i.title+'</div>'+
-      '<div style="font-size:.85rem;color:var(--muted)">'+i.company+' · '+i.location+'</div>'+
-    '</div>'+
-    '<p style="color:var(--muted)">Student: <strong style="color:var(--white)">'+selStudent.fullName+'</strong> ('+selStudent.rollNo+')</p>'+
-    '<p style="color:var(--muted);margin-top:.5rem">AI Match Score: <strong style="color:var(--success)">'+sc+'%</strong></p>';
-  document.getElementById('cover').value='';
-  openModal('applyModal');
+/* ── CHECK APPLIED STATUS from MongoDB ── */
+async function checkAppliedStatus() {
+  if (!selStudent) return;
+  try {
+    var stuId = getSid(selStudent);
+    var apps  = await DataService.getApplications(stuId);
+    var appliedIds = apps.map(function(a){ return String(a.internshipId); });
+
+    appliedIds.forEach(function(iid) {
+      var btn = document.getElementById('applyBtn_' + iid);
+      if (btn) {
+        btn.outerHTML = '<span class="btn btn-success btn-sm" style="cursor:default;pointer-events:none">✅ Applied</span>';
+      }
+      /* Also add stamp to card */
+      var card = document.querySelector('[data-iid="' + iid + '"]');
+      if (card && !card.querySelector('.applied-stamp')) {
+        var stamp = document.createElement('span');
+        stamp.className = 'applied-stamp';
+        stamp.textContent = '✅ Applied';
+        card.style.position = 'relative';
+        card.insertBefore(stamp, card.firstChild);
+      }
+    });
+  } catch(e) {
+    console.warn('Could not check applied status:', e.message);
+  }
 }
 
-async function doApply(){
-  if(!pendingIid||!selStudent){showToast('Missing student or internship data.','error');return;}
-
-  var stuId = getSid(selStudent);
-  var apps = Store.get(KEYS.APPLICATIONS);
-
-  /* Prevent duplicate applications */
-  var alreadyApplied = apps.some(function(a){
-    return (a.internshipId===pendingIid) && (a.studentId===stuId);
-  });
-  if(alreadyApplied){
-    showToast('You already applied for this internship.','warning');
-    closeModal('applyModal');
+/* ── OPEN APPLY MODAL ── */
+async function openApply(iid) {
+  if (!selStudent) {
+    showToast('Please fill your student profile first.', 'warning');
     return;
   }
 
-  var internship = Store.getOne(KEYS.INTERNSHIPS, pendingIid);
-  if(!internship) internship = Store.get(KEYS.INTERNSHIPS).find(function(x){return (x._id||x.id)===pendingIid;});
-
-  var appData = {
-    internshipId: pendingIid,
-    studentId: stuId,
-    studentName: selStudent.fullName,
-    rollNo: selStudent.rollNo,
-    matchScore: calcMatchScore(selStudent, internship),
-    coverLetter: document.getElementById('cover').value,
-    status: 'Pending',
-    appliedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString()
-  };
-
-  /* Try saving to MongoDB first */
-  var savedToBackend = false;
-  try {
-    var online = (typeof isBackendOnline === 'function') ? await isBackendOnline() : false;
-    if(online){
-      var result = await ApplicationsAPI.create(appData);
-      appData.id = result._id || result.id || result.data?._id || ('app_'+Date.now());
-      savedToBackend = true;
-    }
-  } catch(e){
-    console.warn('Backend application save failed, saving locally:', e.message);
+  /* Find internship */
+  var internship = allInternships.find(function(x){ return getSid(x) === iid; });
+  if (!internship) {
+    showToast('Internship not found. Please refresh.', 'error');
+    return;
   }
 
-  /* Always mirror to localStorage so dashboard/admin shows it */
-  if(!appData.id) appData.id = 'app_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
-  apps.push(appData);
-  Store.set(KEYS.APPLICATIONS, apps);
+  /* Check if already applied */
+  try {
+    var stuId = getSid(selStudent);
+    var apps  = await DataService.getApplications(stuId);
+    var already = apps.some(function(a){ return String(a.internshipId) === String(iid); });
+    if (already) {
+      showToast('You have already applied for this internship!', 'warning');
+      return;
+    }
+  } catch(e) { /* proceed even if check fails */ }
 
-  closeModal('applyModal');
-  showToast(
-    savedToBackend
-      ? '🎉 Application submitted and saved to database!'
-      : '🎉 Application submitted! (saved locally — backend offline)',
-    'success'
-  );
-  render();
+  pendingIid = iid;
+  var sc = calcMatchScore(selStudent, internship);
+
+  document.getElementById('applyInfo').innerHTML =
+    '<p style="color:var(--muted);margin-bottom:1rem">Applying for:</p>' +
+    '<div class="card" style="padding:1rem;margin-bottom:.75rem">' +
+      '<div style="font-weight:700">' + internship.title + '</div>' +
+      '<div style="font-size:.85rem;color:var(--muted)">' + internship.company + ' · ' + internship.location + '</div>' +
+    '</div>' +
+    '<p style="color:var(--muted)">Student: <strong style="color:var(--white)">' +
+      selStudent.fullName + '</strong> (' + selStudent.rollNo + ')</p>' +
+    '<p style="color:var(--muted);margin-top:.5rem">AI Match Score: ' +
+      '<strong style="color:var(--success)">' + sc + '%</strong></p>';
+
+  document.getElementById('cover').value = '';
+  document.getElementById('submitApplyBtn').disabled = false;
+  document.getElementById('submitApplyBtn').textContent = '✅ Submit Application';
+  openModal('applyModal');
+}
+
+/* ── SUBMIT APPLICATION — saves directly to MongoDB ── */
+async function doApply() {
+  if (!pendingIid || !selStudent) {
+    showToast('Missing student or internship data.', 'error');
+    return;
+  }
+
+  var submitBtn = document.getElementById('submitApplyBtn');
+  submitBtn.disabled    = true;
+  submitBtn.textContent = '⏳ Submitting…';
+
+  var internship = allInternships.find(function(x){ return getSid(x) === pendingIid; });
+  var stuId      = getSid(selStudent);
+
+  var appData = {
+    internshipId:  pendingIid,
+    studentId:     stuId,
+    studentName:   selStudent.fullName,
+    rollNo:        selStudent.rollNo,
+    email:         selStudent.email,
+    matchScore:    calcMatchScore(selStudent, internship),
+    coverLetter:   document.getElementById('cover').value,
+    status:        'Pending',
+    appliedAt:     new Date().toISOString()
+  };
+
+  try {
+    /* Save to MongoDB */
+    var saved = await DataService.createApplication(appData);
+    closeModal('applyModal');
+
+    /* Big success notification */
+    showApplyNotification(
+      internship ? internship.title   : 'Internship',
+      internship ? internship.company : ''
+    );
+
+    /* Try to send email notification via backend (non-blocking) */
+    if (typeof NotificationsAPI !== 'undefined') {
+      NotificationsAPI.send({
+        type:             'application_submitted',
+        studentId:        stuId,
+        internshipId:     pendingIid,
+        studentName:      selStudent.fullName,
+        internshipTitle:  internship ? internship.title   : '',
+        companyName:      internship ? internship.company : '',
+        email:            selStudent.email
+      });
+    }
+
+    /* Update UI — replace button with Applied badge */
+    var btn = document.getElementById('applyBtn_' + pendingIid);
+    if (btn) btn.outerHTML = '<span class="btn btn-success btn-sm" style="cursor:default;pointer-events:none">✅ Applied</span>';
+
+    var card = document.querySelector('[data-iid="' + pendingIid + '"]');
+    if (card && !card.querySelector('.applied-stamp')) {
+      var stamp = document.createElement('span');
+      stamp.className = 'applied-stamp';
+      stamp.textContent = '✅ Applied';
+      card.style.position = 'relative';
+      card.insertBefore(stamp, card.firstChild);
+    }
+
+    pendingIid = null;
+
+  } catch(e) {
+    var msg = (e.message || '').toLowerCase();
+    if (msg.includes('already') || msg.includes('duplicate')) {
+      showToast('You already applied for this internship.', 'warning');
+      closeModal('applyModal');
+    } else {
+      showToast('❌ Application failed: ' + e.message, 'error');
+      submitBtn.disabled    = false;
+      submitBtn.textContent = '✅ Submit Application';
+    }
+  }
 }
 </script>
 </body>
