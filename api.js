@@ -15,7 +15,7 @@
      MODE — login/register use demo accounts, internships show
      from built-in seed data.
 ========================================================= */
-var _DEPLOYED_BACKEND = '';   /* ← PASTE YOUR RENDER/RAILWAY URL HERE */
+var _DEPLOYED_BACKEND = 'https://capstone-project-backend-m20u.onrender.com';   /* ← PASTE YOUR RENDER/RAILWAY URL HERE */
 
 var API_BASE = (function() {
   if (window.BACKEND_URL)  return window.BACKEND_URL;
