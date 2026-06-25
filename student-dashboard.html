@@ -167,14 +167,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (!student) throw new Error('Profile not found');
     var studentEditId = getSid(student);
     document.getElementById('dashActions').innerHTML =
-      '<a href="student-management.html" class="btn btn-outline btn-sm" ' +
-      'onclick="sessionStorage.setItem('editStudentId','' + studentEditId + '')">✏️ Edit Profile</a>' +
-      '<a href="recommendations.html" class="btn btn-primary btn-sm">🎯 Find Internships</a>';
+      '<a href="student-management.html" class="btn btn-outline btn-sm"'  +
+      ' onclick="sessionStorage.setItem(' + "'" + 'editStudentId' + "'" + ',' + "'" + studentEditId + "'" + ')">' +
+      '&#9999;&#65039; Edit Profile</a>' +
+      ' <a href="recommendations.html" class="btn btn-primary btn-sm">&#127919; Find Internships</a>';
     await loadStudentDash(student);
   } catch(e) {
     document.getElementById('noProfile').classList.remove('hidden');
     document.getElementById('dashActions').innerHTML =
-      '<a href="student-management.html" class="btn btn-primary">➕ Fill My Profile</a>';
+      '<a href="student-management.html" class="btn btn-outline btn-sm"' +
+      ' onclick="sessionStorage.setItem(\"editStudentId\", \"' + studentEditId + '\")">✏️ Edit Profile</a>' +
+      ' <a href="recommendations.html" class="btn btn-primary btn-sm">🎯 Find Internships</a>';
   }
 });
 
