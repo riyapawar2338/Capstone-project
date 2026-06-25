@@ -20,7 +20,7 @@
    ► Example: 'https://capstone-backend.onrender.com/api'
    ► Leave empty '' to run in offline/demo mode
    ────────────────────────────────────────────────────────────── */
-var _DEPLOYED_BACKEND = 'https://capstone-project-backend-m20u.onrender.com';   /* ← PASTE YOUR BACKEND URL HERE */
+var _DEPLOYED_BACKEND = 'https://capstone-project-backend.onrender.com/api';  /* ← PASTE YOUR BACKEND URL HERE */
 
 /* ──────────────────────────────────────────────────────────────
    API_BASE resolution order:
